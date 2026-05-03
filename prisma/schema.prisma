@@ -1,0 +1,49 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?
+  projects      Project[]
+}
+
+model Project {
+  id        String   @id @default(cuid())
+  title     String
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  
+  messages  Message[]
+  documents Document[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  role      String   // "user" or "assistant"
+  content   String
+  createdAt DateTime @default(now())
+}
+
+model Document {
+  id        String   @id @default(cuid())
+  projectId String
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  type      String   // "BRD", "PRD", etc.
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

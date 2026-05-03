@@ -1,0 +1,925 @@
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import { useSession, signOut } from "next-auth/react";
+import { MessageSquare, FileText, Send, Brain, Bot, AlignLeft, Code, User, Play, LayoutDashboard, Loader2, GitBranch, Download, Printer, Edit3, Paperclip, X, Save, LogOut, LogIn, Copy, Check, Mic, Share2, Link as LinkIcon, ExternalLink, Lock, ShieldAlert, CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import pako from 'pako';
+import { AuthModal } from "@/components/AuthModal";
+import { JiraModal } from "@/components/JiraModal";
+
+
+// Component to render Diagrams via Kroki (Professional Server-side Rendering)
+const Mermaid = ({ chart, theme = 'dark' }: { chart: string, theme?: 'dark' | 'default' }) => {
+  const [url, setUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (chart) {
+      try {
+        let cleanChart = chart.replace(/```mermaid/g, '').replace(/```/g, '').trim();
+        if (!cleanChart.startsWith('graph') && !cleanChart.startsWith('sequenceDiagram') && !cleanChart.startsWith('classDiagram') && !cleanChart.startsWith('stateDiagram')) {
+          cleanChart = 'graph TD\n' + cleanChart;
+        }
+
+        // Encode for Kroki: Base64 + Zlib Deflate
+        const data = new TextEncoder().encode(cleanChart);
+        const compressed = pako.deflate(data, { level: 9 });
+        const base64 = btoa(String.fromCharCode.apply(null, Array.from(compressed)))
+          .replace(/\+/g, '-')
+          .replace(/\//g, '_');
+        
+        // Use SVG for crispness, add theme parameter
+        const themeParam = theme === 'dark' ? 'theme=dark' : 'theme=base';
+        setUrl(`https://kroki.io/mermaid/svg/${base64}?${themeParam}`);
+      } catch (e) {
+        console.error("Kroki encoding error", e);
+      }
+    }
+  }, [chart, theme]);
+
+  if (!url) return <div className="animate-pulse h-64 bg-slate-800 rounded-xl" />;
+
+  return (
+    <div className="flex flex-col items-center my-6 gap-4 group">
+      <div className={`p-8 rounded-2xl w-full flex justify-center border transition-all ${theme === 'dark' ? 'bg-slate-900 border-slate-700/50 hover:border-blue-500/50' : 'bg-white border-slate-200'}`}>
+        <img 
+          src={url} 
+          alt="Diagram" 
+          className="max-w-full h-auto"
+          loading="lazy"
+        />
+      </div>
+      <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity no-print">
+        <a href={url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg border border-slate-700 flex items-center gap-2">
+          <ExternalLink className="w-3 h-3" /> View SVG
+        </a>
+        <a href={url.replace('/svg/', '/png/')} download="diagram.png" className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-lg border border-blue-600/30 flex items-center gap-2">
+          <Download className="w-3 h-3" /> Download PNG
+        </a>
+      </div>
+    </div>
+  );
+};
+
+export default function Home() {
+  const { data: session } = useSession();
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [momInput, setMomInput] = useState("");
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>("Chat");
+  const [docsReady, setDocsReady] = useState(false);
+  const [documents, setDocuments] = useState<Record<string, string>>({});
+  const [isEditing, setIsEditing] = useState(false);
+  const [editContent, setEditContent] = useState("");
+  const [isCopied, setIsCopied] = useState(false);
+  const [pastProjects, setPastProjects] = useState<any[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const audioInputRef = useRef<HTMLInputElement>(null);
+  const [isJiraModalOpen, setIsJiraModalOpen] = useState(false);
+
+  // ── Brain 1: Session State Machine ──────────────────────────────
+  const [sessionState, setSessionState] = useState<'INTAKE' | 'QUESTIONING' | 'READY'>('INTAKE');
+  const [readinessScore, setReadinessScore] = useState(0);
+  const [feasibilityIssues, setFeasibilityIssues] = useState<string[]>([]);
+  const [contradictions, setContradictions] = useState<string[]>([]);
+  const [regulatoryFlags, setRegulatoryFlags] = useState<string[]>([]);
+  const [domainDetected, setDomainDetected] = useState('');
+  const [smeInsight, setSmeInsight] = useState('');
+  const [readinessChecklist, setReadinessChecklist] = useState<Record<string, boolean>>({});
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [conflicts, setConflicts] = useState<any[]>([]);
+  const [scopeHistory, setScopeHistory] = useState<{snapshot: any[], impact?: any, timestamp: string}[]>([]);
+  const [showTimeline, setShowTimeline] = useState(false);
+
+  const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([
+    {
+      role: "assistant",
+      content: "Hello! I am Gaurav Nandhan BA Studio. I can help you create BRD, FRD, PRD, SRD, Wireframes, UML Diagrams, and Test Cases. Please paste your Minutes of Meeting (MOM) to begin, and let me know the domain you're targeting."
+    }
+  ]);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  // ── Brain 1: Feasibility & Completeness Analysis ─────────────────
+  const runAnalysis = async (userMessage: string) => {
+    setIsAnalyzing(true);
+    try {
+      const res = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userMessage }),
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setSessionState(data.sessionState || 'QUESTIONING');
+      setReadinessScore(data.readinessScore || 0);
+      setFeasibilityIssues(data.feasibilityIssues || []);
+      setContradictions(data.contradictions || []);
+      setConflicts(data.conflicts || []);
+      setRegulatoryFlags(data.regulatoryFlags || []);
+      setDomainDetected(data.domainDetected || '');
+      setSmeInsight(data.smeInsight || '');
+      setReadinessChecklist(data.readinessChecklist || {});
+      
+      // Impact Analysis Logic (Option B)
+      if (data.snapshot) {
+        const prevVersion = scopeHistory.length > 0 ? scopeHistory[scopeHistory.length - 1] : null;
+        let impactReport = null;
+        
+        if (prevVersion) {
+          try {
+            const impactRes = await fetch('/api/impact', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ 
+                previousSnapshot: prevVersion.snapshot, 
+                currentSnapshot: data.snapshot 
+              }),
+            });
+            if (impactRes.ok) impactReport = await impactRes.json();
+          } catch (err) {
+            console.error('Impact analysis error', err);
+          }
+        }
+        
+        setScopeHistory(prev => [...prev, { 
+          snapshot: data.snapshot, 
+          impact: impactReport, 
+          timestamp: new Date().toLocaleTimeString() 
+        }]);
+      }
+
+      if (data.sessionState === 'READY') setDocsReady(true);
+    } catch (e) {
+      console.error('Brain 1 analysis error', e);
+    } finally {
+      setIsAnalyzing(false);
+    }
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [chatMessages, isProcessing]);
+
+  useEffect(() => {
+    if (session?.user) {
+      fetch('/api/projects').then(res => res.json()).then(data => {
+        if (Array.isArray(data)) setPastProjects(data);
+      });
+    }
+  }, [session]);
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result;
+      if (typeof text === 'string') {
+        setMomInput(prev => prev + (prev ? '\n\n' : '') + `[File Content from ${file.name}]:\n${text}`);
+      }
+    };
+    reader.readAsText(file);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const handleAudioUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsProcessing(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64Data = (event.target?.result as string).split(',')[1];
+        
+        const newMessages = [...chatMessages, { role: "user", content: `Analyzing audio file: ${file.name}` }];
+        setChatMessages(newMessages);
+
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ 
+            messages: newMessages, 
+            audioData: base64Data,
+            mimeType: file.type
+          })
+        });
+
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || 'Failed to process audio');
+
+        setChatMessages(prev => [...prev, { role: "assistant", content: data.content }]);
+        setDocsReady(true);
+      };
+      reader.readAsDataURL(file);
+    } catch (error: any) {
+      console.error("Audio processing error:", error);
+      alert(`Error processing audio: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+      if (audioInputRef.current) audioInputRef.current.value = "";
+    }
+  };
+
+  const handleSend = async () => {
+    if (!momInput.trim()) return;
+    
+    const userText = momInput.trim();
+    const newMessages = [...chatMessages, { role: "user", content: userText }];
+    setChatMessages(newMessages);
+    setMomInput("");
+    setIsProcessing(true);
+
+    // Brain 1: Run analysis on first message or whenever session is still open
+    const isFirstUserMessage = !chatMessages.some(m => m.role === 'user');
+    if (isFirstUserMessage || sessionState === 'QUESTIONING') {
+      runAnalysis(userText);
+    }
+    
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: newMessages })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to communicate with AI');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let assistantContent = "";
+      
+      setChatMessages(prev => [...prev, { role: "assistant", content: "" }]);
+
+      while (true) {
+        const { done, value } = await reader?.read() || { done: true, value: undefined };
+        if (done) break;
+        assistantContent += decoder.decode(value);
+        setChatMessages(prev => {
+          const updated = [...prev];
+          updated[updated.length - 1].content = assistantContent;
+          return updated;
+        });
+      }
+      
+      if (newMessages.length >= 1) {
+        setDocsReady(true);
+      }
+    } catch (error: any) {
+      console.error("Error communicating with BA Agent:", error);
+      setChatMessages(prev => [...prev, { role: "assistant", content: `Sorry, I encountered an error: ${error.message}` }]);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleDocumentClick = async (docName: string) => {
+    if (!docsReady) return;
+    
+    setActiveTab(docName);
+    setIsEditing(false);
+    
+    // If we already generated it, don't re-fetch
+    if (documents[docName]) return;
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: chatMessages, documentRequested: docName, sessionState, readinessScore, feasibilityIssues })
+      });
+      
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to generate document');
+      }
+
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+      let docContent = "";
+      
+      while (true) {
+        const { done, value } = await reader?.read() || { done: true, value: undefined };
+        if (done) break;
+        docContent += decoder.decode(value);
+        setDocuments(prev => ({ ...prev, [docName]: docContent }));
+      }
+    } catch (error: any) {
+      console.error("Error generating document:", error);
+      alert(`Error generating document: ${error.message}`);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const saveProject = async () => {
+    if (!session) {
+      setIsAuthModalOpen(true);
+      return;
+    }
+    setIsProcessing(true);
+    try {
+      const titleCandidate = chatMessages.find(m => m.role === 'user')?.content || "New BA Session";
+      const title = titleCandidate.substring(0, 30) + (titleCandidate.length > 30 ? '...' : '');
+      const res = await fetch('/api/projects', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ title, messages: chatMessages, documents })
+      });
+      if (res.ok) {
+        const newProj = await res.json();
+        setPastProjects(prev => [newProj, ...prev]);
+        alert("Session saved securely to database!");
+      }
+    } catch (err) {
+      console.error("Save error", err);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const documentTypes = [
+    { icon: FileText, label: "BRD" },
+    { icon: FileText, label: "FRD" },
+    { icon: FileText, label: "PRD" },
+    { icon: FileText, label: "SRD" },
+    { icon: Play, label: "Test Cases" },
+    { icon: Code, label: "UML Diagrams" },
+    { icon: GitBranch, label: "Flowcharts" },
+    { icon: AlignLeft, label: "Wireframes" },
+    { icon: LayoutDashboard, label: "Prototypes" },
+  ];
+
+  const downloadDocument = () => {
+    if (!documents[activeTab]) return;
+    const isHtml = activeTab === "Wireframes" || activeTab === "Prototypes";
+    const extension = isHtml ? 'html' : 'md';
+    const mimeType = isHtml ? 'text/html' : 'text/markdown';
+    
+    const blob = new Blob([documents[activeTab]], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${activeTab.replace(/\s+/g, '_')}.${extension}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const copyToClipboard = () => {
+    if (!documents[activeTab]) return;
+    navigator.clipboard.writeText(documents[activeTab]);
+    setIsCopied(true);
+    setTimeout(() => setIsCopied(false), 2000);
+  };
+
+  const printDocument = () => {
+    const element = document.getElementById('document-content');
+    if (!element) return;
+    
+    setIsProcessing(true);
+    // @ts-ignore
+    import('html2pdf.js').then((html2pdf) => {
+      const opt: any = {
+        margin: 10,
+        filename: `${activeTab}_${new Date().getTime()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf.default().from(element).set(opt).save().then(() => {
+        setIsProcessing(false);
+      });
+    });
+  };
+
+  const exportAllToPDF = () => {
+    const container = document.getElementById('bulk-print-container');
+    if (!container) return;
+
+    setIsProcessing(true);
+    container.style.display = 'block';
+    
+    // @ts-ignore
+    import('html2pdf.js').then((html2pdf) => {
+      const opt: any = {
+        margin: 10,
+        filename: `Full_BA_Report_${new Date().getTime()}.pdf`,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2, useCORS: true, logging: false },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+        pagebreak: { mode: 'avoid-all', before: '.print-page' }
+      };
+      
+      html2pdf.default().from(container).set(opt).save().then(() => {
+        container.style.display = 'none';
+        setIsProcessing(false);
+      }).catch(err => {
+        console.error("PDF Export error", err);
+        container.style.display = 'none';
+        setIsProcessing(false);
+      });
+    });
+  };
+
+  const toggleEdit = () => {
+    if (isEditing) {
+      setDocuments(prev => ({ ...prev, [activeTab]: editContent }));
+      setIsEditing(false);
+    } else {
+      setEditContent(documents[activeTab] || "");
+      setIsEditing(true);
+    }
+  };
+
+  const getShareLink = () => {
+    const url = window.location.href;
+    navigator.clipboard.writeText(url);
+    alert("Interactive Preview Link copied to clipboard!");
+  };
+
+  return (
+    <div className="flex h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
+      
+      <aside className="w-72 bg-[#1e293b]/80 border-r border-slate-700/50 backdrop-blur-xl flex flex-col shadow-2xl z-10 no-print">
+        <div className="p-6 border-b border-slate-700/50 flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
+            <Brain className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h1 className="font-bold text-lg leading-tight bg-gradient-to-r from-blue-100 to-cyan-100 bg-clip-text text-transparent">Gaurav Nandhan</h1>
+            <p className="text-xs text-blue-400 font-medium">BA Studio</p>
+          </div>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4 space-y-6">
+          <div>
+            <h2 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3 px-2">Workspace</h2>
+            <nav className="space-y-1">
+              <button onClick={() => setActiveTab("Chat")} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium ${activeTab === "Chat" ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'}`}>
+                <MessageSquare className="w-4 h-4" />
+                BA Agent Chat
+              </button>
+            </nav>
+          </div>
+
+          {/* Brain 1: Readiness Meter */}
+          {sessionState !== 'INTAKE' && (
+            <div className="px-2">
+              <div className="flex items-center justify-between mb-2">
+                <h2 className="text-xs uppercase tracking-wider text-slate-500 font-semibold flex items-center gap-1.5">
+                  <Sparkles className="w-3 h-3 text-amber-400" />
+                  SME Readiness
+                </h2>
+                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
+                  sessionState === 'READY' ? 'bg-emerald-500/20 text-emerald-400' :
+                  readinessScore >= 3 ? 'bg-amber-500/20 text-amber-400' :
+                  'bg-red-500/20 text-red-400'
+                }`}>
+                  {readinessScore}/7
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden mb-3">
+                <div
+                  className={`h-full rounded-full transition-all duration-700 ${
+                    sessionState === 'READY' ? 'bg-emerald-400' :
+                    readinessScore >= 3 ? 'bg-amber-400' : 'bg-red-400'
+                  }`}
+                  style={{ width: `${(readinessScore / 7) * 100}%` }}
+                />
+              </div>
+              {domainDetected && (
+                <div className="mb-2 flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg">
+                  <Brain className="w-3 h-3 text-blue-400 flex-shrink-0" />
+                  <span className="text-xs text-blue-300 truncate">{domainDetected}</span>
+                </div>
+              )}
+              <div className="space-y-1">
+                {Object.entries(readinessChecklist).map(([key, passed]) => (
+                  <div key={key} className="flex items-center gap-2">
+                    {passed
+                      ? <CheckCircle2 className="w-3 h-3 text-emerald-400 flex-shrink-0" />
+                      : <AlertTriangle className="w-3 h-3 text-slate-600 flex-shrink-0" />}
+                    <span className={`text-xs capitalize ${passed ? 'text-slate-400' : 'text-slate-600'}`}>
+                      {key.replace(/([A-Z])/g, ' $1').trim()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              {isAnalyzing && (
+                <div className="mt-2 flex items-center gap-2 text-xs text-amber-400">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  Analyzing requirements...
+                </div>
+              )}
+            </div>
+          )}
+
+          <div>
+            <h2 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3 px-2">Generated Documents</h2>
+            <nav className="space-y-1">
+              {documentTypes.map((item, idx) => {
+                const isGenerated = !!documents[item.label];
+                const isActive = activeTab === item.label;
+                return (
+                  <button
+                    key={idx}
+                    disabled={!docsReady || sessionState === 'QUESTIONING'}
+                    onClick={() => handleDocumentClick(item.label)}
+                    title={sessionState === 'QUESTIONING' ? `Answer the BA's questions first (${readinessScore}/7 ready)` : ''}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
+                      isActive ? 'bg-blue-600 text-white shadow-lg' :
+                      sessionState === 'READY' ? 'hover:bg-slate-800 text-slate-300 cursor-pointer' :
+                      docsReady && sessionState === 'QUESTIONING' ? 'text-slate-500 cursor-not-allowed opacity-60' :
+                      'text-slate-500 cursor-not-allowed opacity-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <item.icon className="w-4 h-4" />
+                      <span>{item.label}</span>
+                    </div>
+                    {sessionState === 'QUESTIONING' && docsReady
+                      ? <Lock className="w-3 h-3 text-amber-500" />
+                      : <span className={`w-2 h-2 rounded-full ${isGenerated ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 'bg-slate-600'}`} />}
+                  </button>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
+
+        <div className="p-4 border-t border-slate-700/50">
+          {session ? (
+            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-slate-800/50 border border-slate-700">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center relative font-bold text-white shadow-inner">
+                  {session.user?.name?.charAt(0) || "U"}
+                  <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-green-500 border-2 border-slate-800 rounded-full"></div>
+                </div>
+                <div className="text-sm font-medium truncate w-28 text-white" title={session.user?.name || ""}>
+                  {session.user?.name || "User"} <br/><span className="text-xs text-green-400 font-normal">Online</span>
+                </div>
+              </div>
+              <button onClick={() => signOut()} className="p-2 hover:bg-slate-700 rounded-md text-slate-400 hover:text-white transition-colors">
+                <LogOut className="w-4 h-4" />
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setIsAuthModalOpen(true)} className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-gradient-to-r from-blue-600 to-blue-500 hover:from-blue-500 hover:to-blue-400 text-white font-medium transition-all shadow-lg shadow-blue-500/20">
+              <LogIn className="w-4 h-4" />
+              Sign In to Save Work
+            </button>
+          )}
+        </div>
+      </aside>
+
+      <main className="flex-1 flex flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1e293b] via-[#0f172a] to-[#0f172a] relative">
+        <header className="h-16 border-b border-slate-700/30 flex items-center justify-between px-8 bg-[#0f172a]/50 backdrop-blur-md z-10 no-print">
+          <h2 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+            {activeTab === "Chat" ? <Bot className="w-5 h-5 text-blue-400" /> : <FileText className="w-5 h-5 text-blue-400" />}
+            {activeTab}
+          </h2>
+          <div className="flex gap-3 items-center">
+             <button onClick={saveProject} className="flex items-center gap-2 text-sm text-slate-300 hover:text-white px-3 py-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700 border border-slate-700 transition-colors">
+               <Save className="w-4 h-4 text-blue-400" />
+               Save Session
+             </button>
+              {activeTab !== "Chat" && documents[activeTab] && (
+                <div className="flex items-center gap-4">
+                  <button onClick={exportAllToPDF} className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-lg text-xs font-bold uppercase tracking-wider shadow-lg hover:shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2 no-print">
+                    <Download className="w-3.5 h-3.5" />
+                    Export All (PDF)
+                  </button>
+                  <div className="flex items-center gap-3 bg-slate-800/50 p-1.5 px-3 rounded-xl border border-slate-700/50">
+                  {(activeTab === "Wireframes" || activeTab === "Prototypes") && (
+                    <button onClick={getShareLink} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-blue-400 hover:text-blue-300 hover:bg-slate-700 transition-colors">
+                      <LinkIcon className="w-4 h-4" />
+                      <span className="text-xs font-medium">Share Link</span>
+                    </button>
+                  )}
+                  <button onClick={toggleEdit} className={`p-1.5 px-3 flex items-center gap-2 rounded-md hover:bg-slate-700 transition-colors ${isEditing ? 'text-green-400' : 'text-slate-300'}`}>
+                    {isEditing ? <Save className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+                    <span className="text-xs font-medium">{isEditing ? "Save" : "Edit"}</span>
+                  </button>
+                  <div className="w-px h-4 bg-slate-700"></div>
+                  <button onClick={() => setIsJiraModalOpen(true)} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition-colors">
+                    <Share2 className="w-4 h-4 text-blue-400" />
+                    <span className="text-xs font-medium">Jira Sync</span>
+                  </button>
+                  <button onClick={copyToClipboard} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition-colors">
+                    {isCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                    <span className="text-xs font-medium">Copy</span>
+                  </button>
+                  <button onClick={downloadDocument} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition-colors">
+                    <Download className="w-4 h-4" />
+                    <span className="text-xs font-medium">Export</span>
+                  </button>
+                  <button onClick={printDocument} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition-colors">
+                    <Printer className="w-4 h-4" />
+                    <span className="text-xs font-medium">PDF Export</span>
+                  </button>
+                  </div>
+                </div>
+              )}
+             <span className="px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-xs font-medium flex items-center gap-2">
+               {isProcessing && <Loader2 className="w-3 h-3 animate-spin" />}
+               {isProcessing ? "Processing..." : "System Ready"}
+             </span>
+          </div>
+        </header>
+
+        {activeTab === "Chat" ? (
+          <>
+            {/* Brain 1: Stakeholder Conflict Detector */}
+            {conflicts.length > 0 && (
+              <div className="mx-8 mt-6 p-5 bg-red-500/10 border border-red-500/30 rounded-2xl">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-red-500/20 rounded-lg">
+                    <ShieldAlert className="w-5 h-5 text-red-400" />
+                  </div>
+                  <div>
+                    <h4 className="text-sm font-bold text-red-400">Stakeholder Conflict Detected</h4>
+                    <p className="text-xs text-red-300/70">Conflicting requirements found across different inputs</p>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  {conflicts.map((conflict, i) => (
+                    <div key={i} className="p-4 bg-slate-900/50 border border-red-500/20 rounded-xl">
+                      <p className="text-sm text-slate-200 mb-3 font-medium">{conflict.description}</p>
+                      <div className="flex flex-wrap gap-2 mb-4">
+                        {conflict.affectedRequirements?.map((reqId: string, ri: number) => (
+                          <span key={ri} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-[10px] text-slate-400 uppercase font-bold">{reqId}</span>
+                        ))}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <button onClick={() => setMomInput(prev => prev + `\n\nResolution for ${conflict.id}: Please clarify which stakeholder requirement takes priority regarding ${conflict.reason}`)} className="text-[10px] font-bold uppercase tracking-wider px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all border border-red-500/30 flex items-center gap-2">
+                          <MessageSquare className="w-3 h-3" />
+                          Resolve via Clarification
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Brain 1: Regulatory Advisor & SME Insight */}
+            {regulatoryFlags.length > 0 && (
+              <div className="mx-8 mt-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-4">
+                <div className="p-2 bg-amber-500/20 rounded-lg">
+                  <ShieldAlert className="w-5 h-5 text-amber-400" />
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-sm font-bold text-amber-400 mb-1">Regulatory Advisor Check</h4>
+                  <ul className="space-y-1 mb-3">
+                    {regulatoryFlags.map((flag, i) => (
+                      <li key={i} className="text-xs text-amber-200/80 flex items-center gap-2">
+                        <div className="w-1 h-1 bg-amber-400 rounded-full" />
+                        {flag}
+                      </li>
+                    ))}
+                  </ul>
+                  <button onClick={() => setMomInput(prev => prev + "\n\nPlease ensure the project follows all identified regulatory standards.")} className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-md transition-all border border-amber-500/30">
+                    Acknowledge & Add to Scope
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {smeInsight && (
+              <div className="mx-8 mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                  <p className="text-xs text-blue-300 font-medium">{smeInsight}</p>
+                </div>
+                <button onClick={() => setMomInput(prev => prev + `\n\nRegarding the SME insight: ${smeInsight}`)} className="text-[10px] font-bold text-blue-400 hover:underline flex-shrink-0">
+                  Explore this
+                </button>
+              </div>
+            )}
+
+            {/* Brain 2: Impact Analysis Timeline Indicator */}
+            {scopeHistory.length > 1 && scopeHistory[scopeHistory.length - 1].impact && (
+              <div className="mx-8 mt-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <GitBranch className="w-4 h-4 text-emerald-400" />
+                  <p className="text-xs text-emerald-300 font-medium">
+                    <span className="font-bold">Impact Detected:</span> {scopeHistory[scopeHistory.length - 1].impact.summary}
+                  </p>
+                </div>
+                <button onClick={() => setShowTimeline(true)} className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-md transition-all border border-emerald-400/30">
+                  View Timeline
+                </button>
+              </div>
+            )}
+
+            <div className="flex-1 overflow-y-auto p-8 space-y-6 scroll-smooth">
+              <AnimatePresence>
+                {chatMessages.map((msg, idx) => (
+                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.3 }} key={idx} className={`flex gap-4 max-w-4xl ${msg.role === "assistant" ? "" : "ml-auto flex-row-reverse"}`}>
+                    <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center shadow-lg ${msg.role === "assistant" ? "bg-gradient-to-br from-blue-500 to-blue-700 text-white" : "bg-slate-700 text-slate-200"}`}>
+                      {msg.role === "assistant" ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
+                    </div>
+                    <div className={`p-5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap shadow-md ${msg.role === "assistant" ? "bg-[#1e293b]/80 backdrop-blur-sm border border-slate-700 text-slate-200 rounded-tl-sm" : "bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-tr-sm"}`}>
+                      {msg.content}
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              <div ref={messagesEndRef} />
+            </div>
+
+            <div className="p-6 bg-[#1e293b]/50 border-t border-slate-700/50 backdrop-blur-md relative z-10 no-print">
+              <div className="max-w-4xl mx-auto relative group">
+                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                <div className="relative flex items-end gap-2 bg-[#0f172a] rounded-xl border border-slate-700/50 p-2 shadow-inner">
+                  <input type="file" accept=".txt,.md,.csv" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                  <input type="file" accept="audio/*" ref={audioInputRef} onChange={handleAudioUpload} className="hidden" />
+                  <button onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0 flex items-center justify-center h-[50px] w-[50px] mb-1"><Paperclip className="w-5 h-5" /></button>
+                  <button onClick={() => audioInputRef.current?.click()} className="p-3 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0 flex items-center justify-center h-[50px] w-[50px] mb-1 group relative"><Mic className="w-5 h-5" /></button>
+                  <textarea value={momInput} onChange={(e) => setMomInput(e.target.value)} placeholder="Paste your MOM or requirements here..." className="w-full max-h-48 min-h-[56px] bg-transparent text-slate-200 placeholder-slate-500 focus:outline-none resize-none p-3 text-sm" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                  <button onClick={handleSend} disabled={!momInput.trim() || isProcessing} className="p-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg text-white transition-colors flex-shrink-0 flex items-center justify-center h-[50px] w-[50px] mb-1 shadow-lg shadow-blue-500/20"><Send className="w-5 h-5" /></button>
+                </div>
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-8 bg-[#0f172a]/30" id="document-content">
+            <div className="max-w-5xl mx-auto bg-[#1e293b]/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl min-h-full">
+              {isProcessing && !documents[activeTab] ? (
+                <div className="flex flex-col items-center justify-center h-96 gap-4 text-slate-400">
+                  <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+                  <p>Generating {activeTab}...</p>
+                </div>
+              ) : documents[activeTab] ? (
+                isEditing ? (
+                  <div className="p-6 h-[calc(100vh-16rem)] flex flex-col">
+                    <div className="flex items-center justify-between mb-4 text-sm text-slate-400 border-b border-slate-700 pb-2">
+                      <span>Editing {activeTab} (Markdown supported)</span>
+                      <button onClick={() => setIsEditing(false)} className="hover:text-slate-200 flex items-center gap-1"><X className="w-4 h-4"/> Cancel</button>
+                    </div>
+                    <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="w-full flex-1 bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-200 font-mono text-sm focus:outline-none resize-none" />
+                  </div>
+                ) : (
+                  (activeTab === "Wireframes" || activeTab === "Prototypes") ? (
+                    <div className="p-4 h-full">
+                       {(() => {
+                          const rawContent = documents[activeTab];
+                          const htmlMatch = rawContent.match(/```html\s+([\s\S]*?)\s+```/);
+                          const htmlContent = htmlMatch ? htmlMatch[1].trim() : rawContent;
+                          const summary = rawContent.replace(/```html[\s\S]*?```/g, '').trim();
+                          const fullHtml = htmlContent.includes('<html') ? htmlContent : `<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"></script><script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script><style>body { background: transparent; color: white; font-family: sans-serif; }</style></head><body>${htmlContent}</body></html>`;
+                          return (
+                            <div className="flex flex-col gap-6">
+                              <div className="prose prose-invert prose-slate max-w-none p-6 bg-slate-800/40 rounded-xl border border-slate-700/50">
+                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+                              </div>
+                              <div className="my-2 border border-slate-700 rounded-xl overflow-hidden bg-[#0f172a] shadow-2xl h-[calc(100vh-32rem)] min-h-[600px] relative">
+                                <iframe srcDoc={fullHtml} className="w-full h-full border-none" title="Prototype Preview" sandbox="allow-scripts allow-modals allow-forms" />
+                              </div>
+                            </div>
+                          );
+                       })()}
+                    </div>
+                  ) : (
+                    <div className="prose prose-invert prose-slate max-w-none p-10 prose-headings:text-blue-100">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code({inline, className, children, ...props}: any) { const match = /language-(\w+)/.exec(className || ''); if (!inline && match && match[1] === 'mermaid') { return <Mermaid chart={String(children).replace(/\n$/, '')} /> } return <code className={className} {...props}>{children}</code> } }}>
+                        {documents[activeTab]}
+                      </ReactMarkdown>
+                    </div>
+                  )
+                )
+              ) : (
+                <div className="flex items-center justify-center h-96 text-slate-500">Select a document to generate.</div>
+              )}
+            </div>
+          </div>
+        )}
+      </main>
+
+      <div id="bulk-print-container" style={{ display: 'none', background: 'white', color: 'black' }}>
+        <div style={{ textAlign: 'center', padding: '80px 50px', border: '8px solid #1e293b', margin: '20px', borderRadius: '30px' }}>
+          <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#1e293b', marginBottom: '10px' }}>Gaurav Nandhan</h1>
+          <p style={{ fontSize: '18px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Business Analyst Studio Report</p>
+          <div style={{ marginTop: '30px', fontSize: '14px', color: '#94a3b8' }}>Generated on {new Date().toLocaleDateString()}</div>
+        </div>
+
+        {Object.entries(documents).map(([name, content]) => (
+          <div key={name} style={{ pageBreakBefore: 'always', padding: '40px' }}>
+            <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#1e293b', borderBottom: '3px solid #f1f5f9', paddingBottom: '15px', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <span style={{ width: '8px', height: '30px', background: '#3b82f6', borderRadius: '4px' }}></span>
+              {name}
+            </h1>
+            <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#334155' }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code({inline, className, children, ...props}: any) { const match = /language-(\w+)/.exec(className || ''); if (!inline && match && match[1] === 'mermaid') { return <Mermaid chart={String(children).replace(/\n$/, '')} theme="default" /> } if (!inline && (name === "Wireframes" || name === "Prototypes")) { return <div style={{ padding: '15px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', color: '#64748b', fontSize: '11px' }}>Interactive demo code excluded.</div>; } return <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }} {...props}>{children}</code> } }}>
+                {(name === "Wireframes" || name === "Prototypes") ? content.replace(/```html[\s\S]*?```/g, '').trim() : content}
+              </ReactMarkdown>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
+      <JiraModal isOpen={isJiraModalOpen} onClose={() => setIsJiraModalOpen(false)} docTitle={activeTab} docContent={documents[activeTab] || ""} />
+
+      {/* Scope Evolution Timeline Modal */}
+      <AnimatePresence>
+        {showTimeline && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowTimeline(false)} className="absolute inset-0 bg-slate-950/80 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.9, opacity: 0, y: 20 }} animate={{ scale: 1, opacity: 1, y: 0 }} exit={{ scale: 0.9, opacity: 0, y: 20 }} className="relative w-full max-w-4xl max-h-[80vh] bg-slate-900 border border-slate-700 rounded-3xl shadow-2xl overflow-hidden flex flex-col">
+              <div className="p-6 border-b border-slate-700 flex items-center justify-between bg-slate-900/50">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-emerald-500/20 rounded-lg text-emerald-400">
+                    <GitBranch className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold text-white">Scope Evolution Timeline</h2>
+                    <p className="text-sm text-slate-400">Tracking changes and cascading impact over time</p>
+                  </div>
+                </div>
+                <button onClick={() => setShowTimeline(false)} className="p-2 hover:bg-slate-800 rounded-full text-slate-400 transition-colors">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-8 bg-slate-900/30">
+                <div className="relative border-l-2 border-slate-700 ml-4 space-y-12 pb-8">
+                  {scopeHistory.map((v, i) => (
+                    <div key={i} className="relative pl-10">
+                      {/* Timeline Dot */}
+                      <div className={`absolute -left-[11px] top-1 w-5 h-5 rounded-full border-4 border-slate-900 shadow-lg ${i === scopeHistory.length - 1 ? 'bg-emerald-500 animate-pulse' : 'bg-slate-600'}`} />
+                      
+                      <div className="flex items-center gap-4 mb-3">
+                        <span className="px-3 py-1 bg-slate-800 rounded-full text-xs font-bold text-slate-300 border border-slate-700 uppercase">Version {i + 1}</span>
+                        <span className="text-xs text-slate-500 font-medium">{v.timestamp}</span>
+                      </div>
+
+                      {v.impact ? (
+                        <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-5 shadow-inner">
+                          <h3 className="text-md font-bold text-emerald-400 mb-2 flex items-center gap-2">
+                            <Sparkles className="w-4 h-4" />
+                            {v.impact.summary}
+                          </h3>
+                          
+                          <div className="space-y-4">
+                            {v.impact.changes.map((change: any, ci: number) => (
+                              <div key={ci} className="flex gap-4 p-3 bg-slate-900/50 rounded-xl border border-slate-800/50">
+                                <div className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full ${change.type === 'ADDED' ? 'bg-green-500' : change.type === 'REMOVED' ? 'bg-red-500' : 'bg-amber-500'}`} />
+                                <div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-xs font-bold text-slate-300">{change.id}</span>
+                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-black uppercase ${change.type === 'ADDED' ? 'bg-green-500/10 text-green-400' : change.type === 'REMOVED' ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'}`}>{change.type}</span>
+                                  </div>
+                                  <p className="text-sm text-slate-200 mb-2">{change.text}</p>
+                                  {change.impact && (
+                                    <div className="pl-3 border-l-2 border-emerald-500/30">
+                                      <p className="text-xs text-emerald-300/70 italic">Impact: {change.impact}</p>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+
+                          {v.impact.architecturalConflict && (
+                            <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
+                              <ShieldAlert className="w-4 h-4 text-red-400 flex-shrink-0" />
+                              <p className="text-xs text-red-300"><span className="font-bold">Architectural Conflict:</span> {v.impact.architecturalConflict}</p>
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="bg-slate-800/30 border border-slate-800 rounded-2xl p-5 border-dashed">
+                          <p className="text-sm text-slate-500 italic">Initial baseline requirements captured.</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="p-4 bg-slate-900 border-t border-slate-800 flex justify-end">
+                <button onClick={() => setShowTimeline(false)} className="px-6 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl font-medium transition-all">Close Timeline</button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
