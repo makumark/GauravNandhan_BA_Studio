@@ -1,5 +1,5 @@
 async function listAllModels() {
-  const apiKey = "AIzaSyA4h5ys4oyyDAQDQ32FblLdVjRK9mmhocc";
+  const apiKey = "AIzaSyBpunFwuEy4Uuohmr6zul4lyy70528anPA";
   const url = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
   
   try {

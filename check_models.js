@@ -1,14 +1,14 @@
 const { GoogleGenerativeAI } = require("@google/generative-ai");
 
 async function listModels() {
-  const genAI = new GoogleGenerativeAI("AIzaSyA4h5ys4oyyDAQDQ32FblLdVjRK9mmhocc");
+  const genAI = new GoogleGenerativeAI("AIzaSyBpunFwuEy4Uuohmr6zul4lyy70528anPA");
   try {
     // There is no direct listModels in the standard SDK easily accessible without raw fetch
     // But we can try to hit a known model and see the error or use the discovery API
     console.log("Checking model availability...");
     
     // Let's try the most common ones
-    const models = ["gemini-1.5-flash", "gemini-1.5-pro", "gemini-pro", "gemini-1.5-flash-latest", "gemini-2.0-flash-exp"];
+    const models = ["gemini-2.5-flash", "gemini-2.5-pro", "gemini-2.0-flash", "gemini-1.5-flash", "gemini-1.5-pro"];
     
     for (const m of models) {
       try {

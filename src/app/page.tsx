@@ -2,7 +2,48 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
-import { MessageSquare, FileText, Send, Brain, Bot, AlignLeft, Code, User, Play, LayoutDashboard, Loader2, GitBranch, Download, Printer, Edit3, Paperclip, X, Save, LogOut, LogIn, Copy, Check, Mic, Share2, Link as LinkIcon, ExternalLink, Lock, ShieldAlert, CheckCircle2, AlertTriangle, Sparkles } from "lucide-react";
+import { 
+  Brain, 
+  Bot, 
+  User, 
+  Send, 
+  Plus, 
+  FileText, 
+  Play, 
+  Code, 
+  GitBranch, 
+  AlignLeft, 
+  LayoutDashboard, 
+  Download, 
+  Save, 
+  Settings, 
+  LogOut, 
+  Loader2, 
+  ChevronRight, 
+  AlertCircle, 
+  CheckCircle2, 
+  Clock, 
+  Shield, 
+  Search, 
+  ExternalLink,
+  Rocket,
+  Target,
+  BarChart3,
+  Copy,
+  MessageSquare,
+  Mic,
+  Share2,
+  Link as LinkIcon,
+  Lock,
+  ShieldAlert,
+  AlertTriangle,
+  Sparkles,
+  Printer,
+  Edit3,
+  Paperclip,
+  X,
+  LogIn
+} from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -55,7 +96,11 @@ const Mermaid = ({ chart, theme = 'dark' }: { chart: string, theme?: 'dark' | 'd
         <a href={url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg border border-slate-700 flex items-center gap-2">
           <ExternalLink className="w-3 h-3" /> View SVG
         </a>
-        <a href={url.replace('/svg/', '/png/')} download="diagram.png" className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-lg border border-blue-600/30 flex items-center gap-2">
+        <a 
+          href={url.replace('/svg/', '/png/').replace('theme=dark', 'theme=base')} 
+          download="diagram.png" 
+          className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-lg border border-blue-600/30 flex items-center gap-2"
+        >
           <Download className="w-3 h-3" /> Download PNG
         </a>
       </div>
@@ -354,6 +399,7 @@ export default function Home() {
     { icon: FileText, label: "FRD" },
     { icon: FileText, label: "PRD" },
     { icon: FileText, label: "SRD" },
+    { icon: Rocket, label: "Executive Pitch" },
     { icon: Play, label: "Test Cases" },
     { icon: Code, label: "UML Diagrams" },
     { icon: GitBranch, label: "Flowcharts" },
@@ -459,8 +505,11 @@ export default function Home() {
             <Brain className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h1 className="font-bold text-lg leading-tight bg-gradient-to-r from-blue-100 to-cyan-100 bg-clip-text text-transparent">Gaurav Nandhan</h1>
-            <p className="text-xs text-blue-400 font-medium">BA Studio</p>
+            <h1 className="font-bold text-xl tracking-tight bg-gradient-to-r from-white via-blue-100 to-blue-200 bg-clip-text text-transparent">Gaurav Nandhan</h1>
+            <div className="flex items-center gap-1.5">
+              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
+              <p className="text-[10px] text-blue-400 font-bold uppercase tracking-[0.2em]">Sovereign BA Studio</p>
+            </div>
           </div>
         </div>
 
@@ -500,28 +549,23 @@ export default function Home() {
                   style={{ width: `${(readinessScore / 7) * 100}%` }}
                 />
               </div>
+              
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {Object.entries(readinessChecklist).map(([key, passed]) => (
+                  <div key={key} title={key.replace(/([A-Z])/g, ' $1').trim()} className={`w-2 h-2 rounded-full ${passed ? 'bg-emerald-500 shadow-[0_0_5px_rgba(16,185,129,0.5)]' : 'bg-slate-700'}`} />
+                ))}
+              </div>
+
               {domainDetected && (
                 <div className="mb-2 flex items-center gap-1.5 px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded-lg">
                   <Brain className="w-3 h-3 text-blue-400 flex-shrink-0" />
-                  <span className="text-xs text-blue-300 truncate">{domainDetected}</span>
+                  <span className="text-xs text-blue-300 truncate font-medium">{domainDetected}</span>
                 </div>
               )}
-              <div className="space-y-1">
-                {Object.entries(readinessChecklist).map(([key, passed]) => (
-                  <div key={key} className="flex items-center gap-2">
-                    {passed
-                      ? <CheckCircle2 className="w-3 h-3 text-emerald-400 flex-shrink-0" />
-                      : <AlertTriangle className="w-3 h-3 text-slate-600 flex-shrink-0" />}
-                    <span className={`text-xs capitalize ${passed ? 'text-slate-400' : 'text-slate-600'}`}>
-                      {key.replace(/([A-Z])/g, ' $1').trim()}
-                    </span>
-                  </div>
-                ))}
-              </div>
               {isAnalyzing && (
                 <div className="mt-2 flex items-center gap-2 text-xs text-amber-400">
                   <Loader2 className="w-3 h-3 animate-spin" />
-                  Analyzing requirements...
+                  Analyzing...
                 </div>
               )}
             </div>
@@ -529,30 +573,23 @@ export default function Home() {
 
           <div>
             <h2 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3 px-2">Generated Documents</h2>
-            <nav className="space-y-1">
+            <nav className="space-y-1 relative z-50">
               {documentTypes.map((item, idx) => {
                 const isGenerated = !!documents[item.label];
                 const isActive = activeTab === item.label;
                 return (
                   <button
                     key={idx}
-                    disabled={!docsReady || sessionState === 'QUESTIONING'}
                     onClick={() => handleDocumentClick(item.label)}
-                    title={sessionState === 'QUESTIONING' ? `Answer the BA's questions first (${readinessScore}/7 ready)` : ''}
                     className={`w-full flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-all duration-200 ${
-                      isActive ? 'bg-blue-600 text-white shadow-lg' :
-                      sessionState === 'READY' ? 'hover:bg-slate-800 text-slate-300 cursor-pointer' :
-                      docsReady && sessionState === 'QUESTIONING' ? 'text-slate-500 cursor-not-allowed opacity-60' :
-                      'text-slate-500 cursor-not-allowed opacity-50'
+                      isActive ? 'bg-blue-600 text-white shadow-lg' : 'hover:bg-slate-800 text-slate-300'
                     }`}
                   >
                     <div className="flex items-center gap-3">
                       <item.icon className="w-4 h-4" />
                       <span>{item.label}</span>
                     </div>
-                    {sessionState === 'QUESTIONING' && docsReady
-                      ? <Lock className="w-3 h-3 text-amber-500" />
-                      : <span className={`w-2 h-2 rounded-full ${isGenerated ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 'bg-slate-600'}`} />}
+                    <span className={`w-2 h-2 rounded-full ${isGenerated ? 'bg-green-400 shadow-[0_0_8px_rgba(74,222,128,0.6)]' : 'bg-slate-600'}`} />
                   </button>
                 );
               })}
@@ -633,181 +670,249 @@ export default function Home() {
                   </div>
                 </div>
               )}
-             <span className="px-3 py-1 bg-blue-500/10 text-blue-400 border border-blue-500/20 rounded-full text-xs font-medium flex items-center gap-2">
-               {isProcessing && <Loader2 className="w-3 h-3 animate-spin" />}
-               {isProcessing ? "Processing..." : "System Ready"}
+             <span className="px-4 py-1.5 bg-blue-500/5 text-blue-400 border border-blue-500/20 rounded-full text-[10px] font-bold uppercase tracking-widest flex items-center gap-2.5 backdrop-blur-sm">
+               {isProcessing ? <Loader2 className="w-3 h-3 animate-spin" /> : <div className="w-2 h-2 rounded-full bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.6)]" />}
+               {isProcessing ? "Agent Working..." : "Intelligence Online"}
              </span>
           </div>
         </header>
 
-        {activeTab === "Chat" ? (
-          <>
-            {/* Brain 1: Stakeholder Conflict Detector */}
-            {conflicts.length > 0 && (
-              <div className="mx-8 mt-6 p-5 bg-red-500/10 border border-red-500/30 rounded-2xl">
-                <div className="flex items-center gap-3 mb-4">
-                  <div className="p-2 bg-red-500/20 rounded-lg">
-                    <ShieldAlert className="w-5 h-5 text-red-400" />
+        <div className="flex-1 flex overflow-hidden">
+          <div className="flex-1 flex flex-col min-w-0">
+            {activeTab === "Chat" ? (
+              <>
+                  <div className="flex-1 overflow-y-auto p-10 space-y-8 scroll-smooth custom-scrollbar">
+                    <AnimatePresence mode="popLayout">
+                      {chatMessages.map((msg, idx) => (
+                        <motion.div 
+                          initial={{ opacity: 0, y: 20, filter: "blur(10px)" }} 
+                          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} 
+                          transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }} 
+                          key={idx} 
+                          className={`flex gap-6 max-w-4xl ${msg.role === "assistant" ? "" : "ml-auto flex-row-reverse"}`}
+                        >
+                          <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-xl transition-transform hover:scale-110 ${msg.role === "assistant" ? "bg-gradient-to-br from-blue-600 to-blue-800 text-white shadow-blue-500/10" : "bg-slate-800 border border-slate-700 text-slate-200"}`}>
+                            {msg.role === "assistant" ? <Brain className="w-6 h-6" /> : <User className="w-6 h-6" />}
+                          </div>
+                          <div className={`p-6 rounded-3xl text-sm leading-relaxed whitespace-pre-wrap shadow-2xl relative ${msg.role === "assistant" ? "bg-[#1e293b]/90 backdrop-blur-xl border border-slate-700/50 text-slate-200 rounded-tl-sm" : "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm shadow-blue-600/20"}`}>
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                    <div ref={messagesEndRef} />
                   </div>
-                  <div>
-                    <h4 className="text-sm font-bold text-red-400">Stakeholder Conflict Detected</h4>
-                    <p className="text-xs text-red-300/70">Conflicting requirements found across different inputs</p>
+
+                <div className="p-6 bg-[#1e293b]/50 border-t border-slate-700/50 backdrop-blur-md relative z-10 no-print">
+                  <div className="max-w-4xl mx-auto relative group">
+                    <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
+                    <div className="relative flex items-end gap-2 bg-[#0f172a] rounded-xl border border-slate-700/50 p-2 shadow-inner">
+                      <input type="file" accept=".txt,.md,.csv" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
+                      <input type="file" accept="audio/*" ref={audioInputRef} onChange={handleAudioUpload} className="hidden" />
+                      <button onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0 flex items-center justify-center h-[50px] w-[50px] mb-1"><Paperclip className="w-5 h-5" /></button>
+                      <button onClick={() => audioInputRef.current?.click()} className="p-3 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0 flex items-center justify-center h-[50px] w-[50px] mb-1 group relative"><Mic className="w-5 h-5" /></button>
+                      <textarea value={momInput} onChange={(e) => setMomInput(e.target.value)} placeholder="Paste your MOM or requirements here..." className="w-full max-h-48 min-h-[56px] bg-transparent text-slate-200 placeholder-slate-500 focus:outline-none resize-none p-3 text-sm" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                      <button onClick={handleSend} disabled={!momInput.trim() || isProcessing} className="p-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg text-white transition-colors flex-shrink-0 flex items-center justify-center h-[50px] w-[50px] mb-1 shadow-lg shadow-blue-500/20"><Send className="w-5 h-5" /></button>
+                    </div>
                   </div>
                 </div>
-                
-                <div className="space-y-4">
-                  {conflicts.map((conflict, i) => (
-                    <div key={i} className="p-4 bg-slate-900/50 border border-red-500/20 rounded-xl">
-                      <p className="text-sm text-slate-200 mb-3 font-medium">{conflict.description}</p>
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {conflict.affectedRequirements?.map((reqId: string, ri: number) => (
-                          <span key={ri} className="px-2 py-0.5 bg-slate-800 border border-slate-700 rounded text-[10px] text-slate-400 uppercase font-bold">{reqId}</span>
-                        ))}
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <button onClick={() => setMomInput(prev => prev + `\n\nResolution for ${conflict.id}: Please clarify which stakeholder requirement takes priority regarding ${conflict.reason}`)} className="text-[10px] font-bold uppercase tracking-wider px-4 py-2 bg-red-500/20 hover:bg-red-500/30 text-red-400 rounded-lg transition-all border border-red-500/30 flex items-center gap-2">
-                          <MessageSquare className="w-3 h-3" />
-                          Resolve via Clarification
-                        </button>
-                      </div>
+              </>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-8 bg-[#0f172a]/30" id="document-content">
+                <div className="max-w-5xl mx-auto bg-[#1e293b]/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl min-h-full">
+                  {isProcessing && !documents[activeTab] ? (
+                    <div className="flex flex-col items-center justify-center h-96 gap-4 text-slate-400">
+                      <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
+                      <p>Generating {activeTab}...</p>
                     </div>
-                  ))}
+                  ) : documents[activeTab] ? (
+                    isEditing ? (
+                      <div className="p-6 h-[calc(100vh-16rem)] flex flex-col">
+                        <div className="flex items-center justify-between mb-4 text-sm text-slate-400 border-b border-slate-700 pb-2">
+                          <span>Editing {activeTab} (Markdown supported)</span>
+                          <button onClick={() => setIsEditing(false)} className="hover:text-slate-200 flex items-center gap-1"><X className="w-4 h-4"/> Cancel</button>
+                        </div>
+                        <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="w-full flex-1 bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-200 font-mono text-sm focus:outline-none resize-none" />
+                      </div>
+                    ) : (
+                      (activeTab === "Wireframes" || activeTab === "Prototypes") ? (
+                        <div className="p-4 h-full">
+                          {(() => {
+                              const rawContent = documents[activeTab];
+                              const htmlMatch = rawContent.match(/```html\s+([\s\S]*?)\s+```/);
+                              const htmlContent = htmlMatch ? htmlMatch[1].trim() : rawContent;
+                              const summary = rawContent.replace(/```html[\s\S]*?```/g, '').trim();
+                              const fullHtml = htmlContent.includes('<html') ? htmlContent : `<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"></script><script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script><style>body { background: transparent; color: white; font-family: sans-serif; }</style></head><body>${htmlContent}</body></html>`;
+                              return (
+                                <div className="flex flex-col gap-6">
+                                  <div className="prose prose-invert prose-slate max-w-none p-6 bg-slate-800/40 rounded-xl border border-slate-700/50">
+                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+                                  </div>
+                                  <div className="my-2 border border-slate-700 rounded-xl overflow-hidden bg-[#0f172a] shadow-2xl h-[calc(100vh-32rem)] min-h-[600px] relative">
+                                    <iframe srcDoc={fullHtml} className="w-full h-full border-none" title="Prototype Preview" sandbox="allow-scripts allow-modals allow-forms" />
+                                  </div>
+                                </div>
+                              );
+                          })()}
+                        </div>
+                      ) : (
+                        <div className="prose prose-invert prose-slate max-w-none p-10 prose-headings:text-blue-100">
+                          {(() => {
+                            const content = documents[activeTab];
+                            if (content.includes('@startuml')) {
+                              const plantumlMatch = content.match(/@startuml([\s\S]*?)@enduml/);
+                              if (plantumlMatch) {
+                                const code = plantumlMatch[0].trim();
+                                // Correct Kroki Encoding: Zlib Deflate + Base64 (URL-safe)
+                                const data = new TextEncoder().encode(code);
+                                const compressed = pako.deflate(data, { level: 9 });
+                                const base64 = btoa(String.fromCharCode.apply(null, Array.from(compressed)))
+                                  .replace(/\+/g, '-')
+                                  .replace(/\//g, '_');
+                                
+                                return (
+                                  <div className="flex flex-col gap-4">
+                                    <div className="bg-white p-8 rounded-2xl border border-slate-700/50 shadow-xl flex justify-center group relative overflow-hidden">
+                                      <div className="absolute inset-0 bg-slate-50 opacity-0 group-hover:opacity-5 transition-opacity pointer-events-none"></div>
+                                      <img src={`https://kroki.io/plantuml/svg/${base64}`} alt="UML Diagram" className="max-w-full h-auto relative z-10" />
+                                    </div>
+                                    <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 overflow-hidden">
+                                      <div className="flex items-center justify-between mb-2 px-1">
+                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">PlantUML Source</span>
+                                        <button onClick={() => navigator.clipboard.writeText(code)} className="text-[10px] text-blue-400 hover:text-blue-300 font-bold uppercase tracking-widest flex items-center gap-1 transition-colors">
+                                          <Copy className="w-3 h-3" /> Copy Code
+                                        </button>
+                                      </div>
+                                      <pre className="text-[11px] text-slate-400 font-mono leading-relaxed overflow-x-auto max-h-60 custom-scrollbar">
+                                        {code}
+                                      </pre>
+                                    </div>
+                                  </div>
+                                );
+                              }
+                            }
+                            return (
+                              <ReactMarkdown 
+                                remarkPlugins={[remarkGfm]} 
+                                components={{ 
+                                  code({inline, className, children, ...props}: any) { 
+                                    const match = /language-(\w+)/.exec(className || ''); 
+                                    if (!inline && match && match[1] === 'mermaid') { 
+                                      return <Mermaid chart={String(children).replace(/\n$/, '')} /> 
+                                    } 
+                                    return <code className={className} {...props}>{children}</code> 
+                                  } 
+                                }}
+                              >
+                                {content}
+                              </ReactMarkdown>
+                            );
+                          })()}
+                        </div>
+                      )
+                    )
+                  ) : (
+                    <div className="flex items-center justify-center h-96 text-slate-500">Select a document to generate.</div>
+                  )}
                 </div>
               </div>
             )}
+          </div>
 
-            {/* Brain 1: Regulatory Advisor & SME Insight */}
-            {regulatoryFlags.length > 0 && (
-              <div className="mx-8 mt-6 p-4 bg-amber-500/10 border border-amber-500/30 rounded-xl flex items-start gap-4">
-                <div className="p-2 bg-amber-500/20 rounded-lg">
-                  <ShieldAlert className="w-5 h-5 text-amber-400" />
+          {/* New Right Sidebar: Intelligence & Insights */}
+          <aside className="w-80 border-l border-slate-700/30 bg-[#0f172a]/50 backdrop-blur-md overflow-y-auto no-print hidden xl:flex flex-col">
+            <div className="p-4 border-b border-slate-700/30">
+              <h3 className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
+                <Brain className="w-3.5 h-3.5 text-blue-400" />
+                Intelligence Panel
+              </h3>
+            </div>
+            
+            <div className="p-4 space-y-4">
+              {/* Stakeholder Conflicts */}
+              {conflicts.length > 0 && (
+                <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ShieldAlert className="w-4 h-4 text-red-400" />
+                    <h4 className="text-xs font-bold text-red-400 uppercase">Conflicts</h4>
+                  </div>
+                  <div className="space-y-3">
+                    {conflicts.map((conflict, i) => (
+                      <div key={i} className="text-xs">
+                        <p className="text-slate-300 mb-2 leading-relaxed">{conflict.description}</p>
+                        <button onClick={() => setMomInput(prev => prev + `\n\nResolution for ${conflict.id}: Please clarify which stakeholder requirement takes priority regarding ${conflict.reason}`)} className="w-full py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 transition-all font-bold uppercase tracking-tighter text-[9px]">
+                          Resolve via Chat
+                        </button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h4 className="text-sm font-bold text-amber-400 mb-1">Regulatory Advisor Check</h4>
-                  <ul className="space-y-1 mb-3">
+              )}
+
+              {/* Regulatory Advisor */}
+              {regulatoryFlags.length > 0 && (
+                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3">
+                    <ShieldAlert className="w-4 h-4 text-amber-400" />
+                    <h4 className="text-xs font-bold text-amber-400 uppercase">Regulatory</h4>
+                  </div>
+                  <ul className="space-y-2 mb-3">
                     {regulatoryFlags.map((flag, i) => (
-                      <li key={i} className="text-xs text-amber-200/80 flex items-center gap-2">
-                        <div className="w-1 h-1 bg-amber-400 rounded-full" />
+                      <li key={i} className="text-[11px] text-amber-200/70 leading-relaxed flex items-start gap-2">
+                        <div className="w-1 h-1 bg-amber-400 rounded-full mt-1.5 flex-shrink-0" />
                         {flag}
                       </li>
                     ))}
                   </ul>
-                  <button onClick={() => setMomInput(prev => prev + "\n\nPlease ensure the project follows all identified regulatory standards.")} className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 rounded-md transition-all border border-amber-500/30">
-                    Acknowledge & Add to Scope
+                  <button onClick={() => setMomInput(prev => prev + "\n\nPlease ensure the project follows all identified regulatory standards.")} className="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/20 transition-all font-bold uppercase tracking-tighter text-[9px]">
+                    Add to Scope
                   </button>
                 </div>
-              </div>
-            )}
+              )}
 
-            {smeInsight && (
-              <div className="mx-8 mt-3 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <Sparkles className="w-4 h-4 text-blue-400" />
-                  <p className="text-xs text-blue-300 font-medium">{smeInsight}</p>
-                </div>
-                <button onClick={() => setMomInput(prev => prev + `\n\nRegarding the SME insight: ${smeInsight}`)} className="text-[10px] font-bold text-blue-400 hover:underline flex-shrink-0">
-                  Explore this
-                </button>
-              </div>
-            )}
-
-            {/* Brain 2: Impact Analysis Timeline Indicator */}
-            {scopeHistory.length > 1 && scopeHistory[scopeHistory.length - 1].impact && (
-              <div className="mx-8 mt-3 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <GitBranch className="w-4 h-4 text-emerald-400" />
-                  <p className="text-xs text-emerald-300 font-medium">
-                    <span className="font-bold">Impact Detected:</span> {scopeHistory[scopeHistory.length - 1].impact.summary}
-                  </p>
-                </div>
-                <button onClick={() => setShowTimeline(true)} className="text-[10px] font-bold uppercase tracking-wider px-3 py-1 bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-400 rounded-md transition-all border border-emerald-400/30">
-                  View Timeline
-                </button>
-              </div>
-            )}
-
-            <div className="flex-1 overflow-y-auto p-8 space-y-6 scroll-smooth">
-              <AnimatePresence>
-                {chatMessages.map((msg, idx) => (
-                  <motion.div initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.3 }} key={idx} className={`flex gap-4 max-w-4xl ${msg.role === "assistant" ? "" : "ml-auto flex-row-reverse"}`}>
-                    <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center shadow-lg ${msg.role === "assistant" ? "bg-gradient-to-br from-blue-500 to-blue-700 text-white" : "bg-slate-700 text-slate-200"}`}>
-                      {msg.role === "assistant" ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
-                    </div>
-                    <div className={`p-5 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap shadow-md ${msg.role === "assistant" ? "bg-[#1e293b]/80 backdrop-blur-sm border border-slate-700 text-slate-200 rounded-tl-sm" : "bg-gradient-to-r from-blue-600 to-blue-500 text-white rounded-tr-sm"}`}>
-                      {msg.content}
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-              <div ref={messagesEndRef} />
-            </div>
-
-            <div className="p-6 bg-[#1e293b]/50 border-t border-slate-700/50 backdrop-blur-md relative z-10 no-print">
-              <div className="max-w-4xl mx-auto relative group">
-                <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-cyan-400 rounded-2xl blur opacity-20 group-hover:opacity-40 transition duration-500"></div>
-                <div className="relative flex items-end gap-2 bg-[#0f172a] rounded-xl border border-slate-700/50 p-2 shadow-inner">
-                  <input type="file" accept=".txt,.md,.csv" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
-                  <input type="file" accept="audio/*" ref={audioInputRef} onChange={handleAudioUpload} className="hidden" />
-                  <button onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0 flex items-center justify-center h-[50px] w-[50px] mb-1"><Paperclip className="w-5 h-5" /></button>
-                  <button onClick={() => audioInputRef.current?.click()} className="p-3 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0 flex items-center justify-center h-[50px] w-[50px] mb-1 group relative"><Mic className="w-5 h-5" /></button>
-                  <textarea value={momInput} onChange={(e) => setMomInput(e.target.value)} placeholder="Paste your MOM or requirements here..." className="w-full max-h-48 min-h-[56px] bg-transparent text-slate-200 placeholder-slate-500 focus:outline-none resize-none p-3 text-sm" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
-                  <button onClick={handleSend} disabled={!momInput.trim() || isProcessing} className="p-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg text-white transition-colors flex-shrink-0 flex items-center justify-center h-[50px] w-[50px] mb-1 shadow-lg shadow-blue-500/20"><Send className="w-5 h-5" /></button>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          <div className="flex-1 overflow-y-auto p-8 bg-[#0f172a]/30" id="document-content">
-            <div className="max-w-5xl mx-auto bg-[#1e293b]/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl min-h-full">
-              {isProcessing && !documents[activeTab] ? (
-                <div className="flex flex-col items-center justify-center h-96 gap-4 text-slate-400">
-                  <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
-                  <p>Generating {activeTab}...</p>
-                </div>
-              ) : documents[activeTab] ? (
-                isEditing ? (
-                  <div className="p-6 h-[calc(100vh-16rem)] flex flex-col">
-                    <div className="flex items-center justify-between mb-4 text-sm text-slate-400 border-b border-slate-700 pb-2">
-                      <span>Editing {activeTab} (Markdown supported)</span>
-                      <button onClick={() => setIsEditing(false)} className="hover:text-slate-200 flex items-center gap-1"><X className="w-4 h-4"/> Cancel</button>
-                    </div>
-                    <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="w-full flex-1 bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-200 font-mono text-sm focus:outline-none resize-none" />
+              {/* SME Insights */}
+              {smeInsight && (
+                <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Sparkles className="w-4 h-4 text-blue-400" />
+                    <h4 className="text-xs font-bold text-blue-400 uppercase">SME Insight</h4>
                   </div>
-                ) : (
-                  (activeTab === "Wireframes" || activeTab === "Prototypes") ? (
-                    <div className="p-4 h-full">
-                       {(() => {
-                          const rawContent = documents[activeTab];
-                          const htmlMatch = rawContent.match(/```html\s+([\s\S]*?)\s+```/);
-                          const htmlContent = htmlMatch ? htmlMatch[1].trim() : rawContent;
-                          const summary = rawContent.replace(/```html[\s\S]*?```/g, '').trim();
-                          const fullHtml = htmlContent.includes('<html') ? htmlContent : `<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"></script><script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script><style>body { background: transparent; color: white; font-family: sans-serif; }</style></head><body>${htmlContent}</body></html>`;
-                          return (
-                            <div className="flex flex-col gap-6">
-                              <div className="prose prose-invert prose-slate max-w-none p-6 bg-slate-800/40 rounded-xl border border-slate-700/50">
-                                <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
-                              </div>
-                              <div className="my-2 border border-slate-700 rounded-xl overflow-hidden bg-[#0f172a] shadow-2xl h-[calc(100vh-32rem)] min-h-[600px] relative">
-                                <iframe srcDoc={fullHtml} className="w-full h-full border-none" title="Prototype Preview" sandbox="allow-scripts allow-modals allow-forms" />
-                              </div>
-                            </div>
-                          );
-                       })()}
-                    </div>
-                  ) : (
-                    <div className="prose prose-invert prose-slate max-w-none p-10 prose-headings:text-blue-100">
-                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code({inline, className, children, ...props}: any) { const match = /language-(\w+)/.exec(className || ''); if (!inline && match && match[1] === 'mermaid') { return <Mermaid chart={String(children).replace(/\n$/, '')} /> } return <code className={className} {...props}>{children}</code> } }}>
-                        {documents[activeTab]}
-                      </ReactMarkdown>
-                    </div>
-                  )
-                )
-              ) : (
-                <div className="flex items-center justify-center h-96 text-slate-500">Select a document to generate.</div>
+                  <p className="text-[11px] text-blue-200/70 leading-relaxed mb-3">{smeInsight}</p>
+                  <button onClick={() => setMomInput(prev => prev + `\n\nRegarding the SME insight: ${smeInsight}`)} className="text-[9px] font-bold text-blue-400 uppercase hover:underline">
+                    Explore deeper
+                  </button>
+                </div>
+              )}
+
+              {/* Impact Analysis */}
+              {scopeHistory.length > 1 && scopeHistory[scopeHistory.length - 1].impact && (
+                <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+                  <div className="flex items-center gap-2 mb-2">
+                    <GitBranch className="w-4 h-4 text-emerald-400" />
+                    <h4 className="text-xs font-bold text-emerald-400 uppercase">Impact Analysis</h4>
+                  </div>
+                  <p className="text-[11px] text-emerald-300/80 leading-relaxed mb-3">
+                    {scopeHistory[scopeHistory.length - 1].impact.summary}
+                  </p>
+                  <button onClick={() => setShowTimeline(true)} className="w-full py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/20 transition-all font-bold uppercase tracking-tighter text-[9px]">
+                    View History
+                  </button>
+                </div>
+              )}
+
+              {/* Session Summary Placeholder if empty */}
+              {conflicts.length === 0 && regulatoryFlags.length === 0 && !smeInsight && scopeHistory.length <= 1 && (
+                <div className="flex flex-col items-center justify-center py-12 text-center opacity-30">
+                  <Bot className="w-12 h-12 text-slate-600 mb-4" />
+                  <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">Awaiting Analysis</p>
+                  <p className="text-[10px] text-slate-600 mt-2 px-6">Input requirements to activate intelligence monitoring.</p>
+                </div>
               )}
             </div>
-          </div>
-        )}
+          </aside>
+        </div>
+
+
       </main>
 
       <div id="bulk-print-container" style={{ display: 'none', background: 'white', color: 'black' }}>

@@ -1,0 +1,9 @@
+.env
+.env.local
+.env.production
+.env.vercel
+node_modules
+.next
+.vercel
+deploy.ps1
+list_models.js
