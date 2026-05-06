@@ -22,6 +22,7 @@ import {
   ChevronRight, 
   AlertCircle, 
   CheckCircle2, 
+  Check,
   Clock, 
   Shield, 
   Search, 
@@ -42,7 +43,8 @@ import {
   Edit3,
   Paperclip,
   X,
-  LogIn
+  LogIn,
+  Zap
 } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from 'react-markdown';
@@ -52,57 +54,93 @@ import { AuthModal } from "@/components/AuthModal";
 import { JiraModal } from "@/components/JiraModal";
 
 
-// Component to render Diagrams via Kroki (Professional Server-side Rendering)
-const Mermaid = ({ chart, theme = 'dark' }: { chart: string, theme?: 'dark' | 'default' }) => {
-  const [url, setUrl] = useState<string>("");
+import mermaid from 'mermaid';
+
+// ── Professional Client-side Mermaid Renderer ──────────────────
+const MermaidRenderer = ({ chart }: { chart: string }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (chart) {
-      try {
-        let cleanChart = chart.replace(/```mermaid/g, '').replace(/```/g, '').trim();
-        if (!cleanChart.startsWith('graph') && !cleanChart.startsWith('sequenceDiagram') && !cleanChart.startsWith('classDiagram') && !cleanChart.startsWith('stateDiagram')) {
-          cleanChart = 'graph TD\n' + cleanChart;
+    const renderDiagram = async () => {
+      if (containerRef.current && chart) {
+        setError(null);
+        try {
+          // 1. Normalize and Clean
+          let cleanChart = chart.replace(/```mermaid/g, '').replace(/```/g, '').trim();
+          
+          // CRITICAL: Fix common AI hallucinations in headers
+          if (cleanChart.toLowerCase().startsWith('graph id') || cleanChart.toLowerCase().startsWith('graph name')) {
+             cleanChart = cleanChart.replace(/^graph\s+\w+/i, 'graph TD');
+          }
+
+          if (!cleanChart.startsWith('graph') && !cleanChart.startsWith('flowchart') && !cleanChart.startsWith('sequenceDiagram')) {
+            cleanChart = 'graph TD\n' + cleanChart;
+          }
+
+          // 2. Zero-Tolerance Syntax Hardening
+          // Convert ALL double quotes to single quotes to prevent any parsing bombs
+          cleanChart = cleanChart.replace(/"/g, "'");
+
+          // Sanitize brackets and parentheses aggressively - REMOVE ALL PARENS FROM LABELS
+          cleanChart = cleanChart
+            .replace(/\[([\s\S]*?)\]/g, (m, label) => `["${label.replace(/[\[\]()"]/g, "").trim()}"]`)
+            .replace(/\(([\s\S]*?)\)/g, (m, label) => `("${label.replace(/[\[\]()"]/g, "").trim()}")`)
+            .replace(/\{([\s\S]*?)\}/g, (m, label) => `{"${label.replace(/[\[\]{}"]/g, "").trim()}"}`);
+          
+          // Final Header Guard
+          if (cleanChart.toLowerCase().includes('graph id')) {
+            cleanChart = cleanChart.replace(/graph\s+id/gi, 'graph TD');
+          }
+          if (cleanChart.toLowerCase().includes('graph td')) {
+            cleanChart = cleanChart.replace(/graph\s+td/gi, 'graph TD');
+          }
+
+          // 3. Initialize & Render
+          mermaid.initialize({ 
+            startOnLoad: false, 
+            theme: 'dark',
+            securityLevel: 'loose',
+            fontFamily: 'Inter, system-ui, sans-serif'
+          });
+
+          const id = `mermaid-svg-${Math.random().toString(36).substr(2, 9)}`;
+          const { svg } = await mermaid.render(id, cleanChart);
+          
+          if (containerRef.current) {
+            containerRef.current.innerHTML = svg;
+          }
+        } catch (e: any) {
+          console.error("Mermaid Render Error:", e);
+          setError(e.message || "Syntax Error in Diagram");
         }
-
-        // Encode for Kroki: Base64 + Zlib Deflate
-        const data = new TextEncoder().encode(cleanChart);
-        const compressed = pako.deflate(data, { level: 9 });
-        const base64 = btoa(String.fromCharCode.apply(null, Array.from(compressed)))
-          .replace(/\+/g, '-')
-          .replace(/\//g, '_');
-        
-        // Use SVG for crispness, add theme parameter
-        const themeParam = theme === 'dark' ? 'theme=dark' : 'theme=base';
-        setUrl(`https://kroki.io/mermaid/svg/${base64}?${themeParam}`);
-      } catch (e) {
-        console.error("Kroki encoding error", e);
       }
-    }
-  }, [chart, theme]);
+    };
 
-  if (!url) return <div className="animate-pulse h-64 bg-slate-800 rounded-xl" />;
+    renderDiagram();
+  }, [chart]);
+
+  if (error) {
+    return (
+      <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-2xl space-y-4 my-6">
+        <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
+          <AlertCircle className="w-4 h-4" /> Visual Engine Fallback
+        </div>
+        <p className="text-[10px] text-slate-500 italic">The AI generated a complex process that the visual engine is struggling to draw. You can view the raw logic below.</p>
+        <div className="p-4 bg-slate-900 rounded-xl overflow-x-auto border border-slate-800">
+          <pre className="text-[10px] text-slate-400 font-mono">{chart}</pre>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex flex-col items-center my-6 gap-4 group">
-      <div className={`p-8 rounded-2xl w-full flex justify-center border transition-all ${theme === 'dark' ? 'bg-slate-900 border-slate-700/50 hover:border-blue-500/50' : 'bg-white border-slate-200'}`}>
-        <img 
-          src={url} 
-          alt="Diagram" 
-          className="max-w-full h-auto"
-          loading="lazy"
-        />
-      </div>
-      <div className="flex gap-3 opacity-0 group-hover:opacity-100 transition-opacity no-print">
-        <a href={url} target="_blank" rel="noopener noreferrer" className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-400 rounded-lg border border-slate-700 flex items-center gap-2">
-          <ExternalLink className="w-3 h-3" /> View SVG
-        </a>
-        <a 
-          href={url.replace('/svg/', '/png/').replace('theme=dark', 'theme=base')} 
-          download="diagram.png" 
-          className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 bg-blue-600/10 hover:bg-blue-600/20 text-blue-400 rounded-lg border border-blue-600/30 flex items-center gap-2"
-        >
-          <Download className="w-3 h-3" /> Download PNG
-        </a>
+    <div className="w-full overflow-x-auto py-10 flex justify-center bg-slate-900/30 rounded-3xl border border-slate-700/30 my-8 group relative transition-all hover:bg-slate-900/50">
+      <div ref={containerRef} className="max-w-full" />
+      <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+         <div className="text-[9px] font-bold text-blue-400 uppercase tracking-tighter px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded">
+           Live Rendered
+         </div>
       </div>
     </div>
   );
@@ -123,6 +161,7 @@ export default function Home() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const audioInputRef = useRef<HTMLInputElement>(null);
   const [isJiraModalOpen, setIsJiraModalOpen] = useState(false);
+  const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
 
   // ── Brain 1: Session State Machine ──────────────────────────────
   const [sessionState, setSessionState] = useState<'INTAKE' | 'QUESTIONING' | 'READY'>('INTAKE');
@@ -134,9 +173,13 @@ export default function Home() {
   const [smeInsight, setSmeInsight] = useState('');
   const [readinessChecklist, setReadinessChecklist] = useState<Record<string, boolean>>({});
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [billionDollarDisruptions, setBillionDollarDisruptions] = useState<any[]>([]);
+  const [questionRoundCount, setQuestionRoundCount] = useState(0);
   const [conflicts, setConflicts] = useState<any[]>([]);
   const [scopeHistory, setScopeHistory] = useState<{snapshot: any[], impact?: any, timestamp: string}[]>([]);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [strategicMoats, setStrategicMoats] = useState<any[]>([]);
+  const [impactScore, setImpactScore] = useState<any>(null);
 
   const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([
     {
@@ -153,11 +196,13 @@ export default function Home() {
   // ── Brain 1: Feasibility & Completeness Analysis ─────────────────
   const runAnalysis = async (userMessage: string) => {
     setIsAnalyzing(true);
+    const newRound = questionRoundCount + 1;
+    setQuestionRoundCount(newRound);
     try {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ message: userMessage, round: newRound }),
       });
       if (!res.ok) return;
       const data = await res.json();
@@ -169,7 +214,10 @@ export default function Home() {
       setRegulatoryFlags(data.regulatoryFlags || []);
       setDomainDetected(data.domainDetected || '');
       setSmeInsight(data.smeInsight || '');
+      setBillionDollarDisruptions(data.billionDollarDisruptions || []);
       setReadinessChecklist(data.readinessChecklist || {});
+      setStrategicMoats(data.strategicMoats || []);
+      setImpactScore(data.impactScore || null);
       
       // Impact Analysis Logic (Option B)
       if (data.snapshot) {
@@ -338,8 +386,9 @@ export default function Home() {
     if (documents[docName]) return;
 
     setIsProcessing(true);
+    let response: any;
     try {
-      const response = await fetch('/api/chat', {
+      response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ messages: chatMessages, documentRequested: docName, sessionState, readinessScore, feasibilityIssues })
@@ -354,15 +403,46 @@ export default function Home() {
       const decoder = new TextDecoder();
       let docContent = "";
       
-      while (true) {
-        const { done, value } = await reader?.read() || { done: true, value: undefined };
-        if (done) break;
-        docContent += decoder.decode(value);
-        setDocuments(prev => ({ ...prev, [docName]: docContent }));
-      }
+        while (true) {
+          const { done, value } = await reader?.read() || { done: true, value: undefined };
+          if (done) break;
+          docContent += decoder.decode(value);
+          
+          // Real-time Mermaid/UML Sanitization for the UI
+          let sanitizedContent = docContent;
+          if (docName === 'Flowcharts') {
+            // Aggressive Mermaid Sanitization
+            sanitizedContent = sanitizedContent.replace(/([a-zA-Z0-9_-]+)\s*\[([^"\]]+)\]/gi, (m, id, label) => {
+              const safeLabel = label.trim().replace(/"/g, "'");
+              return `${id}["${safeLabel}"]`;
+            });
+            // Handle link labels with colons (common AI mistake)
+            sanitizedContent = sanitizedContent.replace(/([a-zA-Z0-9_-]+)\s*-->\s*([a-zA-Z0-9_-]+)\s*:\s*([^\n]+)/gi, (m, a, b, l) => {
+              const safeLabel = l.trim().replace(/"/g, "'");
+              return `${a} -->|${safeLabel}| ${b}`;
+            });
+            // Handle other node shapes
+            sanitizedContent = sanitizedContent.replace(/([a-zA-Z0-9_-]+)\s*\(([^"\]]+)\)/gi, (m, id, label) => {
+              const safeLabel = label.trim().replace(/"/g, "'");
+              return `${id}("${safeLabel}")`;
+            });
+            sanitizedContent = sanitizedContent.replace(/([a-zA-Z0-9_-]+)\s*\{([^"\]]+)\}/gi, (m, id, label) => {
+              const safeLabel = label.trim().replace(/"/g, "'");
+              return `${id}{"${safeLabel}"}`;
+            });
+            
+            if (!sanitizedContent.includes('graph') && !sanitizedContent.includes('flowchart')) {
+              sanitizedContent = 'graph TD\n' + sanitizedContent;
+            }
+          }
+          
+          setDocuments(prev => ({ ...prev, [docName]: sanitizedContent }));
+        }
     } catch (error: any) {
       console.error("Error generating document:", error);
-      alert(`Error generating document: ${error.message}`);
+      const rawText = await response?.text().catch(() => '');
+      const detail = rawText ? `\n\nDetail: ${rawText.slice(0, 200)}...` : '';
+      alert(`Error generating document: ${error.message}${detail}`);
     } finally {
       setIsProcessing(false);
     }
@@ -385,7 +465,8 @@ export default function Home() {
       if (res.ok) {
         const newProj = await res.json();
         setPastProjects(prev => [newProj, ...prev]);
-        alert("Session saved securely to database!");
+        setCurrentProjectId(newProj.id);
+        alert("Session saved securely to database! Share link is now active.");
       }
     } catch (err) {
       console.error("Save error", err);
@@ -438,6 +519,15 @@ export default function Home() {
     setIsProcessing(true);
     // @ts-ignore
     import('html2pdf.js').then((html2pdf) => {
+      // PDF COMPATIBILITY FILTER: html2canvas hates oklch/oklab
+      const clone = element.cloneNode(true) as HTMLElement;
+      const allElements = clone.querySelectorAll('*');
+      allElements.forEach((el: any) => {
+        const style = window.getComputedStyle(el);
+        if (style.color.includes('oklch') || style.color.includes('oklab')) el.style.color = '#334155';
+        if (style.backgroundColor.includes('oklch') || style.backgroundColor.includes('oklab')) el.style.backgroundColor = '#f8fafc';
+      });
+
       const opt: any = {
         margin: 10,
         filename: `${activeTab}_${new Date().getTime()}.pdf`,
@@ -445,7 +535,7 @@ export default function Home() {
         html2canvas: { scale: 2, useCORS: true, logging: false },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
-      html2pdf.default().from(element).set(opt).save().then(() => {
+      html2pdf.default().from(clone).set(opt).save().then(() => {
         setIsProcessing(false);
       });
     });
@@ -460,6 +550,16 @@ export default function Home() {
     
     // @ts-ignore
     import('html2pdf.js').then((html2pdf) => {
+      // PDF COMPATIBILITY FILTER: html2canvas hates oklch/oklab
+      const clone = container.cloneNode(true) as HTMLElement;
+      clone.style.display = 'block';
+      const allElements = clone.querySelectorAll('*');
+      allElements.forEach((el: any) => {
+        const style = window.getComputedStyle(el);
+        if (style.color.includes('oklch') || style.color.includes('oklab')) el.style.color = '#334155';
+        if (style.backgroundColor.includes('oklch') || style.backgroundColor.includes('oklab')) el.style.backgroundColor = '#f8fafc';
+      });
+
       const opt: any = {
         margin: 10,
         filename: `Full_BA_Report_${new Date().getTime()}.pdf`,
@@ -469,7 +569,7 @@ export default function Home() {
         pagebreak: { mode: 'avoid-all', before: '.print-page' }
       };
       
-      html2pdf.default().from(container).set(opt).save().then(() => {
+      html2pdf.default().from(clone).set(opt).save().then(() => {
         container.style.display = 'none';
         setIsProcessing(false);
       }).catch(err => {
@@ -491,9 +591,16 @@ export default function Home() {
   };
 
   const getShareLink = () => {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url);
-    alert("Interactive Preview Link copied to clipboard!");
+    if (!currentProjectId) {
+      alert("⚠️ Please 'Save Session' first to generate a shareable link.");
+      return;
+    }
+    const url = `${window.location.origin}/share/${currentProjectId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      alert("✅ Public Share Link Copied! Anyone with this link can now view your work.");
+    }).catch(() => {
+      alert("Failed to copy link. Please copy the URL from your browser manually.");
+    });
   };
 
   return (
@@ -711,7 +818,18 @@ export default function Home() {
                       <input type="file" accept="audio/*" ref={audioInputRef} onChange={handleAudioUpload} className="hidden" />
                       <button onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0 flex items-center justify-center h-[50px] w-[50px] mb-1"><Paperclip className="w-5 h-5" /></button>
                       <button onClick={() => audioInputRef.current?.click()} className="p-3 text-slate-400 hover:text-blue-400 hover:bg-slate-800 rounded-lg transition-colors flex-shrink-0 flex items-center justify-center h-[50px] w-[50px] mb-1 group relative"><Mic className="w-5 h-5" /></button>
-                      <textarea value={momInput} onChange={(e) => setMomInput(e.target.value)} placeholder="Paste your MOM or requirements here..." className="w-full max-h-48 min-h-[56px] bg-transparent text-slate-200 placeholder-slate-500 focus:outline-none resize-none p-3 text-sm" onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} />
+                      <textarea 
+                        value={momInput} 
+                        onChange={(e) => setMomInput(e.target.value)} 
+                        onInput={(e: any) => setMomInput(e.target.value)}
+                        onPaste={(e: any) => {
+                          const text = e.clipboardData.getData('text');
+                          setMomInput(text);
+                        }}
+                        placeholder="Paste your MOM or requirements here..." 
+                        className="w-full max-h-48 min-h-[56px] bg-transparent text-slate-200 placeholder-slate-500 focus:outline-none resize-none p-3 text-sm" 
+                        onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} 
+                      />
                       <button onClick={handleSend} disabled={!momInput.trim() || isProcessing} className="p-3 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-lg text-white transition-colors flex-shrink-0 flex items-center justify-center h-[50px] w-[50px] mb-1 shadow-lg shadow-blue-500/20"><Send className="w-5 h-5" /></button>
                     </div>
                   </div>
@@ -739,8 +857,8 @@ export default function Home() {
                         <div className="p-4 h-full">
                           {(() => {
                               const rawContent = documents[activeTab];
-                              const htmlMatch = rawContent.match(/```html\s+([\s\S]*?)\s+```/);
-                              const htmlContent = htmlMatch ? htmlMatch[1].trim() : rawContent;
+                              const htmlMatch = rawContent.match(/```html\s+([\s\S]*?)(\s+```|$)/i);
+                              let htmlContent = htmlMatch ? htmlMatch[1].trim() : rawContent.replace(/```html/gi, '').replace(/```/g, '').trim();
                               const summary = rawContent.replace(/```html[\s\S]*?```/g, '').trim();
                               const fullHtml = htmlContent.includes('<html') ? htmlContent : `<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"></script><script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script><style>body { background: transparent; color: white; font-family: sans-serif; }</style></head><body>${htmlContent}</body></html>`;
                               return (
@@ -749,7 +867,25 @@ export default function Home() {
                                     <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
                                   </div>
                                   <div className="my-2 border border-slate-700 rounded-xl overflow-hidden bg-[#0f172a] shadow-2xl h-[calc(100vh-32rem)] min-h-[600px] relative">
-                                    <iframe srcDoc={fullHtml} className="w-full h-full border-none" title="Prototype Preview" sandbox="allow-scripts allow-modals allow-forms" />
+                                    <iframe 
+                                      srcDoc={fullHtml} 
+                                      className="w-full h-full border-none" 
+                                      title="Prototype Preview" 
+                                      sandbox="allow-scripts allow-modals allow-forms allow-same-origin allow-popups"
+                                      onLoad={(e) => {
+                                        const win = (e.target as HTMLIFrameElement).contentWindow;
+                                        if (win) {
+                                          // Force focus on click to ensure keyboard events work
+                                          win.document.body.onclick = () => win.focus();
+                                          win.addEventListener('click', (ev: any) => {
+                                            const link = ev.target.closest('a');
+                                            if (link && (link.getAttribute('href') === '#' || link.getAttribute('href')?.startsWith('/'))) {
+                                              ev.preventDefault();
+                                            }
+                                          });
+                                        }
+                                      }}
+                                    />
                                   </div>
                                 </div>
                               );
@@ -762,8 +898,11 @@ export default function Home() {
                             if (content.includes('@startuml')) {
                               const plantumlMatch = content.match(/@startuml([\s\S]*?)@enduml/);
                               if (plantumlMatch) {
-                                const code = plantumlMatch[0].trim();
-                                // Correct Kroki Encoding: Zlib Deflate + Base64 (URL-safe)
+                                const rawCode = plantumlMatch[0].trim();
+                                const code = rawCode.split('\n')
+                                  .map(line => line.split("'")[0].replace(/\*\*/g, '').trim())
+                                  .filter(line => line.length > 0)
+                                  .join('\n');
                                 const data = new TextEncoder().encode(code);
                                 const compressed = pako.deflate(data, { level: 9 });
                                 const base64 = btoa(String.fromCharCode.apply(null, Array.from(compressed)))
@@ -798,7 +937,12 @@ export default function Home() {
                                   code({inline, className, children, ...props}: any) { 
                                     const match = /language-(\w+)/.exec(className || ''); 
                                     if (!inline && match && match[1] === 'mermaid') { 
-                                      return <Mermaid chart={String(children).replace(/\n$/, '')} /> 
+                                      const chartCode = String(children).replace(/\n$/, '');
+                                      // If it's too short or doesn't have a basic graph structure yet, show loader
+                                      if (chartCode.length < 10 || (!chartCode.includes('graph') && !chartCode.includes('flowchart'))) {
+                                        return <div className="p-4 bg-slate-900/50 rounded flex items-center gap-2 text-slate-500 text-xs italic"><Loader2 className="w-3 h-3 animate-spin" /> Rendering diagram...</div>;
+                                      }
+                                      return <MermaidRenderer chart={chartCode} /> 
                                     } 
                                     return <code className={className} {...props}>{children}</code> 
                                   } 
@@ -829,20 +973,85 @@ export default function Home() {
             </div>
             
             <div className="p-4 space-y-4">
+              {/* ROI & Impact Gauge */}
+              {impactScore && (
+                <div className="p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl shadow-xl overflow-hidden relative group">
+                   <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <Zap className="w-8 h-8 text-yellow-400" />
+                  </div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                    <Zap className="w-3 h-3 text-yellow-400" /> Executive Impact Score
+                  </h4>
+                  <div className="space-y-4">
+                    {[
+                      { label: "Business Value", val: impactScore.businessValue, color: "bg-green-500" },
+                      { label: "Feasibility", val: impactScore.technicalFeasibility, color: "bg-blue-500" },
+                      { label: "Alignment", val: impactScore.strategicAlignment, color: "bg-purple-500" }
+                    ].map((item, i) => (
+                      <div key={i} className="space-y-1.5">
+                        <div className="flex justify-between text-[10px] font-medium">
+                          <span className="text-slate-500">{item.label}</span>
+                          <span className="text-slate-300">{item.val}/10</span>
+                        </div>
+                        <div className="h-1 w-full bg-slate-700 rounded-full overflow-hidden">
+                          <motion.div 
+                            initial={{ width: 0 }}
+                            animate={{ width: `${item.val * 10}%` }}
+                            transition={{ duration: 1, ease: "easeOut", delay: i * 0.1 }}
+                            className={`h-full ${item.color} shadow-[0_0_8px_rgba(0,0,0,0.3)]`} 
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Strategic Moat Audit */}
+              {strategicMoats.length > 0 && (
+                <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <Shield className="w-8 h-8 text-blue-400" />
+                  </div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-3 flex items-center gap-2">
+                    <Shield className="w-3 h-3" /> Strategic Moat Audit
+                  </h4>
+                  <div className="space-y-3">
+                    {strategicMoats.map((moat, i) => (
+                      <div key={i} className="space-y-1">
+                        <div className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                          <div className="w-1 h-1 rounded-full bg-blue-400" />
+                          {moat.type}
+                        </div>
+                        <p className="text-[10px] text-slate-500 leading-relaxed italic pl-2.5">
+                          "{moat.observation}"
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Stakeholder Conflicts */}
               {conflicts.length > 0 && (
-                <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <ShieldAlert className="w-4 h-4 text-red-400" />
-                    <h4 className="text-xs font-bold text-red-400 uppercase">Conflicts</h4>
-                  </div>
-                  <div className="space-y-3">
+                <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-2xl relative overflow-hidden group">
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-3 flex items-center gap-2">
+                    <AlertCircle className="w-3 h-3" /> Conflict Detector
+                  </h4>
+                  <div className="space-y-4">
                     {conflicts.map((conflict, i) => (
-                      <div key={i} className="text-xs">
-                        <p className="text-slate-300 mb-2 leading-relaxed">{conflict.description}</p>
-                        <button onClick={() => setMomInput(prev => prev + `\n\nResolution for ${conflict.id}: Please clarify which stakeholder requirement takes priority regarding ${conflict.reason}`)} className="w-full py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg border border-red-500/20 transition-all font-bold uppercase tracking-tighter text-[9px]">
-                          Resolve via Chat
-                        </button>
+                      <div key={i} className="space-y-2">
+                        <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
+                          {conflict.description}
+                        </p>
+                        {conflict.resolution && (
+                          <div className="p-2.5 bg-slate-900/50 rounded-lg border border-slate-700/30">
+                            <div className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter mb-1">Proposed Resolution</div>
+                            <p className="text-[10px] text-slate-400 italic leading-snug">
+                              {conflict.resolution}
+                            </p>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>
@@ -867,6 +1076,33 @@ export default function Home() {
                   <button onClick={() => setMomInput(prev => prev + "\n\nPlease ensure the project follows all identified regulatory standards.")} className="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/20 transition-all font-bold uppercase tracking-tighter text-[9px]">
                     Add to Scope
                   </button>
+                </div>
+              )}
+
+              {/* Billion Dollar Disruptions */}
+              {billionDollarDisruptions.length > 0 && (
+                <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/5 border border-yellow-500/20 p-4 rounded-xl">
+                  <div className="flex items-center gap-2 mb-3 text-amber-400">
+                    <Sparkles className="w-5 h-5" />
+                    <h3 className="font-bold tracking-tight uppercase text-xs">Billion Dollar Opportunities</h3>
+                  </div>
+                  <div className="space-y-4">
+                    {billionDollarDisruptions.map((disruption, idx) => (
+                      <div key={idx} className="group">
+                        <div className="flex justify-between items-start mb-1">
+                          <h4 className="text-sm font-semibold text-white group-hover:text-amber-300 transition-colors">{disruption.title}</h4>
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold ${
+                            disruption.effort === 'low' ? 'bg-green-500/20 text-green-400' :
+                            disruption.effort === 'med' ? 'bg-blue-500/20 text-blue-400' :
+                            'bg-red-500/20 text-red-400'
+                          }`}>
+                            {disruption.effort} effort
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-400 leading-relaxed">{disruption.impact}</p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -929,7 +1165,7 @@ export default function Home() {
               {name}
             </h1>
             <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#334155' }}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code({inline, className, children, ...props}: any) { const match = /language-(\w+)/.exec(className || ''); if (!inline && match && match[1] === 'mermaid') { return <Mermaid chart={String(children).replace(/\n$/, '')} theme="default" /> } if (!inline && (name === "Wireframes" || name === "Prototypes")) { return <div style={{ padding: '15px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', color: '#64748b', fontSize: '11px' }}>Interactive demo code excluded.</div>; } return <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }} {...props}>{children}</code> } }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code({inline, className, children, ...props}: any) { const match = /language-(\w+)/.exec(className || ''); if (!inline && match && match[1] === 'mermaid') { return <MermaidRenderer chart={String(children).replace(/\n$/, '')} /> } if (!inline && (name === "Wireframes" || name === "Prototypes")) { return <div style={{ padding: '15px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', color: '#64748b', fontSize: '11px' }}>Interactive demo code excluded.</div>; } return <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }} {...props}>{children}</code> } }}>
                 {(name === "Wireframes" || name === "Prototypes") ? content.replace(/```html[\s\S]*?```/g, '').trim() : content}
               </ReactMarkdown>
             </div>

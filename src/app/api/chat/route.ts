@@ -17,16 +17,67 @@ const safetySettings = [
   { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
 ];
 
-const AGENT_CONFIGS = {
+const GOLD_STANDARD_EXAMPLES: Record<string, string> = {
+  'HTML/Tailwind/JS (Alpine.js)': `
+### GOLD STANDARD: FUNCTIONAL PROTOTYPE (ALPINE.JS)
+Example: "KYC Onboarding with Data Persistence"
+\`\`\`html
+<div x-data="{ screen: 'form', name: '', docStatus: 'Pending', submit() { this.screen = 'success'; this.docStatus = 'Verified'; } }" class="p-8">
+  <div x-show="screen === 'form'">
+    <h2 class="text-2xl font-bold mb-4">Onboarding</h2>
+    <input x-model="name" placeholder="Enter Full Name" class="border p-2 w-full mb-4">
+    <button @click="submit()" class="bg-blue-600 text-white px-4 py-2 rounded">Submit KYC</button>
+  </div>
+  <div x-show="screen === 'success'">
+    <h2 class="text-2xl font-bold mb-4 text-green-600">Success!</h2>
+    <p>Welcome, <span x-text="name" class="font-bold"></span>.</p>
+    <p>Status: <span x-text="docStatus" class="px-2 py-1 bg-green-100 rounded"></span></p>
+  </div>
+</div>
+\`\`\`
+`,
+  'Mermaid': `
+### GOLD STANDARD: FLOWCHART (MERMAID)
+Example: "Order Fulfillment Logic"
+\`\`\`mermaid
+graph TD
+  A["Customer Order"] --> B{"Stock Check"}
+  B -- "In Stock" --> C["Reserve Items"]
+  B -- "OOS" --> D["Trigger Restock"]
+  C --> E["Payment Processing"]
+  E --> F["Ship Order"]
+\`\`\`
+`,
+  'PlantUML': `
+### GOLD STANDARD: UML (PLANTUML)
+Example: "Patient Record Management"
+\`\`\`plantuml
+@startuml
+left to right direction
+actor "Doctor" as D
+actor "Admin" as A
+package "Hospital System" {
+  usecase "View Records" as UC1
+  usecase "Update Meds" as UC2
+}
+D --> UC1
+D --> UC2
+A --> UC1
+@enduml
+\`\`\`
+`
+};
+
+const AGENT_CONFIGS: Record<string, any> = {
   'UML Diagrams': {
     name: "System Architect Agent",
     tool: "PlantUML",
-    instruction: "Generate professional PlantUML diagrams following UML 2.5 standards. Focus on Architecture, Component, and Sequence diagrams. Use clean, modular syntax. Adhere to C4 modeling principles for complex systems."
+    instruction: "Generate professional PlantUML. RULE: Output ONLY the code starting with @startuml and ending with @enduml. IMPORTANT: Do NOT use any '!include' statements. Use only standard PlantUML shapes. Ensure the diagram is self-contained and renders perfectly on Kroki.io. Create a clear Sequence or Use Case diagram."
   },
   'Flowcharts': {
-    name: "Elite Process Architect (Lucidchart Expert)",
+    name: "Elite Process Architect",
     tool: "Mermaid v2",
-    instruction: "Generate complex business process flowcharts in Mermaid (graph TD). Emulate Lucidchart's professional aesthetic: clear hierarchy, logical decision nodes, and business-process-model (BPMN) clarity. CRITICAL: Use 'A -->|Label| B' syntax. Focus on end-to-end process integrity."
+    instruction: "Generate a professional business process flowchart in Mermaid (graph TD). RULE: Use BPMN 2.0 logic. IMPORTANT: Every node label MUST be wrapped in double quotes, e.g., A[\"Start\"]. Every decision node MUST have 'Success' and 'Failure' branches."
   },
   'Wireframes': {
     name: "UX Architect Agent",
@@ -35,8 +86,8 @@ const AGENT_CONFIGS = {
   },
   'Prototypes': {
     name: "Elite UI/UX Designer (Figma Specialist)",
-    tool: "HTML/Tailwind/Alpine.js",
-    instruction: "Generate a high-fidelity interactive prototype in a single file HTML with Tailwind CSS and Alpine.js. Emulate Figma's high-fidelity aesthetic: precise auto-layout spacing, modern typography (Inter/Roboto), subtle shadows, and smooth interactive transitions. Ensure a premium, state-of-the-art SaaS look and feel."
+    tool: "HTML/Tailwind/JS (Alpine.js)",
+    instruction: "Generate a high-fidelity, FULLY FUNCTIONAL interactive prototype. MANDATORY RULES:\n1. PRIMARY LANDING: The default screen (e.g. x-data=\"{ screen: 'primary_form' }\") MUST be the most complex, field-rich screen (e.g., 'Create Escrow' or 'Dashboard with Stats'). Do NOT start on a simple welcome screen.\n2. FIELD DENSITY: Every form MUST contain at least 5-7 high-fidelity input fields relevant to the domain (e.g., Currency Pair, Amount, Approval Type, Risk Score).\n3. INSTANT ACCESS: If a login screen exists, it MUST have a 'Bypass Login' button or allow any input to proceed immediately to the main dashboard.\n4. REACTIVE STATE: Use <div x-data=\"{ screen: 'primary_form', user: 'Admin', ... }\">. Every screen must be reachable via @click.\n5. DATA FIDELITY: If the user inputs data, it MUST persist and show on subsequent screens using x-text.\n6. NO DEAD ENDS: Navigation must match the business process logic."
   },
   'Test Cases': {
     name: "QA Engineering Agent",
@@ -82,22 +133,40 @@ export async function POST(req: Request) {
 
     const agent = AGENT_CONFIGS[documentRequested as keyof typeof AGENT_CONFIGS] || AGENT_CONFIGS.DEFAULT;
     
-    // Use FLASH for speed-critical documents (Prototypes, Wireframes, Flowcharts) to prevent timeouts
-    const useFlash = ['Prototypes', 'Wireframes', 'Flowcharts'].includes(documentRequested);
-    const modelId = documentRequested ? (useFlash ? 'gemini-2.5-flash' : DOC_MODEL) : CHAT_MODEL;
+    const modelId = 'gemini-2.5-flash';
     
-    const model = genAI.getGenerativeModel({ model: modelId, safetySettings });
+    const model = genAI.getGenerativeModel({ 
+      model: 'gemini-2.5-flash',
+      generationConfig: {
+        temperature: 0.1,
+        topP: 0.8,
+        topK: 40,
+      },
+      safetySettings: [
+        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
+        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
+      ]
+    });
 
-    // Optimize context: Only include MOM and very recent history to speed up inference
+    // Optimize context: 
+    // - For documents, we need more history (15 msgs) to capture all user clarifications.
+    // - For chat, we need speed (5 msgs).
+    const contextSize = documentRequested ? -15 : -5;
     const momMessage = messages.find((m: any, i: number) => i === 0 || m.role === 'user');
-    const recentMessages = messages.slice(-5); // Reduced from 8 to 5 for speed
+    const recentMessages = messages.slice(contextSize);
     const uniqueMessages = Array.from(new Set([momMessage, ...recentMessages])).filter(Boolean);
     const context = uniqueMessages.map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
 
     if (documentRequested) {
+      const toolExample = GOLD_STANDARD_EXAMPLES[agent.tool as keyof typeof GOLD_STANDARD_EXAMPLES] || "";
       const prompt = `
         AGENT: ${agent.name}
         SPECIALIZED TOOL: ${agent.tool}
+        
+        ${toolExample}
+
         TASK: Generate a professional and comprehensive ${documentRequested}. ${agent.instruction}
         DOMAIN: ${domainDetected || 'Generic'}
         CONTEXT: ${context}
@@ -109,17 +178,13 @@ export async function POST(req: Request) {
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            let fullText = "";
             for await (const chunk of result.stream) {
               const text = chunk.text();
-              fullText += text;
               controller.enqueue(new TextEncoder().encode(text));
             }
-            
-            // Post-processing for specific types (optional, but streaming makes this tricky)
-            // For now, we stream the raw output for maximum speed.
             controller.close();
           } catch (e: any) {
+            console.error('Stream Error:', e);
             controller.error(e);
           }
         },
@@ -147,9 +212,10 @@ export async function POST(req: Request) {
     return new Response(stream);
 
   } catch (error: any) {
-    console.error('API Error:', error);
-    const isExpired = error.message.includes('expired') || error.message.includes('key not valid');
-    const msg = isExpired ? "CRITICAL: API Key Expired. Please renew in Google AI Studio." : `Agent Error: ${error.message}`;
-    return NextResponse.json({ error: msg }, { status: 500 });
+    console.error('SYSTEM CRASH:', error);
+    const errorMsg = error.message || 'Unknown Engine Error';
+    return NextResponse.json({ 
+      error: `Sovereign Engine Error: ${errorMsg}. Hint: Check API Key or Model availability in your region.` 
+    }, { status: 500 });
   }
 }
