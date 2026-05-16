@@ -1550,7 +1550,7 @@ export default function Home() {
                     <button 
                       disabled={!documents[activeTab]} 
                       onClick={toggleEdit} 
-                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-20 cursor-not-allowed text-slate-500' : 'hover:bg-slate-700 ' + (isEditing ? 'text-green-400' : 'text-slate-300')}`}
+                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-40 cursor-not-allowed text-slate-500' : 'hover:bg-slate-700 ' + (isEditing ? 'text-green-400' : 'text-slate-300')}`}
                     >
                       {isEditing ? <Save className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
                       <span className="text-xs font-medium">{isEditing ? "Save" : "Edit"}</span>
@@ -1561,7 +1561,7 @@ export default function Home() {
                     <button 
                       disabled={!documents[activeTab]} 
                       onClick={() => setIsJiraModalOpen(true)} 
-                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-20 cursor-not-allowed text-slate-500' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
+                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-40 cursor-not-allowed text-slate-500' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
                     >
                       <Share2 className="w-4 h-4 text-blue-400" />
                       <span className="text-xs font-medium">Jira Sync</span>
@@ -1570,7 +1570,7 @@ export default function Home() {
                     <button 
                       disabled={!documents[activeTab]} 
                       onClick={copyToClipboard} 
-                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-20 cursor-not-allowed text-slate-500' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
+                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-40 cursor-not-allowed text-slate-500' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
                     >
                       {isCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
                       <span className="text-xs font-medium">Copy</span>
@@ -1579,7 +1579,7 @@ export default function Home() {
                     <button 
                       disabled={!documents[activeTab]} 
                       onClick={downloadDocument} 
-                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-20 cursor-not-allowed text-slate-500' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
+                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-40 cursor-not-allowed text-slate-500' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
                     >
                       <Download className="w-4 h-4" />
                       <span className="text-xs font-medium">Export</span>
@@ -1588,7 +1588,7 @@ export default function Home() {
                     <button 
                       disabled={!documents[activeTab]} 
                       onClick={printDocument} 
-                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-20 cursor-not-allowed text-slate-500' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
+                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-40 cursor-not-allowed text-slate-500' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
                     >
                       <Printer className="w-4 h-4" />
                       <span className="text-xs font-medium">PDF Export</span>
@@ -2014,7 +2014,7 @@ export default function Home() {
           </div>
 
           {/* New Right Sidebar: Intelligence & Insights */}
-          <aside className="w-80 border-l border-slate-700/30 bg-[#0f172a]/50 backdrop-blur-md overflow-y-auto no-print hidden xl:flex flex-col">
+          <aside className="w-80 border-l border-slate-700/30 bg-[#0f172a]/50 backdrop-blur-md overflow-y-auto no-print flex flex-col">
             <div className="p-4 border-b border-slate-700/30">
               <h3 className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
                 <Brain className="w-3.5 h-3.5 text-blue-400" />
