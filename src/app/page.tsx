@@ -948,19 +948,74 @@ export default function Home() {
       .trim();
 
     // Convert basic markdown to HTML for readable PDF
-    const mdToHtml = (text: string) => text
-      .split('\n')
-      .map(line => {
-        if (line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`;
-        if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
-        if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
-        if (line.startsWith('- ') || line.startsWith('* ')) return `<li>${line.slice(2)}</li>`;
-        if (line.startsWith('| ')) return `<tr>${line.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('')}</tr>`;
-        if (line.match(/^[-|]+$/)) return '';
-        if (line.trim() === '') return '<br/>';
-        return `<p>${line}</p>`;
-      })
-      .join('\n');
+    const mdToHtml = (text: string) => {
+      const lines = text.split('\n');
+      let html = '';
+      let inTable = false;
+      let tableRowIndex = 0;
+      let inList = false;
+
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        
+        // Handle Lists
+        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+          if (!inList) { html += '<ul style="margin:8px 0; padding-left:20px;">'; inList = true; }
+          html += `<li style="margin:4px 0;">${trimmed.slice(2)}</li>`;
+          return;
+        } else if (inList && trimmed !== '') {
+          // If the line doesn't start with a bullet but we are in a list, it might be a sub-line or end of list
+          if (!(trimmed.startsWith('- ') || trimmed.startsWith('* '))) {
+            html += '</ul>';
+            inList = false;
+          }
+        } else if (inList && trimmed === '') {
+          html += '</ul>';
+          inList = false;
+        }
+
+        // Handle Tables
+        if (trimmed.startsWith('|')) {
+          if (!inTable) { html += '<table style="border-collapse:collapse; width:100%; margin:16px 0; border:1px solid #e2e8f0; font-size:9pt;">'; inTable = true; tableRowIndex = 0; }
+          if (trimmed.match(/^[\s|:-]+$/)) return; // Skip separator line |---|
+          
+          const cells = trimmed.replace(/^\||\|$/g, '').split('|');
+          html += `<tr style="${tableRowIndex % 2 === 0 ? '' : 'background-color:#f8fafc;'}">`;
+          cells.forEach(cell => {
+            const content = cell.trim();
+            if (tableRowIndex === 0) {
+              html += `<th style="border:1px solid #e2e8f0; padding:8px; background-color:#1e40af; color:white; text-align:left; font-weight:bold;">${content}</th>`;
+            } else {
+              html += `<td style="border:1px solid #e2e8f0; padding:8px; text-align:left; vertical-align:top;">${content}</td>`;
+            }
+          });
+          html += '</tr>';
+          tableRowIndex++;
+          return;
+        } else if (inTable) {
+          html += '</table>';
+          inTable = false;
+        }
+
+        // Handle Headings
+        if (line.startsWith('### ')) { html += `<h3 style="color:#2563eb; margin-top:16px;">${line.slice(4)}</h3>`; return; }
+        if (line.startsWith('## ')) { html += `<h2 style="color:#1e40af; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-top:20px;">${line.slice(3)}</h2>`; return; }
+        if (line.startsWith('# ')) { html += `<h1 style="color:#1e3a5f; border-bottom:2px solid #2563eb; padding-bottom:8px; margin-top:24px;">${line.slice(2)}</h1>`; return; }
+
+        // Handle Empty Lines
+        if (trimmed === '') {
+          html += '<div style="height:8px;"></div>';
+          return;
+        }
+
+        // Handle Paragraphs
+        html += `<p style="margin:4px 0 8px 0; color:#334155;">${line}</p>`;
+      });
+
+      if (inTable) html += '</table>';
+      if (inList) html += '</ul>';
+      return html;
+    };
 
     const printHtml = `
       <!DOCTYPE html>
@@ -1048,20 +1103,71 @@ export default function Home() {
       return;
     }
 
-    const mdToHtml = (text: string) => text
-      .replace(/```[\w]*\n?/g, '').replace(/```/g, '')
-      .split('\n')
-      .map(line => {
-        if (line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`;
-        if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
-        if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
-        if (line.startsWith('- ') || line.startsWith('* ')) return `<li>${line.slice(2)}</li>`;
-        if (line.startsWith('| ')) return `<tr>${line.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('')}</tr>`;
-        if (line.match(/^[-|]+$/)) return '';
-        if (line.trim() === '') return '<br/>';
-        return `<p>${line}</p>`;
-      })
-      .join('\n');
+    const mdToHtml = (text: string) => {
+      const lines = text.split('\n');
+      let html = '';
+      let inTable = false;
+      let tableRowIndex = 0;
+      let inList = false;
+
+      lines.forEach(line => {
+        const trimmed = line.trim();
+        
+        // Handle Lists
+        if (trimmed.startsWith('- ') || trimmed.startsWith('* ')) {
+          if (!inList) { html += '<ul style="margin:8px 0; padding-left:20px;">'; inList = true; }
+          html += `<li style="margin:4px 0;">${trimmed.slice(2)}</li>`;
+          return;
+        } else if (inList && trimmed !== '') {
+          if (!(trimmed.startsWith('- ') || trimmed.startsWith('* '))) {
+            html += '</ul>';
+            inList = false;
+          }
+        } else if (inList && trimmed === '') {
+          html += '</ul>';
+          inList = false;
+        }
+
+        // Handle Tables
+        if (trimmed.startsWith('|')) {
+          if (!inTable) { html += '<table style="border-collapse:collapse; width:100%; margin:16px 0; border:1px solid #e2e8f0; font-size:9pt;">'; inTable = true; tableRowIndex = 0; }
+          if (trimmed.match(/^[\s|:-]+$/)) return;
+          
+          const cells = trimmed.replace(/^\||\|$/g, '').split('|');
+          html += `<tr style="${tableRowIndex % 2 === 0 ? '' : 'background-color:#f8fafc;'}">`;
+          cells.forEach(cell => {
+            const content = cell.trim();
+            if (tableRowIndex === 0) {
+              html += `<th style="border:1px solid #e2e8f0; padding:8px; background-color:#1e40af; color:white; text-align:left; font-weight:bold;">${content}</th>`;
+            } else {
+              html += `<td style="border:1px solid #e2e8f0; padding:8px; text-align:left; vertical-align:top;">${content}</td>`;
+            }
+          });
+          html += '</tr>';
+          tableRowIndex++;
+          return;
+        } else if (inTable) {
+          html += '</table>';
+          inTable = false;
+        }
+
+        // Handle Headings
+        if (line.startsWith('### ')) { html += `<h3 style="color:#2563eb; margin-top:16px;">${line.slice(4)}</h3>`; return; }
+        if (line.startsWith('## ')) { html += `<h2 style="color:#1e40af; border-bottom:1px solid #e2e8f0; padding-bottom:4px; margin-top:20px;">${line.slice(3)}</h2>`; return; }
+        if (line.startsWith('# ')) { html += `<h1 style="color:#1e3a5f; border-bottom:2px solid #2563eb; padding-bottom:8px; margin-top:24px;">${line.slice(2)}</h1>`; return; }
+
+        if (trimmed === '') {
+          html += '<div style="height:8px;"></div>';
+          return;
+        }
+
+        html += `<p style="margin:4px 0 8px 0; color:#334155;">${line}</p>`;
+      });
+
+      if (inTable) html += '</table>';
+      if (inList) html += '</ul>';
+      return html;
+    };
 
     // Build UML image tag if UML was generated
     let umlImgTag = '';
@@ -1407,57 +1513,86 @@ export default function Home() {
                <Save className="w-4 h-4 text-blue-400" />
                Save Session
              </button>
-              {activeTab !== "Chat" && documents[activeTab] && (
+             
+             <button onClick={exportAllToPDF} className="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-lg text-xs font-bold uppercase tracking-wider shadow-lg hover:shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2 no-print">
+               <Download className="w-3.5 h-3.5" />
+               Export All (PDF)
+             </button>
+
+             {activeTab !== "Chat" && (
                 <div className="flex items-center gap-4">
-                  <button onClick={exportAllToPDF} className="px-4 py-2 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-lg text-xs font-bold uppercase tracking-wider shadow-lg hover:shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2 no-print">
-                    <Download className="w-3.5 h-3.5" />
-                    Export All (PDF)
-                  </button>
-                  {activeTab === "FRD" && (
-                    <button onClick={() => setIsJiraModalOpen(true)} className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white hover:border-slate-500 transition-all flex items-center gap-2 no-print">
+                  {activeTab === "FRD" && documents[activeTab] && (
+                    <button onClick={() => setIsJiraModalOpen(true)} className="px-4 py-1.5 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white hover:border-slate-500 transition-all flex items-center gap-2 no-print">
                       <LayoutDashboard className="w-3.5 h-3.5 text-blue-400" />
                       Jira Sync
                     </button>
                   )}
-                  {activeTab === "Prototypes" && (
+                  {activeTab === "Prototypes" && documents[activeTab] && (
                     <div className="flex items-center gap-2 px-3 py-1 bg-slate-800/50 rounded-lg border border-slate-700 no-print">
                       <Search className="w-3.5 h-3.5 text-slate-500" />
                       <select className="bg-transparent text-xs text-slate-300 focus:outline-none cursor-pointer">
                         <option value="en">English (US)</option>
                         <option value="te">Telugu (తెలుగు)</option>
-                        <option value="hi">Hindi (हिन्दी)</option>
+                        <option value="hi">Hindi (హిन्दी)</option>
                         <option value="ar">Arabic (العربية)</option>
                       </select>
                     </div>
                   )}
+                  
                   <div className="flex items-center gap-3 bg-slate-800/50 p-1.5 px-3 rounded-xl border border-slate-700/50">
-                  {(activeTab === "Wireframes" || activeTab === "Prototypes") && (
-                    <button onClick={getShareLink} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-blue-400 hover:text-blue-300 hover:bg-slate-700 transition-colors">
-                      <LinkIcon className="w-4 h-4" />
-                      <span className="text-xs font-medium">Share Link</span>
+                    {(activeTab === "Wireframes" || activeTab === "Prototypes") && documents[activeTab] && (
+                      <button onClick={getShareLink} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-blue-400 hover:text-blue-300 hover:bg-slate-700 transition-colors">
+                        <LinkIcon className="w-4 h-4" />
+                        <span className="text-xs font-medium">Share Link</span>
+                      </button>
+                    )}
+                    
+                    <button 
+                      disabled={!documents[activeTab]} 
+                      onClick={toggleEdit} 
+                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-20 cursor-not-allowed text-slate-500' : 'hover:bg-slate-700 ' + (isEditing ? 'text-green-400' : 'text-slate-300')}`}
+                    >
+                      {isEditing ? <Save className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
+                      <span className="text-xs font-medium">{isEditing ? "Save" : "Edit"}</span>
                     </button>
-                  )}
-                  <button onClick={toggleEdit} className={`p-1.5 px-3 flex items-center gap-2 rounded-md hover:bg-slate-700 transition-colors ${isEditing ? 'text-green-400' : 'text-slate-300'}`}>
-                    {isEditing ? <Save className="w-4 h-4" /> : <Edit3 className="w-4 h-4" />}
-                    <span className="text-xs font-medium">{isEditing ? "Save" : "Edit"}</span>
-                  </button>
-                  <div className="w-px h-4 bg-slate-700"></div>
-                  <button onClick={() => setIsJiraModalOpen(true)} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition-colors">
-                    <Share2 className="w-4 h-4 text-blue-400" />
-                    <span className="text-xs font-medium">Jira Sync</span>
-                  </button>
-                  <button onClick={copyToClipboard} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition-colors">
-                    {isCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-                    <span className="text-xs font-medium">Copy</span>
-                  </button>
-                  <button onClick={downloadDocument} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition-colors">
-                    <Download className="w-4 h-4" />
-                    <span className="text-xs font-medium">Export</span>
-                  </button>
-                  <button onClick={printDocument} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-slate-300 hover:text-white hover:bg-slate-700 transition-colors">
-                    <Printer className="w-4 h-4" />
-                    <span className="text-xs font-medium">PDF Export</span>
-                  </button>
+                    
+                    <div className="w-px h-4 bg-slate-700"></div>
+                    
+                    <button 
+                      disabled={!documents[activeTab]} 
+                      onClick={() => setIsJiraModalOpen(true)} 
+                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-20 cursor-not-allowed text-slate-500' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
+                    >
+                      <Share2 className="w-4 h-4 text-blue-400" />
+                      <span className="text-xs font-medium">Jira Sync</span>
+                    </button>
+                    
+                    <button 
+                      disabled={!documents[activeTab]} 
+                      onClick={copyToClipboard} 
+                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-20 cursor-not-allowed text-slate-500' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
+                    >
+                      {isCopied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
+                      <span className="text-xs font-medium">Copy</span>
+                    </button>
+                    
+                    <button 
+                      disabled={!documents[activeTab]} 
+                      onClick={downloadDocument} 
+                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-20 cursor-not-allowed text-slate-500' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
+                    >
+                      <Download className="w-4 h-4" />
+                      <span className="text-xs font-medium">Export</span>
+                    </button>
+                    
+                    <button 
+                      disabled={!documents[activeTab]} 
+                      onClick={printDocument} 
+                      className={`p-1.5 px-3 flex items-center gap-2 rounded-md transition-colors ${!documents[activeTab] ? 'opacity-20 cursor-not-allowed text-slate-500' : 'text-slate-300 hover:text-white hover:bg-slate-700'}`}
+                    >
+                      <Printer className="w-4 h-4" />
+                      <span className="text-xs font-medium">PDF Export</span>
+                    </button>
                   </div>
                 </div>
               )}
