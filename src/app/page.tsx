@@ -1193,8 +1193,7 @@ export default function Home() {
           <div>
             <h1 className="font-bold text-xl tracking-tight bg-gradient-to-r from-white via-blue-100 to-blue-200 bg-clip-text text-transparent">Gaurav Nandhan</h1>
             <div className="flex items-center gap-1.5">
-              <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
-              <p className="text-[10px] text-blue-400 font-bold uppercase tracking-[0.2em]">Sovereign BA Studio</p>
+              <p className="text-[10px] text-blue-400 font-bold uppercase tracking-[0.2em]">BA Studio</p>
             </div>
             {(session?.user as any)?.orgName && (
               <div className="flex items-center gap-1 mt-1">
