@@ -1829,10 +1829,8 @@ export default function Home() {
               </div>
             )}
           </div>
-
         </div>
-      </div>
-    </main>
+      </main>
 
       <div id="bulk-print-container" style={{ display: 'none', background: 'white', color: 'black' }}>
         <div style={{ textAlign: 'center', padding: '80px 50px', border: '8px solid #1e293b', margin: '20px', borderRadius: '30px' }}>
