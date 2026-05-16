@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signIn } from "next-auth/react";
-import { X, Loader2, Mail, Lock, User as UserIcon } from "lucide-react";
+import { X, Loader2, Mail, Lock, User as UserIcon, Shield } from "lucide-react";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -14,6 +14,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [companyName, setCompanyName] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -41,7 +42,7 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ name, email, password }),
+          body: JSON.stringify({ name, email, password, companyName }),
         });
 
         const data = await res.json();
@@ -109,6 +110,23 @@ export function AuthModal({ isOpen, onClose }: AuthModalProps) {
                     required={!isLogin}
                     className="w-full bg-[#0f172a] border border-slate-700 text-white rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-blue-500 transition-colors text-sm"
                     placeholder="John Doe"
+                  />
+                </div>
+              </div>
+            )}
+
+            {!isLogin && (
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">Company Name</label>
+                <div className="relative">
+                  <Shield className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
+                  <input 
+                    type="text" 
+                    value={companyName}
+                    onChange={(e) => setCompanyName(e.target.value)}
+                    required={!isLogin}
+                    className="w-full bg-[#0f172a] border border-slate-700 text-white rounded-lg py-2.5 pl-10 pr-4 focus:outline-none focus:border-blue-500 transition-colors text-sm"
+                    placeholder="Acme Solutions"
                   />
                 </div>
               </div>

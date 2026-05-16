@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 import { 
   Brain, 
   Bot, 
@@ -44,7 +45,16 @@ import {
   Paperclip,
   X,
   LogIn,
-  Zap
+  Zap,
+  ZapOff,
+  FileQuestion,
+  Activity,
+  ChevronDown,
+  History,
+  FileDown,
+  Trash2,
+  Info,
+  Network
 } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from 'react-markdown';
@@ -52,83 +62,110 @@ import remarkGfm from 'remark-gfm';
 import pako from 'pako';
 import { AuthModal } from "@/components/AuthModal";
 import { JiraModal } from "@/components/JiraModal";
+import { calculateDelta } from "@/lib/versioning";
 
 
 import mermaid from 'mermaid';
 
 // ── Professional Client-side Mermaid Renderer ──────────────────
-const MermaidRenderer = ({ chart }: { chart: string }) => {
+const MermaidRenderer = ({ chart, isProcessing }: { chart: string, isProcessing?: boolean }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const renderDiagram = async () => {
-      if (containerRef.current && chart) {
-        setError(null);
-        try {
-          // 1. Normalize and Clean
-          let cleanChart = chart.replace(/```mermaid/g, '').replace(/```/g, '').trim();
-          
-          // CRITICAL: Fix common AI hallucinations in headers
-          if (cleanChart.toLowerCase().startsWith('graph id') || cleanChart.toLowerCase().startsWith('graph name')) {
-             cleanChart = cleanChart.replace(/^graph\s+\w+/i, 'graph TD');
-          }
+    mermaid.initialize({
+      startOnLoad: false,
+      theme: 'dark',
+      securityLevel: 'loose',
+      fontFamily: 'Inter, system-ui, sans-serif',
+      logLevel: 5
+    });
+  }, []);
 
-          if (!cleanChart.startsWith('graph') && !cleanChart.startsWith('flowchart') && !cleanChart.startsWith('sequenceDiagram')) {
-            cleanChart = 'graph TD\n' + cleanChart;
-          }
+  useEffect(() => {
+    let isMounted = true;
+    const handler = setTimeout(() => {
+      const renderDiagram = async () => {
+        if (containerRef.current && chart) {
+          setError(null);
+          try {
+            // 1. Normalize and Clean (Non-destructive)
+            let cleanChart = chart.replace(/```mermaid/g, '').replace(/```/g, '').trim();
+            
+            if (!cleanChart.startsWith('graph') && !cleanChart.startsWith('flowchart') && !cleanChart.startsWith('sequenceDiagram') && !cleanChart.startsWith('classDiagram')) {
+              cleanChart = 'graph TD\n' + cleanChart;
+            }
 
-          // 2. Zero-Tolerance Syntax Hardening
-          // Convert ALL double quotes to single quotes to prevent any parsing bombs
-          cleanChart = cleanChart.replace(/"/g, "'");
+            // 2. Unbreakable Global Scrubber
+            cleanChart = cleanChart
+              .replace(/[()]/g, ' ') // Scrub ALL parentheses from entire chart
+              .replace(/--\s*".*?"\s*-->/g, ' --> ')
+              .replace(/--\s*.*?\s*-->/g, ' --> ')
+              .replace(/-\..*?\.-?->/g, ' --> ')
+              .replace(/-\.->/g, ' --> ')
+              .replace(/\[\s*"(.*?)"\s*\]/g, '["$1"]')
+              .replace(/\{\s*"(.*?)"\s*\}/g, '{"$1"}');
 
-          // Sanitize brackets and parentheses aggressively - REMOVE ALL PARENS FROM LABELS
-          cleanChart = cleanChart
-            .replace(/\[([\s\S]*?)\]/g, (m, label) => `["${label.replace(/[\[\]()"]/g, "").trim()}"]`)
-            .replace(/\(([\s\S]*?)\)/g, (m, label) => `("${label.replace(/[\[\]()"]/g, "").trim()}")`)
-            .replace(/\{([\s\S]*?)\}/g, (m, label) => `{"${label.replace(/[\[\]{}"]/g, "").trim()}"}`);
-          
-          // Final Header Guard
-          if (cleanChart.toLowerCase().includes('graph id')) {
-            cleanChart = cleanChart.replace(/graph\s+id/gi, 'graph TD');
-          }
-          if (cleanChart.toLowerCase().includes('graph td')) {
-            cleanChart = cleanChart.replace(/graph\s+td/gi, 'graph TD');
-          }
+            // Wrap subgraph titles in quotes if they contain special characters
+            cleanChart = cleanChart.replace(/subgraph\s+([^\n{]+)/gi, (m, title) => {
+               const trimmedTitle = title.trim();
+               if (trimmedTitle.startsWith('"') && trimmedTitle.endsWith('"')) return m;
+               return `subgraph "${trimmedTitle.replace(/"/g, "'").replace(/[()]/g, "")}"`;
+            });
 
-          // 3. Initialize & Render
-          mermaid.initialize({ 
-            startOnLoad: false, 
-            theme: 'dark',
-            securityLevel: 'loose',
-            fontFamily: 'Inter, system-ui, sans-serif'
-          });
+            // 2. Safe Syntax Hardening: Strip illegal spaces and ensure clean quoting
+            cleanChart = cleanChart.replace(/([a-zA-Z0-9_]+)\s*\[[ \t]*"?(.*?)"?[ \t]*\]/g, '$1["$2"]');
+            cleanChart = cleanChart.replace(/([a-zA-Z0-9_]+)\s*\{[ \t]*"?(.*?)"?[ \t]*\}/g, '$1{"$2"}');
+            cleanChart = cleanChart.replace(/([a-zA-Z0-9_]+)\s*\([ \t]*"?(.*?)"?[ \t]*\)/g, '$1("$2")');
+            
+            // Final Header Guard
+            if (cleanChart.toLowerCase().includes('graph id')) {
+              cleanChart = cleanChart.replace(/graph\s+id/gi, 'graph TD');
+            }
 
-          const id = `mermaid-svg-${Math.random().toString(36).substr(2, 9)}`;
-          const { svg } = await mermaid.render(id, cleanChart);
-          
-          if (containerRef.current) {
-            containerRef.current.innerHTML = svg;
+            // 3. Clear previous content
+            containerRef.current.innerHTML = '';
+            const id = `mermaid-${Math.random().toString(36).substr(2, 9)}`;
+            
+            // 4. Render
+            const { svg } = await mermaid.render(id, cleanChart);
+            if (containerRef.current && isMounted) {
+              const responsiveSvg = svg.replace(/max-width:\s*[^;]+;?/gi, '').replace(/width:\s*100%;?/gi, '');
+              containerRef.current.innerHTML = responsiveSvg;
+            }
+          } catch (err: any) {
+            console.error('Mermaid render error:', err);
+            if (isMounted) setError(err.message || 'Syntax Error');
           }
-        } catch (e: any) {
-          console.error("Mermaid Render Error:", e);
-          setError(e.message || "Syntax Error in Diagram");
         }
-      }
-    };
+      };
+      renderDiagram();
+    }, 1000); // 1-second debounce to handle streaming AI output
 
-    renderDiagram();
+    return () => { isMounted = false; clearTimeout(handler); };
   }, [chart]);
 
   if (error) {
-    return (
-      <div className="p-6 bg-red-500/5 border border-red-500/20 rounded-2xl space-y-4 my-6">
-        <div className="flex items-center gap-2 text-red-400 font-bold text-sm">
-          <AlertCircle className="w-4 h-4" /> Visual Engine Fallback
+    if (isProcessing) {
+      return (
+        <div className="flex flex-col items-center justify-center p-12 bg-slate-900/50 rounded-2xl border border-slate-700/30 min-h-[300px]">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-4" />
+          <p className="text-slate-400 text-sm font-medium animate-pulse">Drawing Flowchart...</p>
         </div>
-        <p className="text-[10px] text-slate-500 italic">The AI generated a complex process that the visual engine is struggling to draw. You can view the raw logic below.</p>
-        <div className="p-4 bg-slate-900 rounded-xl overflow-x-auto border border-slate-800">
-          <pre className="text-[10px] text-slate-400 font-mono">{chart}</pre>
+      );
+    }
+    return (
+      <div className="p-8 bg-slate-900/80 border border-red-500/30 rounded-2xl flex flex-col gap-4">
+        <div className="flex items-center gap-3 text-red-400">
+          <AlertTriangle className="w-6 h-6" />
+          <h3 className="font-bold uppercase tracking-widest text-sm">Visual Engine Fallback</h3>
+        </div>
+        <p className="text-[10px] text-slate-500 leading-relaxed italic">The AI generated a complex process that the visual engine is struggling to draw. You can view the raw logic below.</p>
+        <div className="p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400 max-h-32 overflow-y-auto custom-scrollbar font-mono">
+          {error}
+        </div>
+        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+          <pre className="text-[11px] text-slate-400 font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap">{chart}</pre>
         </div>
       </div>
     );
@@ -146,6 +183,260 @@ const MermaidRenderer = ({ chart }: { chart: string }) => {
   );
 };
 
+// ── PlantUML Encoder (pako deflate + PlantUML custom base64) ──────────────────
+function encodePlantUML(code: string): string {
+  const encode6bit = (b: number): string => {
+    if (b < 10) return String.fromCharCode(48 + b);
+    b -= 10;
+    if (b < 26) return String.fromCharCode(65 + b);
+    b -= 26;
+    if (b < 26) return String.fromCharCode(97 + b);
+    b -= 26;
+    if (b === 0) return '-';
+    if (b === 1) return '_';
+    return '?';
+  };
+  const append3bytes = (b1: number, b2: number, b3: number): string => {
+    const c1 = b1 >> 2;
+    const c2 = ((b1 & 0x3) << 4) | (b2 >> 4);
+    const c3 = ((b2 & 0xf) << 2) | (b3 >> 6);
+    const c4 = b3 & 0x3f;
+    return encode6bit(c1 & 0x3f) + encode6bit(c2 & 0x3f) + encode6bit(c3 & 0x3f) + encode6bit(c4 & 0x3f);
+  };
+  try {
+    const compressed = pako.deflate(new TextEncoder().encode(code), { level: 9 });
+    let result = '';
+    for (let i = 0; i < compressed.length; i += 3) {
+      if (i + 2 < compressed.length) {
+        result += append3bytes(compressed[i], compressed[i + 1], compressed[i + 2]);
+      } else if (i + 1 < compressed.length) {
+        result += append3bytes(compressed[i], compressed[i + 1], 0);
+      } else {
+        result += append3bytes(compressed[i], 0, 0);
+      }
+    }
+    return result;
+  } catch (e) {
+    return '';
+  }
+}
+
+function PlantUMLRenderer({ code, isProcessing }: { code: string, isProcessing?: boolean }) {
+  const [imgError, setImgError] = useState(false);
+  const [imgLoaded, setImgLoaded] = useState(false);
+  const [debouncedCode, setDebouncedCode] = useState('');
+
+  // Debounce the code so we only render once the AI has finished streaming
+  useEffect(() => {
+    setImgError(false);
+    setImgLoaded(false);
+    const delay = isProcessing ? 4000 : 300;
+    const handler = setTimeout(() => {
+      const umlMatch = code.match(/@startuml[\s\S]*?@enduml/i);
+      const cleanCode = umlMatch ? umlMatch[0].trim() : code.trim();
+      if (cleanCode.length > 20) setDebouncedCode(cleanCode);
+    }, delay);
+    return () => clearTimeout(handler);
+  }, [code, isProcessing]);
+
+  // Show generating spinner while AI is streaming
+  if (isProcessing && !debouncedCode) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white/5 rounded-2xl border border-slate-700/50 min-h-[300px]">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-4" />
+        <p className="text-slate-400 text-sm font-medium animate-pulse">Generating UML Diagram...</p>
+      </div>
+    );
+  }
+
+  if (!debouncedCode) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 bg-white/5 rounded-2xl border border-slate-700/50 min-h-[300px]">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-4" />
+        <p className="text-slate-400 text-sm font-medium animate-pulse">Preparing diagram...</p>
+      </div>
+    );
+  }
+
+  const encoded = encodePlantUML(debouncedCode);
+  const plantUMLImgUrl = encoded ? `https://www.plantuml.com/plantuml/svg/~1${encoded}` : '';
+  const plantUMLEditUrl = encoded ? `https://www.plantuml.com/plantuml/uml/~1${encoded}` : '';
+
+  if (!encoded) {
+    return (
+      <div className="p-4 bg-slate-900 rounded-xl border border-slate-700">
+        <pre className="text-xs text-slate-300 font-mono whitespace-pre-wrap">{debouncedCode}</pre>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-4">
+      {/* Rendered diagram */}
+      <div className="bg-white rounded-2xl border border-slate-200 shadow-xl overflow-x-auto custom-scrollbar relative">
+        {/* Loading overlay for image */}
+        {!imgLoaded && !imgError && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white rounded-2xl">
+            <div className="flex flex-col items-center gap-3">
+              <Loader2 className="w-8 h-8 animate-spin text-blue-500" />
+              <p className="text-slate-400 text-sm">Rendering diagram...</p>
+            </div>
+          </div>
+        )}
+        {imgError ? (
+          <div className="p-8 flex flex-col gap-4 items-center">
+            <AlertTriangle className="w-10 h-10 text-amber-500" />
+            <p className="text-slate-600 text-sm font-medium">Diagram rendering failed.</p>
+            <a
+              href={plantUMLEditUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              Open in PlantUML Editor ↗
+            </a>
+          </div>
+        ) : (
+          <img
+            src={plantUMLImgUrl}
+            alt="UML Diagram"
+            className="w-full h-auto p-6"
+            onLoad={() => setImgLoaded(true)}
+            onError={() => { setImgError(true); setImgLoaded(true); }}
+          />
+        )}
+      </div>
+
+      {/* Actions row */}
+      <div className="flex items-center gap-3 flex-wrap">
+        <a
+          href={plantUMLEditUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-600/20 border border-blue-500/30 text-blue-300 text-xs font-semibold rounded-lg hover:bg-blue-600/30 transition-colors"
+        >
+          <ExternalLink className="w-3.5 h-3.5" />
+          Open & Edit in PlantUML Editor
+        </a>
+        <span className="text-slate-600 text-xs">Rendered via PlantUML.com — no external timeouts</span>
+      </div>
+
+      {/* Collapsible raw source */}
+      <details className="bg-slate-950 rounded-xl border border-slate-800 group">
+        <summary className="flex items-center gap-2 px-4 py-3 text-xs text-slate-400 font-semibold uppercase tracking-wider cursor-pointer hover:text-slate-200 transition-colors list-none">
+          <Code className="w-3.5 h-3.5" />
+          PlantUML Source
+          <ChevronDown className="w-3.5 h-3.5 ml-auto group-open:rotate-180 transition-transform" />
+        </summary>
+        <pre className="p-4 text-[11px] text-slate-300 font-mono leading-relaxed whitespace-pre-wrap overflow-x-auto custom-scrollbar border-t border-slate-800">{debouncedCode}</pre>
+      </details>
+    </div>
+  );
+}
+
+function LivePreviewIframe({ htmlContent, isProcessing, summary }: { htmlContent: string, isProcessing?: boolean, summary: string }) {
+  const [debouncedHtml, setDebouncedHtml] = useState(htmlContent);
+
+  useEffect(() => {
+    const delay = isProcessing ? 2000 : 50;
+    const handler = setTimeout(() => {
+      setDebouncedHtml(htmlContent);
+    }, delay);
+    return () => clearTimeout(handler);
+  }, [htmlContent, isProcessing]);
+
+  let fullHtml = debouncedHtml;
+  
+  // 1. DAWN OF CODE: Detect dangling scripts that aren't wrapped in <script>
+  if ((fullHtml.includes('function') || fullHtml.includes('const') || fullHtml.includes('let')) && !fullHtml.includes('<script')) {
+    const scriptRegex = /(function\s+\w+\(\)[\s\S]*?\n\s*\}\s*\n?)/g;
+    const scripts = fullHtml.match(scriptRegex);
+    if (scripts) {
+      const scriptBlock = `<script>\n${scripts.join('\n')}\n</script>`;
+      fullHtml = fullHtml.replace(scriptRegex, '') + '\n' + scriptBlock;
+    }
+  }
+
+  if (!fullHtml.toLowerCase().includes('<html')) {
+    fullHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://cdn.tailwindcss.com"></script>
+        <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+        <style>
+          body { background: transparent; color: white; font-family: sans-serif; margin: 0; padding: 0; }
+          .custom-scrollbar::-webkit-scrollbar { width: 4px; }
+          .custom-scrollbar::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.1); }
+          .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(59, 130, 246, 0.5); border-radius: 10px; }
+        </style>
+      </head>
+      <body class="custom-scrollbar">
+        ${fullHtml}
+      </body>
+      </html>`.trim();
+  } else {
+    // Inject tailwind and alpine if missing
+    if (!fullHtml.includes('tailwindcss.com')) {
+      fullHtml = fullHtml.replace(/<\/head>/i, '<script src="https://cdn.tailwindcss.com"></script>\n</head>');
+    }
+    if (!fullHtml.includes('alpinejs')) {
+      fullHtml = fullHtml.replace(/<\/head>/i, '<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>\n</head>');
+    }
+    // If <head> wasn't found to replace (malformed HTML), prepend to body
+    if (!fullHtml.includes('tailwindcss.com')) {
+      fullHtml = fullHtml.replace(/<body[^>]*>/i, '$&\n<script src="https://cdn.tailwindcss.com"></script>\n<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>');
+    }
+  }
+
+  if (isProcessing && debouncedHtml.length < 50) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-slate-900/50 rounded-xl min-h-[400px]">
+        <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-4" />
+        <p className="text-slate-400 text-sm font-medium animate-pulse">Generating User Interface...</p>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="flex flex-col gap-6 h-full">
+      {summary && summary.length > 20 && (
+        <div className="prose prose-invert prose-slate max-w-none p-6 bg-slate-800/40 rounded-xl border border-slate-700/50">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
+        </div>
+      )}
+      <div className="my-2 border border-slate-700 rounded-xl overflow-hidden bg-[#0f172a] shadow-2xl h-[calc(100vh-32rem)] min-h-[600px] relative">
+        <iframe 
+          srcDoc={fullHtml} 
+          className="w-full h-full border-none" 
+          title="Prototype Preview" 
+          sandbox="allow-scripts allow-modals allow-forms allow-same-origin allow-popups"
+          onLoad={(e) => {
+            const win = (e.target as HTMLIFrameElement).contentWindow;
+            if (win) {
+              win.document.body.onclick = () => win.focus();
+              win.addEventListener('click', (ev: any) => {
+                const link = ev.target.closest('a');
+                if (link) {
+                  const href = link.getAttribute('href');
+                  if (!href || href === '#' || href === '' || href.startsWith('/')) {
+                    ev.preventDefault();
+                  }
+                }
+              });
+              win.addEventListener('submit', (ev: any) => {
+                ev.preventDefault();
+              });
+            }
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
 export default function Home() {
   const { data: session } = useSession();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -153,7 +444,7 @@ export default function Home() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>("Chat");
   const [docsReady, setDocsReady] = useState(false);
-  const [documents, setDocuments] = useState<Record<string, string>>({});
+  const [documents, setDocuments] = useState<Record<string, { content: string, confidence?: number, review?: string, reason?: string, links?: string[] }>>({});
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState("");
   const [isCopied, setIsCopied] = useState(false);
@@ -162,6 +453,7 @@ export default function Home() {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const [isJiraModalOpen, setIsJiraModalOpen] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [staleDocs, setStaleDocs] = useState<Set<string>>(new Set());
 
   // ── Brain 1: Session State Machine ──────────────────────────────
   const [sessionState, setSessionState] = useState<'INTAKE' | 'QUESTIONING' | 'READY'>('INTAKE');
@@ -178,8 +470,20 @@ export default function Home() {
   const [conflicts, setConflicts] = useState<any[]>([]);
   const [scopeHistory, setScopeHistory] = useState<{snapshot: any[], impact?: any, timestamp: string}[]>([]);
   const [showTimeline, setShowTimeline] = useState(false);
+  const [currentDate, setCurrentDate] = useState("");
+
+  useEffect(() => {
+    setCurrentDate(new Date().toLocaleDateString());
+  }, []);
+  
   const [strategicMoats, setStrategicMoats] = useState<any[]>([]);
   const [impactScore, setImpactScore] = useState<any>(null);
+  const [logicAlerts, setLogicAlerts] = useState<any[]>([]);
+  const [requirementGaps, setRequirementGaps] = useState<any[]>([]);
+  const [playwrightScript, setPlaywrightScript] = useState<string | null>(null);
+  const [isGeneratingTests, setIsGeneratingTests] = useState(false);
+  const [terraformPlan, setTerraformPlan] = useState<string | null>(null);
+  const [isGeneratingIaC, setIsGeneratingIaC] = useState(false);
 
   const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([
     {
@@ -202,7 +506,11 @@ export default function Home() {
       const res = await fetch('/api/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage, round: newRound }),
+        body: JSON.stringify({ 
+          message: userMessage, 
+          history: chatMessages, // Send full history for version tracking
+          round: newRound 
+        }),
       });
       if (!res.ok) return;
       const data = await res.json();
@@ -218,26 +526,21 @@ export default function Home() {
       setReadinessChecklist(data.readinessChecklist || {});
       setStrategicMoats(data.strategicMoats || []);
       setImpactScore(data.impactScore || null);
+      setLogicAlerts(data.logicAlerts || []);
+      setRequirementGaps(data.requirementGaps || []);
       
-      // Impact Analysis Logic (Option B)
+      // Impact Analysis Logic (Sovereign Versioning Engine)
       if (data.snapshot) {
         const prevVersion = scopeHistory.length > 0 ? scopeHistory[scopeHistory.length - 1] : null;
         let impactReport = null;
         
         if (prevVersion) {
-          try {
-            const impactRes = await fetch('/api/impact', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ 
-                previousSnapshot: prevVersion.snapshot, 
-                currentSnapshot: data.snapshot 
-              }),
-            });
-            if (impactRes.ok) impactReport = await impactRes.json();
-          } catch (err) {
-            console.error('Impact analysis error', err);
-          }
+          impactReport = calculateDelta(
+            prevVersion.snapshot, 
+            data.snapshot, 
+            domainDetected || 'General', 
+            data.domainDetected || 'General'
+          );
         }
         
         setScopeHistory(prev => [...prev, { 
@@ -245,6 +548,28 @@ export default function Home() {
           impact: impactReport, 
           timestamp: new Date().toLocaleTimeString() 
         }]);
+
+        // Precision Impact Analysis: Only mark docs as stale if they are linked to changed requirements
+        if (impactReport && (impactReport.modified.length > 0 || impactReport.removed.length > 0)) {
+          const changedIds = new Set([
+            ...impactReport.modified.map(m => m.updated.id),
+            ...impactReport.removed.map(r => r.id)
+          ]);
+
+          const newlyStale = new Set<string>();
+          Object.entries(documents).forEach(([name, doc]) => {
+            if (doc.links && doc.links.some(linkId => changedIds.has(linkId))) {
+              newlyStale.add(name);
+            }
+          });
+
+          // If no links yet, only fall back to broad staling if the impact is significant
+          if (newlyStale.size === 0 && (impactReport.impactScore > 7 || impactReport.architecturalConflict)) {
+            setStaleDocs(new Set(['BRD', 'FRD', 'PRD', 'SRD', 'UML Diagrams', 'Wireframes', 'Prototypes', 'Regulatory Advisor']));
+          } else if (newlyStale.size > 0) {
+            setStaleDocs(prev => new Set([...Array.from(prev), ...Array.from(newlyStale)]));
+          }
+        }
       }
 
       if (data.sessionState === 'READY') setDocsReady(true);
@@ -321,6 +646,42 @@ export default function Home() {
     }
   };
 
+  const handleNewProject = () => {
+    if (chatMessages.length > 1 && !currentProjectId) {
+      if (!confirm("⚠️ You have unsaved work. Starting a new project will clear current progress. Continue?")) return;
+    }
+    
+    // Clear all states
+    setChatMessages([
+      {
+        role: "assistant",
+        content: "Hello! I am ready for a new project. Please paste your Minutes of Meeting (MOM) or describe the requirements to begin."
+      }
+    ]);
+    setDocuments({});
+    setMomInput("");
+    setDocsReady(false);
+    setActiveTab("Chat");
+    setCurrentProjectId(null);
+    setSessionState('INTAKE');
+    setReadinessScore(0);
+    setFeasibilityIssues([]);
+    setContradictions([]);
+    setConflicts([]);
+    setRegulatoryFlags([]);
+    setDomainDetected("");
+    setSmeInsight("");
+    setReadinessChecklist({});
+    setBillionDollarDisruptions([]);
+    setQuestionRoundCount(0);
+    setScopeHistory([]);
+    setStrategicMoats([]);
+    setImpactScore(null);
+    setLogicAlerts([]);
+    setRequirementGaps([]);
+    setStaleDocs(new Set());
+  };
+
   const handleSend = async () => {
     if (!momInput.trim()) return;
     
@@ -376,27 +737,52 @@ export default function Home() {
     }
   };
 
-  const handleDocumentClick = async (docName: string) => {
+  const handleDocumentClick = async (docName: string, force = false) => {
     if (!docsReady) return;
     
     setActiveTab(docName);
     setIsEditing(false);
     
-    // If we already generated it, don't re-fetch
-    if (documents[docName]) return;
+    // If we already generated it and not forcing AND not stale, don't re-fetch
+    if (documents[docName] && !force && !staleDocs.has(docName)) return;
+
+    // Clear stale flag if we are about to regenerate
+    if (staleDocs.has(docName)) {
+      setStaleDocs(prev => {
+        const next = new Set(prev);
+        next.delete(docName);
+        return next;
+      });
+    }
 
     setIsProcessing(true);
     let response: any;
+    const functionalContext = documents['FRD']?.content || documents['PRD']?.content || documents['BRD']?.content || "";
+    const designContext = docName === 'Prototypes' ? documents['Wireframes']?.content : "";
+    const combinedContext = `${functionalContext}\n\n${designContext}`.trim();
+
     try {
       response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: chatMessages, documentRequested: docName, sessionState, readinessScore, feasibilityIssues })
+        body: JSON.stringify({ 
+          messages: chatMessages, 
+          documentRequested: docName, 
+          sessionState, 
+          readinessScore, 
+          feasibilityIssues,
+          functionalContext: btoa(encodeURIComponent(combinedContext))
+        })
       });
       
       if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.error || 'Failed to generate document');
+        const rawText = await response.text();
+        let errorMsg = 'Failed to generate document';
+        try {
+          const errorData = JSON.parse(rawText);
+          errorMsg = errorData.error || errorMsg;
+        } catch(e) {}
+        throw new Error(errorMsg);
       }
 
       const reader = response.body?.getReader();
@@ -406,43 +792,58 @@ export default function Home() {
         while (true) {
           const { done, value } = await reader?.read() || { done: true, value: undefined };
           if (done) break;
-          docContent += decoder.decode(value);
+          docContent += decoder.decode(value, { stream: true });
+          setDocuments(prev => ({ 
+            ...prev, 
+            [docName]: { ...prev[docName], content: docContent } 
+          }));
+        }
+
+        // Final Meta-Parsing: Extract from [CONFIDENCE: XX% | REVIEW: ... | LINKS: ... | REASON: ...]
+        const metaMatch = docContent.match(/\[CONFIDENCE:\s*(\d+)%\s*\|\s*REVIEW:\s*(REQUIRED|OPTIONAL)\s*\|\s*LINKS:\s*([\s\S]*?)\s*\|\s*REASON:\s*([\s\S]*?)\]/i);
+
+        if (metaMatch) {
+          const confidence = parseInt(metaMatch[1]);
+          const review = metaMatch[2].toUpperCase();
+          const links = metaMatch[3].split(',').map(l => l.trim()).filter(l => l && l !== 'ID1' && l !== 'ID2');
+          const reason = metaMatch[4].trim();
           
-          // Real-time Mermaid/UML Sanitization for the UI
-          let sanitizedContent = docContent;
-          if (docName === 'Flowcharts') {
-            // Aggressive Mermaid Sanitization
-            sanitizedContent = sanitizedContent.replace(/([a-zA-Z0-9_-]+)\s*\[([^"\]]+)\]/gi, (m, id, label) => {
-              const safeLabel = label.trim().replace(/"/g, "'");
-              return `${id}["${safeLabel}"]`;
-            });
-            // Handle link labels with colons (common AI mistake)
-            sanitizedContent = sanitizedContent.replace(/([a-zA-Z0-9_-]+)\s*-->\s*([a-zA-Z0-9_-]+)\s*:\s*([^\n]+)/gi, (m, a, b, l) => {
-              const safeLabel = l.trim().replace(/"/g, "'");
-              return `${a} -->|${safeLabel}| ${b}`;
-            });
-            // Handle other node shapes
-            sanitizedContent = sanitizedContent.replace(/([a-zA-Z0-9_-]+)\s*\(([^"\]]+)\)/gi, (m, id, label) => {
-              const safeLabel = label.trim().replace(/"/g, "'");
-              return `${id}("${safeLabel}")`;
-            });
-            sanitizedContent = sanitizedContent.replace(/([a-zA-Z0-9_-]+)\s*\{([^"\]]+)\}/gi, (m, id, label) => {
-              const safeLabel = label.trim().replace(/"/g, "'");
-              return `${id}{"${safeLabel}"}`;
-            });
-            
-            if (!sanitizedContent.includes('graph') && !sanitizedContent.includes('flowchart')) {
-              sanitizedContent = 'graph TD\n' + sanitizedContent;
+          // Clean the content (remove the metadata tag from the visible document)
+          const cleanContent = docContent.replace(/\[CONFIDENCE:[\s\S]*?\]/gi, '').trim();
+
+          setDocuments(prev => ({
+            ...prev,
+            [docName]: { 
+              content: cleanContent, 
+              confidence, 
+              review, 
+              reason,
+              links
             }
+          }));
+        } else {
+          // Fallback: If AI used separate tags or non-standard format
+          const confMatch = docContent.match(/CONFIDENCE:\s*(\d+)%/i);
+          const reviewMatch = docContent.match(/REVIEW:\s*(REQUIRED|OPTIONAL)/i);
+          const linksMatch = docContent.match(/LINKS:\s*([^\]|]*)/i);
+          const reasonMatch = docContent.match(/REASON:\s*([^\]|]*)/i);
+
+          if (confMatch || reviewMatch || linksMatch) {
+             setDocuments(prev => ({
+              ...prev,
+              [docName]: { 
+                ...prev[docName],
+                confidence: confMatch ? parseInt(confMatch[1]) : 100, 
+                review: reviewMatch ? reviewMatch[1].toUpperCase() : 'OPTIONAL', 
+                links: linksMatch ? linksMatch[1].split(',').map(l => l.trim()).filter(l => l && l !== 'ID1' && l !== 'ID2') : [],
+                reason: reasonMatch ? reasonMatch[1].trim() : 'Validated by Protocol'
+              }
+            }));
           }
-          
-          setDocuments(prev => ({ ...prev, [docName]: sanitizedContent }));
         }
     } catch (error: any) {
       console.error("Error generating document:", error);
-      const rawText = await response?.text().catch(() => '');
-      const detail = rawText ? `\n\nDetail: ${rawText.slice(0, 200)}...` : '';
-      alert(`Error generating document: ${error.message}${detail}`);
+      alert(`Error generating document: ${error.message}`);
     } finally {
       setIsProcessing(false);
     }
@@ -480,6 +881,7 @@ export default function Home() {
     { icon: FileText, label: "FRD" },
     { icon: FileText, label: "PRD" },
     { icon: FileText, label: "SRD" },
+    { icon: ShieldAlert, label: "Regulatory Advisor" },
     { icon: Rocket, label: "Executive Pitch" },
     { icon: Play, label: "Test Cases" },
     { icon: Code, label: "UML Diagrams" },
@@ -489,12 +891,12 @@ export default function Home() {
   ];
 
   const downloadDocument = () => {
-    if (!documents[activeTab]) return;
     const isHtml = activeTab === "Wireframes" || activeTab === "Prototypes";
     const extension = isHtml ? 'html' : 'md';
     const mimeType = isHtml ? 'text/html' : 'text/markdown';
     
-    const blob = new Blob([documents[activeTab]], { type: mimeType });
+    const content = documents[activeTab]?.content || "";
+    const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -506,86 +908,263 @@ export default function Home() {
   };
 
   const copyToClipboard = () => {
-    if (!documents[activeTab]) return;
-    navigator.clipboard.writeText(documents[activeTab]);
+    const content = documents[activeTab]?.content || "";
+    if (!content) return;
+    navigator.clipboard.writeText(content);
     setIsCopied(true);
     setTimeout(() => setIsCopied(false), 2000);
   };
 
   const printDocument = () => {
-    const element = document.getElementById('document-content');
-    if (!element) return;
-    
-    setIsProcessing(true);
-    // @ts-ignore
-    import('html2pdf.js').then((html2pdf) => {
-      // PDF COMPATIBILITY FILTER: html2canvas hates oklch/oklab
-      const clone = element.cloneNode(true) as HTMLElement;
-      const allElements = clone.querySelectorAll('*');
-      allElements.forEach((el: any) => {
-        const style = window.getComputedStyle(el);
-        if (style.color.includes('oklch') || style.color.includes('oklab')) el.style.color = '#334155';
-        if (style.backgroundColor.includes('oklch') || style.backgroundColor.includes('oklab')) el.style.backgroundColor = '#f8fafc';
-      });
+    if (!documents[activeTab]) {
+      alert('No document to export. Please generate a document first.');
+      return;
+    }
 
-      const opt: any = {
-        margin: 10,
-        filename: `${activeTab}_${new Date().getTime()}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-      };
-      html2pdf.default().from(clone).set(opt).save().then(() => {
-        setIsProcessing(false);
-      });
-    });
+    // For Wireframes and Prototypes, we export the raw HTML source as a PDF summary
+    // because iframes cannot be captured by html2canvas due to browser security
+    const isVisual = activeTab === 'Wireframes' || activeTab === 'Prototypes';
+    const isUML = activeTab === 'UML Diagrams';
+
+    // Build a clean, print-ready HTML document
+    const content = documents[activeTab]?.content || '';
+    const confidence = documents[activeTab]?.confidence || 0;
+    const review = documents[activeTab]?.review || 'UNKNOWN';
+
+    // For UML: extract the rendered SVG img URL so it appears in the PDF
+    let umlImgTag = '';
+    if (isUML) {
+      const imgEl = document.querySelector('#document-content img[alt="UML Diagram"]') as HTMLImageElement;
+      if (imgEl?.src) {
+        umlImgTag = `<img src="${imgEl.src}" style="max-width:100%;height:auto;border:1px solid #e2e8f0;border-radius:8px;padding:16px;background:white;" />`;
+      }
+    }
+
+    // Strip markdown code fences for cleaner text
+    const cleanText = content
+      .replace(/```[\w]*\n?/g, '')
+      .replace(/```/g, '')
+      .replace(/\n{3,}/g, '\n\n')
+      .trim();
+
+    // Convert basic markdown to HTML for readable PDF
+    const mdToHtml = (text: string) => text
+      .split('\n')
+      .map(line => {
+        if (line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`;
+        if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
+        if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
+        if (line.startsWith('- ') || line.startsWith('* ')) return `<li>${line.slice(2)}</li>`;
+        if (line.startsWith('| ')) return `<tr>${line.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('')}</tr>`;
+        if (line.match(/^[-|]+$/)) return '';
+        if (line.trim() === '') return '<br/>';
+        return `<p>${line}</p>`;
+      })
+      .join('\n');
+
+    const printHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>${activeTab} — Gaurav Nandhan BA Studio</title>
+        <style>
+          @page { margin: 20mm; size: A4; }
+          * { box-sizing: border-box; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1e293b; line-height: 1.6; }
+          .header { border-bottom: 3px solid #2563eb; padding-bottom: 12px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; }
+          .header h1 { font-size: 20pt; color: #1e3a5f; margin: 0; }
+          .header .meta { font-size: 9pt; color: #64748b; text-align: right; }
+          .badge { display: inline-block; background: #dbeafe; color: #1d4ed8; padding: 2px 10px; border-radius: 12px; font-size: 8pt; font-weight: bold; margin-right: 5px; }
+          .badge-confidence { background: ${confidence >= 90 ? '#d1fae5' : confidence >= 70 ? '#fef3c7' : '#fee2e2'}; color: ${confidence >= 90 ? '#065f46' : confidence >= 70 ? '#92400e' : '#991b1b'}; }
+          h1 { font-size: 16pt; color: #1e3a5f; margin-top: 20px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+          h2 { font-size: 13pt; color: #1e40af; margin-top: 16px; }
+          h3 { font-size: 11pt; color: #2563eb; margin-top: 12px; }
+          p { margin: 4px 0 8px 0; color: #334155; }
+          li { margin: 3px 0; color: #334155; }
+          ul { padding-left: 20px; }
+          table { border-collapse: collapse; width: 100%; margin: 12px 0; font-size: 9pt; }
+          tr:nth-child(even) { background: #f8fafc; }
+          td, th { border: 1px solid #e2e8f0; padding: 6px 10px; text-align: left; vertical-align: top; }
+          th { background: #1e40af; color: white; font-weight: bold; }
+          .footer { margin-top: 40px; padding-top: 10px; border-top: 1px solid #e2e8f0; font-size: 8pt; color: #94a3b8; display: flex; justify-content: space-between; }
+          .visual-note { background: #fef9c3; border: 1px solid #fde047; border-radius: 8px; padding: 12px; margin: 16px 0; font-size: 10pt; color: #713f12; }
+          pre { background: #f1f5f9; padding: 12px; border-radius: 6px; font-size: 8pt; overflow-wrap: break-word; white-space: pre-wrap; border: 1px solid #e2e8f0; }
+        </style>
+      </head>
+      <body>
+        <div class="header">
+          <div>
+            <h1>Gaurav Nandhan BA Studio</h1>
+            <p style="margin:4px 0 0 0;color:#64748b;font-size:10pt;">${activeTab} Document</p>
+            <span class="badge">BABOK v3 Compliant</span>
+            <span class="badge badge-confidence">AI Confidence: ${confidence}% (${review})</span>
+          </div>
+          <div class="meta">
+            Generated: ${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}<br/>
+            ${new Date().toLocaleTimeString('en-IN')}
+          </div>
+        </div>
+
+        ${isUML && umlImgTag ? `<div style="margin:16px 0;">${umlImgTag}</div><hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;" />` : ''}
+
+        ${isVisual ? `
+          <div class="visual-note">
+            ⚠️ This is the structured HTML/Tailwind source for the ${activeTab}. 
+            Open the live application to view the interactive rendered preview.
+          </div>
+          <pre>${cleanText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
+        ` : mdToHtml(cleanText)}
+
+        <div class="footer">
+          <span>Gaurav Nandhan BA Studio — Enterprise Edition</span>
+          <span>Confidential &amp; Proprietary</span>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Open in new window and trigger browser print dialog (native, no library needed)
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    if (!printWindow) {
+      alert('Please allow pop-ups for this site to export PDF. Check your browser settings.');
+      return;
+    }
+    printWindow.document.write(printHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+      // Don't auto-close — let user save as PDF from dialog
+    }, 800);
   };
 
   const exportAllToPDF = () => {
-    const container = document.getElementById('bulk-print-container');
-    if (!container) return;
+    const docTabs = ['BRD', 'FRD', 'PRD', 'SRD', 'Executive Pitch', 'Test Cases', 'UML Diagrams', 'Flowcharts'];
+    const generated = docTabs.filter(tab => documents[tab]?.content && documents[tab].content.trim().length > 50);
 
-    setIsProcessing(true);
-    container.style.display = 'block';
-    
-    // @ts-ignore
-    import('html2pdf.js').then((html2pdf) => {
-      // PDF COMPATIBILITY FILTER: html2canvas hates oklch/oklab
-      const clone = container.cloneNode(true) as HTMLElement;
-      clone.style.display = 'block';
-      const allElements = clone.querySelectorAll('*');
-      allElements.forEach((el: any) => {
-        const style = window.getComputedStyle(el);
-        if (style.color.includes('oklch') || style.color.includes('oklab')) el.style.color = '#334155';
-        if (style.backgroundColor.includes('oklch') || style.backgroundColor.includes('oklab')) el.style.backgroundColor = '#f8fafc';
-      });
+    if (generated.length === 0) {
+      alert('No documents generated yet. Please generate at least one document from the sidebar first.');
+      return;
+    }
 
-      const opt: any = {
-        margin: 10,
-        filename: `Full_BA_Report_${new Date().getTime()}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { scale: 2, useCORS: true, logging: false },
-        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-        pagebreak: { mode: 'avoid-all', before: '.print-page' }
-      };
-      
-      html2pdf.default().from(clone).set(opt).save().then(() => {
-        container.style.display = 'none';
-        setIsProcessing(false);
-      }).catch(err => {
-        console.error("PDF Export error", err);
-        container.style.display = 'none';
-        setIsProcessing(false);
-      });
-    });
+    const mdToHtml = (text: string) => text
+      .replace(/```[\w]*\n?/g, '').replace(/```/g, '')
+      .split('\n')
+      .map(line => {
+        if (line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`;
+        if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
+        if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
+        if (line.startsWith('- ') || line.startsWith('* ')) return `<li>${line.slice(2)}</li>`;
+        if (line.startsWith('| ')) return `<tr>${line.split('|').filter(c => c.trim()).map(c => `<td>${c.trim()}</td>`).join('')}</tr>`;
+        if (line.match(/^[-|]+$/)) return '';
+        if (line.trim() === '') return '<br/>';
+        return `<p>${line}</p>`;
+      })
+      .join('\n');
+
+    // Build UML image tag if UML was generated
+    let umlImgTag = '';
+    if (documents['UML Diagrams']?.content) {
+      const imgEl = document.querySelector('#document-content img[alt="UML Diagram"]') as HTMLImageElement;
+      if (imgEl?.src) {
+        umlImgTag = `<img src="${imgEl.src}" style="max-width:100%;height:auto;border:1px solid #e2e8f0;border-radius:8px;padding:16px;background:white;" />`;
+      }
+    }
+
+    const sectionsHtml = generated.map(tab => {
+        const docContent = documents[tab]?.content || '';
+        const confidence = documents[tab]?.confidence || 0;
+        const review = documents[tab]?.review || 'UNKNOWN';
+        
+        return `
+          <div style="page-break-before: always; border-top: 1px solid #e2e8f0; padding-top: 24px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+              <h1 style="border:none; margin:0;">${tab}</h1>
+              <span class="badge badge-confidence">AI Confidence: ${confidence}% (${review})</span>
+            </div>
+            ${tab === 'UML Diagrams' && umlImgTag ? `<div style="margin:16px 0;">${umlImgTag}</div>` : ''}
+            ${mdToHtml(docContent.replace(/```[\w]*\n?/g, '').replace(/```/g, ''))}
+          </div>
+        `;
+    }).join('\n');
+
+    const fullHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <title>Full BA Report — Gaurav Nandhan BA Studio</title>
+        <style>
+          @page { margin: 20mm; size: A4; }
+          * { box-sizing: border-box; }
+          body { font-family: 'Segoe UI', Arial, sans-serif; font-size: 11pt; color: #1e293b; line-height: 1.6; }
+          .cover { text-align: center; padding: 80px 40px; }
+          .cover h1 { font-size: 28pt; color: #1e3a5f; }
+          .cover h2 { font-size: 16pt; color: #2563eb; font-weight: normal; }
+          .cover .date { color: #64748b; margin-top: 20px; }
+          .cover .badge { background: #dbeafe; color: #1d4ed8; padding: 6px 20px; border-radius: 20px; font-size: 10pt; font-weight: bold; display: inline-block; margin-top: 16px; }
+          .toc { padding: 20px 0; }
+          .toc h2 { color: #1e3a5f; border-bottom: 2px solid #e2e8f0; padding-bottom: 8px; }
+          .toc li { margin: 6px 0; color: #2563eb; font-size: 12pt; }
+          h1 { font-size: 14pt; color: #1e3a5f; margin-top: 16px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }
+          h2 { font-size: 12pt; color: #1e40af; margin-top: 14px; }
+          h3 { font-size: 11pt; color: #2563eb; margin-top: 10px; }
+          p { margin: 4px 0 8px 0; color: #334155; }
+          li { margin: 3px 0; color: #334155; }
+          table { border-collapse: collapse; width: 100%; margin: 10px 0; font-size: 9pt; }
+          tr:nth-child(even) { background: #f8fafc; }
+          td, th { border: 1px solid #e2e8f0; padding: 5px 8px; text-align: left; }
+          th { background: #1e40af; color: white; }
+          .footer { margin-top: 30px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 8pt; color: #94a3b8; display: flex; justify-content: space-between; }
+        </style>
+      </head>
+      <body>
+        <div class="cover">
+          <h1>Gaurav Nandhan BA Studio</h1>
+          <h2>Full Business Analysis Report</h2>
+          <div class="date">${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
+          <div class="badge">BABOK v3 Compliant · Enterprise Edition</div>
+          <p style="color:#64748b;margin-top:30px;">Documents included: ${generated.join(' · ')}</p>
+        </div>
+
+        <div class="toc" style="page-break-before: always;">
+          <h2>Table of Contents</h2>
+          <ol>${generated.map((tab, i) => `<li>${tab}</li>`).join('')}</ol>
+        </div>
+
+        ${sectionsHtml}
+
+        <div class="footer" style="page-break-before: avoid;">
+          <span>Gaurav Nandhan BA Studio — Enterprise Edition</span>
+          <span>Confidential &amp; Proprietary</span>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open('', '_blank', 'width=1000,height=800');
+    if (!printWindow) {
+      alert('Please allow pop-ups for this site to export PDF. Check your browser settings.');
+      return;
+    }
+    printWindow.document.write(fullHtml);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => {
+      printWindow.print();
+    }, 1000);
   };
 
   const toggleEdit = () => {
     if (isEditing) {
-      setDocuments(prev => ({ ...prev, [activeTab]: editContent }));
+      setDocuments(prev => ({ 
+        ...prev, 
+        [activeTab]: { ...prev[activeTab], content: editContent } 
+      }));
       setIsEditing(false);
     } else {
-      setEditContent(documents[activeTab] || "");
+      setEditContent(documents[activeTab]?.content || "");
       setIsEditing(true);
     }
   };
@@ -617,19 +1196,108 @@ export default function Home() {
               <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse"></div>
               <p className="text-[10px] text-blue-400 font-bold uppercase tracking-[0.2em]">Sovereign BA Studio</p>
             </div>
+            {(session?.user as any)?.orgName && (
+              <div className="flex items-center gap-1 mt-1">
+                <span className="text-[9px] text-slate-500 truncate max-w-[140px]">{(session?.user as any)?.orgName}</span>
+                <span className={`text-[8px] font-bold px-1.5 py-0.5 rounded-full border ${
+                  (session?.user as any)?.plan === 'ENTERPRISE' ? 'text-purple-400 border-purple-500/30 bg-purple-500/10' :
+                  (session?.user as any)?.plan === 'PROFESSIONAL' ? 'text-blue-400 border-blue-500/30 bg-blue-500/10' :
+                  'text-slate-500 border-slate-600/30 bg-slate-800/50'
+                }`}>{(session?.user as any)?.plan || 'STARTER'}</span>
+              </div>
+            )}
           </div>
         </div>
 
         <div className="flex-1 overflow-y-auto p-4 space-y-6">
           <div>
-            <h2 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3 px-2">Workspace</h2>
+            <div className="flex items-center justify-between mb-3 px-2">
+              <h2 className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Workspace</h2>
+              <button 
+                onClick={handleNewProject}
+                className="p-1.5 hover:bg-blue-500/20 text-blue-400 rounded-md transition-colors group relative"
+                title="Start New Project"
+              >
+                <Plus className="w-4 h-4" />
+                <span className="absolute left-full ml-2 px-2 py-1 bg-slate-800 text-[10px] text-white rounded opacity-0 group-hover:opacity-100 whitespace-nowrap pointer-events-none transition-opacity z-[100] border border-slate-700">New Project</span>
+              </button>
+            </div>
             <nav className="space-y-1">
               <button onClick={() => setActiveTab("Chat")} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium ${activeTab === "Chat" ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'}`}>
                 <MessageSquare className="w-4 h-4" />
                 BA Agent Chat
               </button>
+              <button onClick={() => setShowTimeline(true)} className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium hover:bg-slate-800 text-slate-400 hover:text-slate-200">
+                <History className="w-4 h-4" />
+                Requirement Timeline
+                {scopeHistory.length > 1 && (
+                  <span className="ml-auto flex h-2 w-2 rounded-full bg-blue-500 animate-pulse"></span>
+                )}
+              </button>
+              <button onClick={() => setActiveTab("Traceability Matrix")} className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium ${activeTab === "Traceability Matrix" ? 'bg-blue-500/10 text-blue-400' : 'hover:bg-slate-800 text-slate-400 hover:text-slate-200'}`}>
+                <Network className="w-4 h-4" />
+                Traceability Matrix
+              </button>
             </nav>
           </div>
+
+          {/* Past Projects / Recent Sessions */}
+          {pastProjects.length > 0 && (
+            <div>
+              <h2 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3 px-2 flex items-center gap-2">
+                <Clock className="w-3 h-3" />
+                Recent Sessions
+              </h2>
+              <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                {pastProjects.map((p, i) => (
+                  <button 
+                    key={p.id} 
+                    onClick={() => {
+                      setChatMessages(p.messages);
+                      // Legacy Support: Convert old string documents to new object format
+                      const migratedDocs: Record<string, any> = {};
+                      Object.entries(p.documents || {}).forEach(([key, val]: [string, any]) => {
+                        if (typeof val === 'string') {
+                          migratedDocs[key] = { content: val, confidence: 100, review: 'OPTIONAL', reason: 'Legacy migration' };
+                        } else {
+                          migratedDocs[key] = val;
+                        }
+                      });
+                      setDocuments(migratedDocs);
+                      setCurrentProjectId(p.id);
+                      setDocsReady(true);
+                      setActiveTab("Chat");
+                    }}
+                    className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all border border-transparent ${
+                      currentProjectId === p.id 
+                        ? 'bg-slate-800 text-blue-400 border-blue-500/20' 
+                        : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                    }`}
+                  >
+                    <div className="font-medium truncate mb-0.5">{p.title}</div>
+                    <div className="text-[9px] opacity-50">{new Date(p.updatedAt).toLocaleDateString()}</div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Admin Panel link — ADMIN role only */}
+          {(session?.user as any)?.role === 'ADMIN' && (
+            <div>
+              <h2 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3 px-2">Administration</h2>
+              <nav className="space-y-1">
+                <button
+                  onClick={() => { const router = document.createElement('a'); router.href = '/admin'; router.click(); }}
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium hover:bg-purple-500/10 text-slate-400 hover:text-purple-300 border border-transparent hover:border-purple-500/20"
+                >
+                  <Shield className="w-4 h-4 text-purple-400" />
+                  Admin Panel
+                  <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 bg-purple-500/20 text-purple-400 rounded-full border border-purple-500/30">ADMIN</span>
+                </button>
+              </nav>
+            </div>
+          )}
 
           {/* Brain 1: Readiness Meter */}
           {sessionState !== 'INTAKE' && (
@@ -746,6 +1414,23 @@ export default function Home() {
                     <Download className="w-3.5 h-3.5" />
                     Export All (PDF)
                   </button>
+                  {activeTab === "FRD" && (
+                    <button onClick={() => setIsJiraModalOpen(true)} className="px-4 py-2 bg-slate-800 border border-slate-700 rounded-lg text-xs font-bold uppercase tracking-wider text-slate-300 hover:text-white hover:border-slate-500 transition-all flex items-center gap-2 no-print">
+                      <LayoutDashboard className="w-3.5 h-3.5 text-blue-400" />
+                      Jira Sync
+                    </button>
+                  )}
+                  {activeTab === "Prototypes" && (
+                    <div className="flex items-center gap-2 px-3 py-1 bg-slate-800/50 rounded-lg border border-slate-700 no-print">
+                      <Search className="w-3.5 h-3.5 text-slate-500" />
+                      <select className="bg-transparent text-xs text-slate-300 focus:outline-none cursor-pointer">
+                        <option value="en">English (US)</option>
+                        <option value="te">Telugu (తెలుగు)</option>
+                        <option value="hi">Hindi (हिन्दी)</option>
+                        <option value="ar">Arabic (العربية)</option>
+                      </select>
+                    </div>
+                  )}
                   <div className="flex items-center gap-3 bg-slate-800/50 p-1.5 px-3 rounded-xl border border-slate-700/50">
                   {(activeTab === "Wireframes" || activeTab === "Prototypes") && (
                     <button onClick={getShareLink} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-blue-400 hover:text-blue-300 hover:bg-slate-700 transition-colors">
@@ -837,7 +1522,70 @@ export default function Home() {
               </>
             ) : (
               <div className="flex-1 overflow-y-auto p-8 bg-[#0f172a]/30" id="document-content">
-                <div className="max-w-5xl mx-auto bg-[#1e293b]/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl min-h-full">
+                <div className="max-w-5xl mx-auto bg-[#1e293b]/80 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-2xl min-h-full flex flex-col">
+                  {/* Document Toolbar */}
+                  <div className="p-4 border-b border-slate-700/50 flex items-center justify-between bg-slate-900/40 rounded-t-2xl">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 flex items-center justify-center text-blue-400 border border-blue-500/20">
+                        {activeTab === 'UML Diagrams' ? <GitBranch className="w-4 h-4" /> : <FileText className="w-4 h-4" />}
+                      </div>
+                      <div>
+                        <h3 className="text-sm font-bold text-white leading-none mb-1">{activeTab}</h3>
+                        <p className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">
+                          {scopeHistory.length > 1 ? `Version ${scopeHistory.length}.0 (Revised)` : 'Baseline Version 1.0'}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        {documents[activeTab] && (
+                          <div className={`px-3 py-1.5 rounded-lg border flex items-center gap-2.5 backdrop-blur-sm transition-all ${
+                            !documents[activeTab].confidence ? 'bg-slate-800/50 border-slate-700 text-slate-500' :
+                            documents[activeTab].confidence >= 90 ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400' :
+                            documents[activeTab].confidence >= 70 ? 'bg-amber-500/10 border-amber-500/30 text-amber-400' :
+                            'bg-red-500/10 border-red-500/30 text-red-400'
+                          }`}>
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-[10px] font-black uppercase tracking-tighter">AI CONFIDENCE</span>
+                              <span className="text-xs font-bold">{documents[activeTab].confidence || 0}%</span>
+                            </div>
+                            <div className="w-px h-3 bg-white/10"></div>
+                            <div className="flex items-center gap-1.5">
+                              {!documents[activeTab].review ? (
+                                <Loader2 className="w-3 h-3 animate-spin" />
+                              ) : documents[activeTab].review === 'REQUIRED' ? (
+                                <AlertTriangle className="w-3 h-3 animate-pulse" />
+                              ) : (
+                                <CheckCircle2 className="w-3 h-3" />
+                              )}
+                              <span className="text-[9px] font-bold uppercase tracking-tight">
+                                {!documents[activeTab].review ? 'Analyzing...' : 
+                                 documents[activeTab].review === 'REQUIRED' ? 'Review Required' : 'Verified'}
+                              </span>
+                            </div>
+                            {documents[activeTab].reason && (
+                              <div className="group relative">
+                                <Info className="w-3 h-3 text-slate-400 cursor-help" />
+                                <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 w-48 p-2 bg-slate-900 border border-slate-700 rounded-lg text-[10px] text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-xl z-[60]">
+                                  {documents[activeTab].reason}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                        {scopeHistory.length > 1 && (
+                          <button 
+                            onClick={() => handleDocumentClick(activeTab, true)}
+                            disabled={isProcessing}
+                            className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs font-bold transition-all border border-amber-500/30 shadow-lg shadow-amber-500/5 group"
+                          >
+                            <Zap className={`w-3.5 h-3.5 ${isProcessing ? 'animate-pulse' : 'group-hover:scale-110 transition-transform'}`} />
+                            Regenerate with v{scopeHistory.length} Updates
+                          </button>
+                        )}
+                      <button onClick={() => setIsEditing(!isEditing)} className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors border border-transparent hover:border-slate-700"><Edit3 className="w-4 h-4" /></button>
+                      <button onClick={printDocument} className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors border border-transparent hover:border-slate-700"><Download className="w-4 h-4" /></button>
+                    </div>
+                  </div>
                   {isProcessing && !documents[activeTab] ? (
                     <div className="flex flex-col items-center justify-center h-96 gap-4 text-slate-400">
                       <Loader2 className="w-10 h-10 animate-spin text-blue-500" />
@@ -853,68 +1601,62 @@ export default function Home() {
                         <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="w-full flex-1 bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-200 font-mono text-sm focus:outline-none resize-none" />
                       </div>
                     ) : (
-                      (activeTab === "Wireframes" || activeTab === "Prototypes") ? (
-                        <div className="p-4 h-full">
-                          {(() => {
-                              const rawContent = documents[activeTab];
-                              const htmlMatch = rawContent.match(/```html\s+([\s\S]*?)(\s+```|$)/i);
-                              let htmlContent = htmlMatch ? htmlMatch[1].trim() : rawContent.replace(/```html/gi, '').replace(/```/g, '').trim();
-                              const summary = rawContent.replace(/```html[\s\S]*?```/g, '').trim();
-                              const fullHtml = htmlContent.includes('<html') ? htmlContent : `<!DOCTYPE html><html><head><script src="https://cdn.tailwindcss.com"></script><script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script><style>body { background: transparent; color: white; font-family: sans-serif; }</style></head><body>${htmlContent}</body></html>`;
-                              return (
-                                <div className="flex flex-col gap-6">
-                                  <div className="prose prose-invert prose-slate max-w-none p-6 bg-slate-800/40 rounded-xl border border-slate-700/50">
-                                    <ReactMarkdown remarkPlugins={[remarkGfm]}>{summary}</ReactMarkdown>
-                                  </div>
-                                  <div className="my-2 border border-slate-700 rounded-xl overflow-hidden bg-[#0f172a] shadow-2xl h-[calc(100vh-32rem)] min-h-[600px] relative">
-                                    <iframe 
-                                      srcDoc={fullHtml} 
-                                      className="w-full h-full border-none" 
-                                      title="Prototype Preview" 
-                                      sandbox="allow-scripts allow-modals allow-forms allow-same-origin allow-popups"
-                                      onLoad={(e) => {
-                                        const win = (e.target as HTMLIFrameElement).contentWindow;
-                                        if (win) {
-                                          // Force focus on click to ensure keyboard events work
-                                          win.document.body.onclick = () => win.focus();
-                                          win.addEventListener('click', (ev: any) => {
-                                            const link = ev.target.closest('a');
-                                            if (link && (link.getAttribute('href') === '#' || link.getAttribute('href')?.startsWith('/'))) {
-                                              ev.preventDefault();
-                                            }
-                                          });
+                              (activeTab === "Wireframes" || activeTab === "Prototypes") ? (
+                                <div className="p-4 h-full">
+                                  {(() => {
+                                      const rawContent = documents[activeTab]?.content || "";
+                                      // 1. PRIMARY EXTRACTION: Standard Markdown Blocks
+                                      const htmlMatch = rawContent.match(/```html\s+([\s\S]*?)(\s+```|$)/i);
+                                      let htmlContent = "";
+                                      let summary = "";
+                                      
+                                      if (htmlMatch) {
+                                        htmlContent = htmlMatch[1].trim();
+                                        summary = rawContent.replace(/```html[\s\S]*?```/gi, '').trim();
+                                      } else {
+                                        // 2. DEEP SCAN FALLBACK: Search for raw HTML structure if markdown tags are missing or broken
+                                        const tagStart = rawContent.indexOf('<');
+                                        const tagEnd = rawContent.lastIndexOf('>');
+                                        if (tagStart !== -1 && tagEnd !== -1 && tagEnd > tagStart) {
+                                          htmlContent = rawContent.substring(tagStart, tagEnd + 1).trim();
+                                          summary = rawContent.substring(0, tagStart).trim();
+                                        } else {
+                                          htmlContent = rawContent.trim();
+                                          summary = "Direct code extraction...";
                                         }
-                                      }}
-                                    />
-                                  </div>
+                                      }
+
+                                      // 3. SANITIZATION: Clean up leftover markdown markers
+                                      htmlContent = htmlContent.replace(/^```html\s*/i, '').replace(/\s*```$/i, '').trim();
+
+                                      if (!htmlContent || htmlContent.length < 10) {
+                                        return (
+                                          <div className="p-8 bg-slate-900/80 border border-slate-700 rounded-2xl">
+                                            <p className="text-slate-400 text-sm italic mb-4">Rendering system is preparing the interface. If it remains blank, please click "Edit" to view raw logic.</p>
+                                            <pre className="text-[10px] text-slate-500 font-mono overflow-auto max-h-96">{rawContent}</pre>
+                                          </div>
+                                        );
+                                      }
+
+                                      return <LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} />;
+                                  })()}
                                 </div>
-                              );
-                          })()}
-                        </div>
                       ) : (
                         <div className="prose prose-invert prose-slate max-w-none p-10 prose-headings:text-blue-100">
                           {(() => {
-                            const content = documents[activeTab];
+                            const content = documents[activeTab]?.content || "";
                             if (content.includes('@startuml')) {
-                              const plantumlMatch = content.match(/@startuml([\s\S]*?)@enduml/);
-                              if (plantumlMatch) {
-                                const rawCode = plantumlMatch[0].trim();
-                                const code = rawCode.split('\n')
-                                  .map(line => line.split("'")[0].replace(/\*\*/g, '').trim())
-                                  .filter(line => line.length > 0)
-                                  .join('\n');
-                                const data = new TextEncoder().encode(code);
-                                const compressed = pako.deflate(data, { level: 9 });
-                                const base64 = btoa(String.fromCharCode.apply(null, Array.from(compressed)))
-                                  .replace(/\+/g, '-')
-                                  .replace(/\//g, '_');
-                                
+                               const plantumlMatch = content.match(/@startuml([\s\S]*?)@enduml/);
+                               if (plantumlMatch) {
+                                 // Clean code: Remove themes and other non-standard PlantUML junk
+                                 const code = plantumlMatch[0].trim()
+                                   .replace(/!theme\s+\w+/g, '!theme plain') // Force plain theme for stability
+                                   .replace(/\*\*/g, '')
+                                   .replace(/\\_/g, '_');
+                                 
                                 return (
                                   <div className="flex flex-col gap-4">
-                                    <div className="bg-white p-8 rounded-2xl border border-slate-700/50 shadow-xl flex justify-center group relative overflow-hidden">
-                                      <div className="absolute inset-0 bg-slate-50 opacity-0 group-hover:opacity-5 transition-opacity pointer-events-none"></div>
-                                      <img src={`https://kroki.io/plantuml/svg/${base64}`} alt="UML Diagram" className="max-w-full h-auto relative z-10" />
-                                    </div>
+                                    <PlantUMLRenderer code={code} isProcessing={isProcessing} />
                                     <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 overflow-hidden">
                                       <div className="flex items-center justify-between mb-2 px-1">
                                         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">PlantUML Source</span>
@@ -931,30 +1673,204 @@ export default function Home() {
                               }
                             }
                             return (
-                              <ReactMarkdown 
-                                remarkPlugins={[remarkGfm]} 
-                                components={{ 
-                                  code({inline, className, children, ...props}: any) { 
-                                    const match = /language-(\w+)/.exec(className || ''); 
-                                    if (!inline && match && match[1] === 'mermaid') { 
-                                      const chartCode = String(children).replace(/\n$/, '');
-                                      // If it's too short or doesn't have a basic graph structure yet, show loader
-                                      if (chartCode.length < 10 || (!chartCode.includes('graph') && !chartCode.includes('flowchart'))) {
-                                        return <div className="p-4 bg-slate-900/50 rounded flex items-center gap-2 text-slate-500 text-xs italic"><Loader2 className="w-3 h-3 animate-spin" /> Rendering diagram...</div>;
-                                      }
-                                      return <MermaidRenderer chart={chartCode} /> 
+                              <>
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]} 
+                                  components={{ 
+                                    code({inline, className, children, ...props}: any) { 
+                                      const match = /language-(\w+)/.exec(className || ''); 
+                                      if (!inline && match && match[1] === 'mermaid') { 
+                                        const chartCode = String(children).replace(/\n$/, '');
+                                        // If it's too short or doesn't have a basic graph structure yet, show loader
+                                        if (chartCode.length < 10 || (!chartCode.includes('graph') && !chartCode.includes('flowchart'))) {
+                                          return <div className="p-4 bg-slate-900/50 rounded flex items-center gap-2 text-slate-500 text-xs italic"><Loader2 className="w-3 h-3 animate-spin" /> Rendering diagram...</div>;
+                                        }
+                                        return <MermaidRenderer chart={chartCode} isProcessing={isProcessing} /> 
+                                      } 
+                                      return <code className={className} {...props}>{children}</code> 
                                     } 
-                                    return <code className={className} {...props}>{children}</code> 
-                                  } 
-                                }}
-                              >
-                                {content}
-                              </ReactMarkdown>
+                                  }}
+                                >
+                                  {content}
+                                </ReactMarkdown>
+                                {activeTab === "Test Cases" && (
+                                  <div className="mt-8 pt-6 border-t border-slate-700/50">
+                                    <div className="flex items-center justify-between mb-4">
+                                      <h4 className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                                        <Play className="w-4 h-4 text-blue-400" /> E2E Automation Suite
+                                      </h4>
+                                      <button 
+                                        onClick={async () => {
+                                          setIsGeneratingTests(true);
+                                          try {
+                                            const res = await fetch('/api/generate/tests', {
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({ 
+                                                prototypeCode: documents['Prototypes']?.content, 
+                                                testCases: content 
+                                              })
+                                            });
+                                            const data = await res.json();
+                                            setPlaywrightScript(data.script);
+                                          } finally {
+                                            setIsGeneratingTests(false);
+                                          }
+                                        }}
+                                        disabled={isGeneratingTests || !documents['Prototypes']?.content}
+                                        className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all shadow-lg shadow-blue-600/20"
+                                      >
+                                        {isGeneratingTests ? <Loader2 className="w-3 h-3 animate-spin" /> : "Generate Playwright Script"}
+                                      </button>
+                                    </div>
+                                    {playwrightScript && (
+                                      <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-4 relative group">
+                                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          <button onClick={() => navigator.clipboard.writeText(playwrightScript)} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-blue-400 border border-slate-700">
+                                            <Copy className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                        <pre className="text-[11px] text-blue-300/80 font-mono leading-relaxed overflow-x-auto max-h-96 custom-scrollbar">
+                                          {playwrightScript}
+                                        </pre>
+                                      </div>
+                                    )}
+                                    {!documents['Prototypes']?.content && (
+                                      <p className="text-[10px] text-slate-500 italic mt-2">Generate Prototypes first to enable E2E script creation.</p>
+                                    )}
+                                  </div>
+                                )}
+                                {activeTab === "SRD" && (
+                                  <div className="mt-8 pt-6 border-t border-slate-700/50">
+                                    <div className="flex items-center justify-between mb-4">
+                                      <h4 className="text-sm font-bold text-slate-300 uppercase tracking-widest flex items-center gap-2">
+                                        <Code className="w-4 h-4 text-blue-400" /> Infrastructure-as-Code (Terraform)
+                                      </h4>
+                                      <button 
+                                        onClick={async () => {
+                                          setIsGeneratingIaC(true);
+                                          try {
+                                            const res = await fetch('/api/generate/tests', { 
+                                              method: 'POST',
+                                              headers: { 'Content-Type': 'application/json' },
+                                              body: JSON.stringify({ 
+                                                prototypeCode: "GENERATE_IAC", 
+                                                testCases: content 
+                                              })
+                                            });
+                                            const data = await res.json();
+                                            setTerraformPlan(data.script);
+                                          } finally {
+                                            setIsGeneratingIaC(false);
+                                          }
+                                        }}
+                                        disabled={isGeneratingIaC}
+                                        className="px-4 py-2 bg-slate-800 border border-slate-700 hover:border-blue-500 text-blue-400 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-all"
+                                      >
+                                        {isGeneratingIaC ? <Loader2 className="w-3 h-3 animate-spin" /> : "Generate IaC Manifest"}
+                                      </button>
+                                    </div>
+                                    {terraformPlan && (
+                                      <div className="bg-slate-900/80 rounded-xl border border-slate-700/50 p-4 relative group">
+                                        <div className="absolute top-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                                          <button onClick={() => navigator.clipboard.writeText(terraformPlan)} className="p-2 bg-slate-800 hover:bg-slate-700 rounded-lg text-blue-400 border border-slate-700">
+                                            <Copy className="w-4 h-4" />
+                                          </button>
+                                        </div>
+                                        <pre className="text-[11px] text-emerald-400/80 font-mono leading-relaxed overflow-x-auto max-h-96 custom-scrollbar">
+                                          {terraformPlan}
+                                        </pre>
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </>
                             );
                           })()}
                         </div>
                       )
                     )
+                  ) : activeTab === "Traceability Matrix" ? (
+                    <div className="p-8 h-full overflow-y-auto">
+                      <div className="max-w-4xl mx-auto space-y-8">
+                        <div className="flex items-center gap-4 mb-8">
+                          <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
+                            <Network className="w-6 h-6 text-blue-400" />
+                          </div>
+                          <div>
+                            <h2 className="text-2xl font-bold text-white">End-to-End Traceability</h2>
+                            <p className="text-slate-400 text-sm">Visualizing cascading requirements, rules, and artifacts</p>
+                          </div>
+                        </div>
+
+                        {/* Mermaid Traceability Graph */}
+                        <div className="bg-slate-900/40 border border-slate-700/50 rounded-3xl p-8 backdrop-blur-xl">
+                          {(() => {
+                            let graphCode = "graph LR\n";
+                            graphCode += "classDef req fill:#1e40af,stroke:#3b82f6,color:#fff,stroke-width:2px;\n";
+                            graphCode += "classDef doc fill:#1e293b,stroke:#475569,color:#cbd5e1,stroke-width:1px;\n";
+                            graphCode += "classDef visual fill:#312e81,stroke:#6366f1,color:#fff,stroke-width:2px;\n";
+                            graphCode += "classDef test fill:#064e3b,stroke:#10b981,color:#fff,stroke-width:2px;\n";
+
+                            // Baseline node
+                            graphCode += "MOM[Minutes of Meeting]:::req\n";
+
+                            Object.entries(documents).forEach(([name, doc]) => {
+                              const nodeId = name.replace(/\s+/g, '_');
+                              const cls = (name === 'Wireframes' || name === 'Prototypes') ? 'visual' : 
+                                          (name === 'Test Cases') ? 'test' : 'doc';
+                              
+                              graphCode += `${nodeId}[${name}]:::${cls}\n`;
+                              
+                              if (doc.links && doc.links.length > 0) {
+                                doc.links.forEach(link => {
+                                  graphCode += `MOM --> ${nodeId}\n`;
+                                });
+                              } else {
+                                if (['BRD', 'PRD', 'Regulatory Advisor'].includes(name)) {
+                                  graphCode += `MOM --> ${nodeId}\n`;
+                                }
+                              }
+                            });
+
+                            if (documents['FRD'] && documents['BRD']) graphCode += "BRD --> FRD\n";
+                            if (documents['UML Diagrams'] && documents['FRD']) graphCode += "FRD --> UML_Diagrams\n";
+                            if (documents['Wireframes'] && documents['FRD']) graphCode += "FRD --> Wireframes\n";
+                            if (documents['Prototypes'] && documents['Wireframes']) graphCode += "Wireframes --> Prototypes\n";
+                            if (documents['Test Cases'] && documents['FRD']) graphCode += "FRD --> Test_Cases\n";
+
+                            return <MermaidRenderer chart={graphCode} />;
+                          })()}
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                           <div className="p-6 bg-slate-800/40 border border-slate-700/50 rounded-2xl">
+                             <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Audit Summary</h4>
+                             <div className="space-y-4">
+                               <div className="flex justify-between items-center">
+                                 <span className="text-sm text-slate-400">Total Links Detected</span>
+                                 <span className="text-sm font-bold text-blue-400">{Object.values(documents).reduce((acc, d) => acc + (d.links?.length || 0), 0)}</span>
+                               </div>
+                               <div className="flex justify-between items-center">
+                                 <span className="text-sm text-slate-400">Orphaned Artifacts</span>
+                                 <span className="text-sm font-bold text-amber-400">{Object.values(documents).filter(d => !d.links || d.links.length === 0).length}</span>
+                               </div>
+                             </div>
+                           </div>
+                           <div className="p-6 bg-blue-500/5 border border-blue-500/20 rounded-2xl">
+                             <h4 className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-4">Lifecycle Health</h4>
+                             <div className="flex items-center gap-4">
+                               <div className="text-3xl font-black text-white">
+                                 {Math.round((Object.keys(documents).length / 11) * 100)}%
+                               </div>
+                               <p className="text-[10px] text-slate-500 leading-relaxed uppercase tracking-tighter">
+                                 Coverage of the end-to-end BA lifecycle across all required BABOK v3 dimensions.
+                               </p>
+                             </div>
+                           </div>
+                        </div>
+                      </div>
+                    </div>
                   ) : (
                     <div className="flex items-center justify-center h-96 text-slate-500">Select a document to generate.</div>
                   )}
@@ -1079,6 +1995,62 @@ export default function Home() {
                 </div>
               )}
 
+              {/* Logic Debugger */}
+              {logicAlerts.length > 0 && (
+                <div className="p-4 bg-orange-500/5 border border-orange-500/20 rounded-2xl relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <ZapOff className="w-8 h-8 text-orange-400" />
+                  </div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-3 flex items-center gap-2">
+                    <ZapOff className="w-3 h-3" /> Logic Debugger
+                  </h4>
+                  <div className="space-y-3">
+                    {logicAlerts.map((alert, i) => (
+                      <div key={i} className="space-y-1">
+                        <div className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                          <Activity className="w-2.5 h-2.5 text-orange-500" />
+                          {alert.type}
+                        </div>
+                        <p className="text-[10px] text-slate-400 leading-relaxed pl-4">
+                          {alert.description}
+                        </p>
+                        <p className="text-[9px] text-orange-500/60 font-bold uppercase tracking-tighter pl-4">
+                          Risk: {alert.risk}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Requirement Gap Analysis */}
+              {requirementGaps.length > 0 && (
+                <div className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-2xl relative overflow-hidden group">
+                   <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <FileQuestion className="w-8 h-8 text-purple-400" />
+                  </div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-purple-400 mb-3 flex items-center gap-2">
+                    <FileQuestion className="w-3 h-3" /> Gap Analysis
+                  </h4>
+                  <div className="space-y-3">
+                    {requirementGaps.map((gap, i) => (
+                      <div key={i} className="space-y-1">
+                        <div className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
+                          <div className={`w-1.5 h-1.5 rounded-full ${gap.severity === 'HIGH' ? 'bg-red-500' : 'bg-purple-400'}`} />
+                          {gap.area} Gap
+                        </div>
+                        <p className="text-[10px] text-slate-400 leading-relaxed pl-3 italic">
+                          "{gap.gap}"
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  <button onClick={() => setMomInput(prev => prev + "\n\nPlease address the following gaps:\n" + requirementGaps.map(g => `- ${g.gap}`).join('\n'))} className="mt-4 w-full py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-lg border border-purple-500/20 transition-all font-bold uppercase tracking-tighter text-[9px]">
+                    Auto-Fill Gap Prompts
+                  </button>
+                </div>
+              )}
+
               {/* Billion Dollar Disruptions */}
               {billionDollarDisruptions.length > 0 && (
                 <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/5 border border-yellow-500/20 p-4 rounded-xl">
@@ -1120,6 +2092,38 @@ export default function Home() {
                 </div>
               )}
 
+              {/* Cascading Impact Audit */}
+              {staleDocs.size > 0 && (
+                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl relative overflow-hidden group shadow-lg shadow-red-500/10">
+                  <div className="absolute top-0 right-0 p-3 opacity-20">
+                    <Activity className="w-8 h-8 text-red-500 animate-pulse" />
+                  </div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-3 flex items-center gap-2">
+                    <ShieldAlert className="w-4 h-4" /> Cascading Impact Alert
+                  </h4>
+                  <p className="text-[11px] text-red-200/70 mb-3 leading-relaxed">
+                    Requirement changes have invalidated the following downstream artifacts. Audit required.
+                  </p>
+                  <div className="space-y-2 mb-4">
+                    {Array.from(staleDocs).map((doc, i) => (
+                      <div key={i} className="flex items-center gap-2 px-2 py-1 bg-red-500/10 rounded border border-red-500/20">
+                        <div className="w-1 h-1 rounded-full bg-red-500" />
+                        <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">{doc}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <button 
+                    onClick={() => {
+                      const firstStale = Array.from(staleDocs)[0];
+                      handleDocumentClick(firstStale, true);
+                    }}
+                    className="w-full py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold uppercase tracking-widest text-[9px] transition-all shadow-lg shadow-red-600/20"
+                  >
+                    Regenerate Stale Artifacts
+                  </button>
+                </div>
+              )}
+
               {/* Impact Analysis */}
               {scopeHistory.length > 1 && scopeHistory[scopeHistory.length - 1].impact && (
                 <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
@@ -1155,10 +2159,10 @@ export default function Home() {
         <div style={{ textAlign: 'center', padding: '80px 50px', border: '8px solid #1e293b', margin: '20px', borderRadius: '30px' }}>
           <h1 style={{ fontSize: '48px', fontWeight: '900', color: '#1e293b', marginBottom: '10px' }}>Gaurav Nandhan</h1>
           <p style={{ fontSize: '18px', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.15em' }}>Business Analyst Studio Report</p>
-          <div style={{ marginTop: '30px', fontSize: '14px', color: '#94a3b8' }}>Generated on {new Date().toLocaleDateString()}</div>
+          <div style={{ marginTop: '30px', fontSize: '14px', color: '#94a3b8' }}>Generated on {currentDate}</div>
         </div>
 
-        {Object.entries(documents).map(([name, content]) => (
+        {Object.entries(documents).map(([name, docObj]) => (
           <div key={name} style={{ pageBreakBefore: 'always', padding: '40px' }}>
             <h1 style={{ fontSize: '28px', fontWeight: '900', color: '#1e293b', borderBottom: '3px solid #f1f5f9', paddingBottom: '15px', marginBottom: '25px', display: 'flex', alignItems: 'center', gap: '15px' }}>
               <span style={{ width: '8px', height: '30px', background: '#3b82f6', borderRadius: '4px' }}></span>
@@ -1166,7 +2170,7 @@ export default function Home() {
             </h1>
             <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#334155' }}>
               <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code({inline, className, children, ...props}: any) { const match = /language-(\w+)/.exec(className || ''); if (!inline && match && match[1] === 'mermaid') { return <MermaidRenderer chart={String(children).replace(/\n$/, '')} /> } if (!inline && (name === "Wireframes" || name === "Prototypes")) { return <div style={{ padding: '15px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', color: '#64748b', fontSize: '11px' }}>Interactive demo code excluded.</div>; } return <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }} {...props}>{children}</code> } }}>
-                {(name === "Wireframes" || name === "Prototypes") ? content.replace(/```html[\s\S]*?```/g, '').trim() : content}
+                {(name === "Wireframes" || name === "Prototypes") ? (docObj.content || "").replace(/```html[\s\S]*?```/g, '').trim() : (docObj.content || "")}
               </ReactMarkdown>
             </div>
           </div>
@@ -1174,7 +2178,7 @@ export default function Home() {
       </div>
 
       <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
-      <JiraModal isOpen={isJiraModalOpen} onClose={() => setIsJiraModalOpen(false)} docTitle={activeTab} docContent={documents[activeTab] || ""} />
+      <JiraModal isOpen={isJiraModalOpen} onClose={() => setIsJiraModalOpen(false)} docTitle={activeTab} docContent={documents[activeTab]?.content || ""} />
 
       {/* Scope Evolution Timeline Modal */}
       <AnimatePresence>
@@ -1211,26 +2215,62 @@ export default function Home() {
 
                       {v.impact ? (
                         <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-5 shadow-inner">
-                          <h3 className="text-md font-bold text-emerald-400 mb-2 flex items-center gap-2">
-                            <Sparkles className="w-4 h-4" />
-                            {v.impact.summary}
-                          </h3>
+                          <div className="flex items-center justify-between mb-4">
+                            <h3 className="text-md font-bold text-white flex items-center gap-2">
+                              <Sparkles className="w-4 h-4 text-emerald-400" />
+                              Requirement Delta Analysis
+                            </h3>
+                            <div className={`px-2 py-1 rounded text-[10px] font-bold uppercase tracking-tighter ${
+                              v.impact.impactScore > 7 ? 'bg-red-500/20 text-red-400 border border-red-500/30' :
+                              v.impact.impactScore > 4 ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30' :
+                              'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                            }`}>
+                              Impact Score: {v.impact.impactScore}/10
+                            </div>
+                          </div>
                           
-                          <div className="space-y-4">
-                            {v.impact.changes.map((change: any, ci: number) => (
-                              <div key={ci} className="flex gap-4 p-3 bg-slate-900/50 rounded-xl border border-slate-800/50">
-                                <div className={`mt-1 flex-shrink-0 w-2 h-2 rounded-full ${change.type === 'ADDED' ? 'bg-green-500' : change.type === 'REMOVED' ? 'bg-red-500' : 'bg-amber-500'}`} />
+                          <div className="space-y-3">
+                            {/* ADDED */}
+                            {v.impact.added?.map((req: any, ci: number) => (
+                              <div key={`add-${ci}`} className="flex gap-4 p-3 bg-green-500/5 rounded-xl border border-green-500/20">
+                                <Plus className="w-4 h-4 text-green-400 mt-1 flex-shrink-0" />
                                 <div>
                                   <div className="flex items-center gap-2 mb-1">
-                                    <span className="text-xs font-bold text-slate-300">{change.id}</span>
-                                    <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-black uppercase ${change.type === 'ADDED' ? 'bg-green-500/10 text-green-400' : change.type === 'REMOVED' ? 'bg-red-500/10 text-red-400' : 'bg-amber-500/10 text-amber-400'}`}>{change.type}</span>
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-black uppercase bg-green-500/20 text-green-400">ADDED</span>
+                                    <span className="text-[10px] font-bold text-slate-500">{req.id}</span>
                                   </div>
-                                  <p className="text-sm text-slate-200 mb-2">{change.text}</p>
-                                  {change.impact && (
-                                    <div className="pl-3 border-l-2 border-emerald-500/30">
-                                      <p className="text-xs text-emerald-300/70 italic">Impact: {change.impact}</p>
-                                    </div>
-                                  )}
+                                  <p className="text-sm text-slate-200">{req.text}</p>
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* MODIFIED */}
+                            {v.impact.modified?.map((mod: any, ci: number) => (
+                              <div key={`mod-${ci}`} className="flex gap-4 p-3 bg-amber-500/5 rounded-xl border border-amber-500/20">
+                                <Zap className="w-4 h-4 text-amber-400 mt-1 flex-shrink-0" />
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-black uppercase bg-amber-500/20 text-amber-400">MODIFIED</span>
+                                    <span className="text-[10px] font-bold text-slate-500">{mod.updated.id}</span>
+                                  </div>
+                                  <div className="space-y-2">
+                                    <p className="text-xs text-slate-500 line-through italic">"{mod.old.text}"</p>
+                                    <p className="text-sm text-slate-200 font-medium">{mod.updated.text}</p>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+
+                            {/* REMOVED */}
+                            {v.impact.removed?.map((req: any, ci: number) => (
+                              <div key={`rem-${ci}`} className="flex gap-4 p-3 bg-red-500/5 rounded-xl border border-red-500/20">
+                                <Trash2 className="w-4 h-4 text-red-400 mt-1 flex-shrink-0" />
+                                <div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-black uppercase bg-red-500/20 text-red-400">REMOVED</span>
+                                    <span className="text-[10px] font-bold text-slate-500">{req.id}</span>
+                                  </div>
+                                  <p className="text-sm text-slate-400 line-through italic">{req.text}</p>
                                 </div>
                               </div>
                             ))}
@@ -1239,14 +2279,32 @@ export default function Home() {
                           {v.impact.architecturalConflict && (
                             <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
                               <ShieldAlert className="w-4 h-4 text-red-400 flex-shrink-0" />
-                              <p className="text-xs text-red-300"><span className="font-bold">Architectural Conflict:</span> {v.impact.architecturalConflict}</p>
+                              <p className="text-xs text-red-300 font-bold">{v.impact.architecturalConflict}</p>
                             </div>
                           )}
                         </div>
                       ) : (
-                        <div className="bg-slate-800/30 border border-slate-800 rounded-2xl p-5 border-dashed">
-                          <p className="text-sm text-slate-500 italic">Initial baseline requirements captured.</p>
-                        </div>
+                          <div className="space-y-3">
+                            {v.snapshot?.map((req: any, ci: number) => (
+                              <div key={`base-${ci}`} className="flex gap-4 p-3 bg-blue-500/5 rounded-xl border border-blue-500/20">
+                                <div className="w-4 h-4 text-blue-400 mt-1 flex-shrink-0 flex items-center justify-center font-bold text-[10px]">
+                                  {ci + 1}
+                                </div>
+                                <div>
+                                  <div className="flex items-center gap-2 mb-1">
+                                    <span className="text-[10px] px-1.5 py-0.5 rounded-md font-black uppercase bg-blue-500/20 text-blue-400">BASELINE</span>
+                                    <span className="text-[10px] font-bold text-slate-500">{req.id}</span>
+                                  </div>
+                                  <p className="text-sm text-slate-200">{req.text}</p>
+                                </div>
+                              </div>
+                            ))}
+                            {(!v.snapshot || v.snapshot.length === 0) && (
+                              <div className="bg-slate-800/30 border border-slate-800 rounded-2xl p-5 border-dashed text-center">
+                                <p className="text-sm text-slate-500 italic">No baseline requirements identified yet.</p>
+                              </div>
+                            )}
+                          </div>
                       )}
                     </div>
                   ))}

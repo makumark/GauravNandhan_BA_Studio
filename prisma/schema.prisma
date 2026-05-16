@@ -7,6 +7,53 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// ── Enterprise: Organization (one per client company) ─────────────────────────
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  plan      String   @default("STARTER")   // STARTER | PROFESSIONAL | ENTERPRISE
+  maxUsers  Int      @default(10)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members   OrganizationMember[]
+  projects  Project[]
+  auditLogs AuditLog[]
+}
+
+// ── Enterprise: Links Users to Organizations with a role ──────────────────────
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           String       @default("BA_ANALYST") // ADMIN | BA_LEAD | BA_ANALYST | VIEWER
+  joinedAt       DateTime     @default(now())
+  isActive       Boolean      @default(true) // For suspending access to this org
+
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+
+// ── Enterprise: Immutable audit log ───────────────────────────────────────────
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String
+  userEmail      String
+  action         String   // DOCUMENT_GENERATED | SESSION_SAVED | PDF_EXPORTED | USER_INVITED | LOGIN | USER_REMOVED | ROLE_CHANGED | PASSWORD_RESET | USER_SUSPENDED | USER_ACTIVATED
+  resourceType   String?  // BRD | FRD | UML Diagrams | etc.
+  resourceId     String?
+  metadata       String?  // JSON string for extra context
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+
+// ── Core: User ─────────────────────────────────────────────────────────────────
 model User {
   id            String    @id @default(cuid())
   name          String?
@@ -14,21 +61,29 @@ model User {
   emailVerified DateTime?
   image         String?
   password      String?
-  projects      Project[]
+
+  projects    Project[]
+  memberships OrganizationMember[]
 }
 
+// ── Core: Project ──────────────────────────────────────────────────────────────
 model Project {
-  id        String   @id @default(cuid())
-  title     String
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             String        @id @default(cuid())
+  title          String
+  userId         String
+  organizationId String?       // null for legacy solo users — non-destructive
+
+  user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-  
+
   messages  Message[]
   documents Document[]
 }
 
+// ── Core: Message ──────────────────────────────────────────────────────────────
 model Message {
   id        String   @id @default(cuid())
   projectId String
@@ -38,11 +93,12 @@ model Message {
   createdAt DateTime @default(now())
 }
 
+// ── Core: Document ─────────────────────────────────────────────────────────────
 model Document {
   id        String   @id @default(cuid())
   projectId String
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  type      String   // "BRD", "PRD", etc.
+  type      String   // "BRD", "FRD", "PRD", etc.
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -1,0 +1,40 @@
+Agenda: Review and refine requirements for the "Multi-Jurisdictional AIF Transfer Agent Workflow" feature in the AIF Regulatory Transfer Agent Copilot platform.
+
+Key Discussions:
+
+Feature Overview (Priya Sharma):
+The feature enables automated handling of AIF investor transfers across jurisdictions (India SEBI Cat I/II/III, EU AIFMD, US Reg D). It must process complex scenarios like cross-border KYC/AML checks, dynamic fee recalculations based on NAV fluctuations, and real-time regulatory filings. Core complexity: Handle "cascading validations" where a single transfer triggers 5+ interdependent checks (e.g., investor eligibility -> fund liquidity -> tax treaty lookup -> escrow validation -> automated Form 15CA/CB generation).
+
+Detailed Requirements (Madhu Kumar):
+
+Workflow Engine: Stateful orchestration using BPMN 2.0; supports branching logic for 20+ regulatory paths (e.g., if investor is NRI, invoke FEMA rules + RBI LRS limits).
+
+AI/ML Integrations (Vikram Singh): Embed GenAI for document validation (OCR + NLP on passports, PAN, AIF agreements) with 98% accuracy threshold; risk scoring model (using FAISS vector DB) flags anomalies like mismatched signatures or AML red flags, escalating to human review via Agentic AI routing.
+
+Integrations: Real-time APIs with Supabase (DB), CDSL/NSDL (depository), Income Tax portal (for 15G/H exemptions), and Salesforce CRM for investor profiles. Handle async webhooks for 2-min SLA on transfer confirmations.
+
+UI/UX (Sneha Reddy): React/Next.js dashboard with drag-and-drop workflow builder; multi-step wizard for admins, including live preview of regulatory outputs (e.g., PDF filings). Mobile-responsive for field agents.
+
+Edge Cases & Complexity: Support "batched transfers" (up to 500 investors); conflict resolution for partial approvals (e.g., approve 80%, quarantine 20% for manual review); audit trail with blockchain-like immutability for SEBI audits. Non-functional: 99.99% uptime, GDPR/CCPA compliant data masking.
+
+Challenges Raised (All):
+
+Anil: SEBI circular updates (e.g., AIF-3 amendments) require configurable rules engine without code deploys.
+
+Rajesh: Backend scalability for peak loads (10k transfers/day); propose Node.js microservices + Kafka for event streaming.
+
+Vikram: AI hallucination risks in tax computations-mitigate with RAG (Retrieval-Augmented Generation) pulling from verified SEBI docs.
+
+Legal: Ensure "regulatory sandbox" mode for testing unreleased rules.
+
+Action Items:
+
+Madhu: Draft detailed FRD/BRD by May 10; include sequence diagrams for cascading validations.
+
+Vikram: Prototype AI risk scorer POC (Python/Streamlit) by May 12; share GitHub repo.
+
+Sneha/Rajesh: Wireframes and API specs by May 14; integrate Supabase schema updates.
+
+Anil: Validate 10 edge-case scenarios against latest SEBI AIF guidelines by May 11.
+
+Priya: Schedule follow-up with stakeholders on May 15.

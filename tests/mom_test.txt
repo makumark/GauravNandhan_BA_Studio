@@ -1,0 +1,26 @@
+Date: 2026-05-12
+Topic: Insurance Claims Modernization - Deep Event Handling
+Stakeholders: Gaurav (Product), Madhu (Tech), Insurance SME (Advisor)
+
+Meeting Minutes:
+1. Feature: Multi-Stage Claims Processing
+   - Requirement: When a claim is submitted, the system must perform an immediate "Auto-Validation" against the policy database.
+   - If policy is "Active" and "Coverage Matches", move to "Adjuster Assignment".
+   - If policy is "Lapsed" or "Coverage Mismatch", trigger an immediate "Rejection Event" and notify the customer via SMS/Email.
+
+2. Feature: Dynamic Fraud Scoring
+   - During the "Adjuster Review" phase, an external AI Fraud Engine must be called.
+   - If Score > 75, the claim must be locked for "Manual Audit".
+   - If Score <= 75, the claim proceeds to "Payment Calculation".
+
+3. Feature: Settlement & Payout
+   - Requirement: The system must support multiple payout methods: EFT, Check, or Pharmacy Direct.
+   - For Pharmacy Direct, the system must validate the Pharmacy's license in real-time before authorizing the payout.
+
+4. UI Requirements:
+   - Dashboard must show a "Claims Heatmap" for high-risk regions.
+   - Adjuster view must include a "Side-by-Side" comparison of original damage photos and repair estimates.
+
+5. Decisions:
+   - Agreed to use a reactive "Master State" for the claim object so all screens reflect the same data during the 6-step wizard.
+   - Agreed that all regulatory checks (GDPR) must be performed at the start of the intake.

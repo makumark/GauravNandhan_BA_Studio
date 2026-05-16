@@ -1,8 +1,9 @@
 import { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import { PrismaAdapter } from "@next-auth/prisma-adapter";
-import { prisma } from "@/lib/prisma"; // We'll create this to avoid circularity if needed, or just use @/lib/prisma
+import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
+import { logAudit } from "./audit";
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -19,7 +20,14 @@ export const authOptions: NextAuthOptions = {
         }
 
         const user = await prisma.user.findUnique({
-          where: { email: credentials.email }
+          where: { email: credentials.email },
+          include: {
+            memberships: {
+              include: { organization: true },
+              take: 1,
+              orderBy: { joinedAt: 'asc' }
+            }
+          }
         });
 
         if (!user || !user?.password) {
@@ -35,15 +43,68 @@ export const authOptions: NextAuthOptions = {
           throw new Error('Invalid credentials');
         }
 
-        return user;
+        return user as any;
       }
     })
   ],
-  session: {
-    strategy: "jwt",
-  },
+  session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET || "default_secret_for_dev",
-  pages: {
-    signIn: '/',
+  pages: { signIn: '/' },
+  events: {
+    async signIn({ user }) {
+      const membership = await prisma.organizationMember.findFirst({
+        where: { userId: user.id }
+      });
+      
+      if (membership) {
+        await logAudit({
+          organizationId: membership.organizationId,
+          userId: user.id,
+          userEmail: user.email || "unknown",
+          action: "LOGIN",
+          metadata: { timestamp: new Date().toISOString() }
+        });
+      }
+    }
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      // On initial sign-in, enrich token with org + role
+      if (user) {
+        const dbUser = await prisma.user.findUnique({
+          where: { id: user.id },
+          include: {
+            memberships: {
+              include: { organization: true },
+              take: 1,
+              orderBy: { joinedAt: 'asc' }
+            }
+          }
+        });
+
+        if (dbUser?.memberships?.[0]) {
+          const membership = dbUser.memberships[0];
+          token.organizationId = membership.organizationId;
+          token.orgName = membership.organization.name;
+          token.role = membership.role;
+          token.plan = membership.organization.plan;
+          token.maxUsers = membership.organization.maxUsers;
+          token.isOrgActive = membership.organization.isActive;
+        }
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        (session.user as any).id = token.sub;
+        (session.user as any).organizationId = token.organizationId;
+        (session.user as any).orgName = token.orgName;
+        (session.user as any).role = token.role;
+        (session.user as any).plan = token.plan;
+        (session.user as any).maxUsers = token.maxUsers;
+        (session.user as any).isOrgActive = token.isOrgActive;
+      }
+      return session;
+    }
   }
 };

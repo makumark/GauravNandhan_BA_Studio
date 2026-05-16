@@ -57,6 +57,12 @@ Response format:
     "strategicAlignment": number (0-10)
   },
   "missingCriticalInfo": ["array of critical missing items"],
+  "requirementGaps": [
+    { "area": "Security|Compliance|UX|Data", "gap": "description of what is missing", "severity": "HIGH|MEDIUM" }
+  ],
+  "logicAlerts": [
+    { "type": "Infinite Loop|Dead End|Missing Branch", "description": "logic flaw found", "risk": "technical/business risk" }
+  ],
   "clarifyingQuestions": ["array of 2-4 targeted questions"],
   "assumptions": ["array of assumptions"],
   "snapshot": [
@@ -75,7 +81,7 @@ RULES:
 
 export async function POST(req: Request) {
   try {
-    const { message, round = 0 } = await req.json();
+    const { message, history = [], round = 0 } = await req.json();
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is missing' }, { status: 500 });
@@ -85,8 +91,26 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No message provided' }, { status: 400 });
     }
 
+    // ── Build Context-Aware Prompt ──────────────────────────────
+    const context = history.slice(-5).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
+
+    const prompt = `${ANALYSIS_PROMPT}
+
+PROJECT HISTORY (Context of previous meetings):
+"""
+${context}
+"""
+
+CURRENT REQUIREMENT INPUT (Meeting Update):
+"""
+${message}
+"""
+
+Analyze the evolution of these requirements. In the "snapshot" field, return the CUMULATIVE list of all confirmed requirements so far.
+Analyze this input now and respond with ONLY the JSON object.`;
+
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: 'gemini-2.5-pro', // FIXED: Universal Pro model name
       safetySettings: [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
         { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -94,19 +118,10 @@ export async function POST(req: Request) {
         { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
       ],
       generationConfig: {
-        temperature: 0.1, // Low temp for consistent, factual analysis
+        temperature: 0.1,
         responseMimeType: 'application/json',
       },
     });
-
-    const prompt = `${ANALYSIS_PROMPT}
-
-USER'S REQUIREMENT INPUT:
-"""
-${message}
-"""
-
-Analyze this input now and respond with ONLY the JSON object.`;
 
     const result = await model.generateContent(prompt);
     const rawText = result.response.text().trim();
@@ -139,6 +154,8 @@ Analyze this input now and respond with ONLY the JSON object.`;
       readinessScore: typeof analysis.readinessScore === 'number' ? analysis.readinessScore : 0,
       strategicMoats: analysis.strategicMoats || [],
       impactScore: analysis.impactScore || { businessValue: 0, technicalFeasibility: 0, strategicAlignment: 0 },
+      requirementGaps: analysis.requirementGaps || [],
+      logicAlerts: analysis.logicAlerts || [],
       snapshot: Array.isArray(analysis.snapshot) ? analysis.snapshot : [],
       readinessChecklist: analysis.readinessChecklist || {
         domainFeasibility: false,
