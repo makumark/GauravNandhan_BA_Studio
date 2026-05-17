@@ -1,6 +1,9 @@
 import { NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 
+// Allow long-running AI generations on Vercel to prevent 504 timeouts
+export const maxDuration = 60;
+
 const apiKey = process.env.GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey);
 
@@ -40,8 +43,9 @@ export async function POST(req: Request) {
     const result = await model.generateContent(prompt);
     const text = result.response.text().trim();
     
-    const codeMatch = text.match(/```typescript\s+([\s\S]*?)\s+```/) || text.match(/```[\s\S]*?```/);
-    const finalCode = codeMatch ? codeMatch[1] : text;
+    // Dynamically match ANY code block (typescript, hcl, terraform, or empty) and capture the content
+    const codeMatch = text.match(/```\w*\s*([\s\S]*?)\s*```/);
+    const finalCode = codeMatch && codeMatch[1] ? codeMatch[1].trim() : text;
 
     return NextResponse.json({ script: finalCode });
 
