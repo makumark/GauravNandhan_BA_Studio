@@ -1706,14 +1706,14 @@ export default function Home() {
                             )}
                           </div>
                         )}
-                        {scopeHistory.length > 1 && (
+                        {documents[activeTab] && (
                           <button 
                             onClick={() => handleDocumentClick(activeTab, true)}
                             disabled={isProcessing}
                             className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs font-bold transition-all border border-amber-500/30 shadow-lg shadow-amber-500/5 group"
                           >
                             <Zap className={`w-3.5 h-3.5 ${isProcessing ? 'animate-pulse' : 'group-hover:scale-110 transition-transform'}`} />
-                            Regenerate with v{scopeHistory.length} Updates
+                            {scopeHistory.length > 1 ? `Regenerate with v${scopeHistory.length} Updates` : 'Regenerate Document'}
                           </button>
                         )}
                       <button onClick={() => setIsEditing(!isEditing)} className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors border border-transparent hover:border-slate-700"><Edit3 className="w-4 h-4" /></button>
