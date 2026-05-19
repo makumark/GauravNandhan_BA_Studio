@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; line-height: 1.8; color: #333; margin: 40px; font-size: 14pt; }
+        h1, h2, h3, h4, h5 { color: #1e3a8a; font-weight: 700; margin-top: 40px; }
+        h1 { border-bottom: 3px solid #1e3a8a; padding-bottom: 15px; font-size: 42px; margin-bottom: 30px; }
+        h2 { border-bottom: 2px solid #ccc; padding-bottom: 10px; font-size: 32px; margin-bottom: 20px; }
+        h3 { font-size: 24px; color: #2563eb; }
+        h4 { font-size: 20px; color: #3b82f6; }
+        p { margin-bottom: 20px; }
+        ul, ol { margin-bottom: 25px; margin-left: 20px; }
+        li { margin-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 25px; margin-bottom: 40px; font-size: 13pt; }
+        th, td { border: 1px solid #cbd5e1; padding: 15px; text-align: left; }
+        th { background-color: #f1f5f9; font-weight: bold; color: #0f172a; }
+        .page-break { page-break-before: always; }
+        .cover-page { height: 1000px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        .title { font-size: 64px; font-weight: 900; margin-bottom: 30px; color: #1e40af; line-height: 1.2; }
+        .subtitle { font-size: 32px; color: #475569; margin-bottom: 50px; }
+        .meta-data { font-size: 20px; color: #64748b; margin-top: 100px; line-height: 2; }
+        .code-block { background-color: #f8fafc; border: 1px solid #e2e8f0; padding: 20px; border-radius: 8px; font-family: monospace; font-size: 12pt; white-space: pre-wrap; margin-bottom: 30px; }
+        .alert { background-color: #eff6ff; border-left: 6px solid #3b82f6; padding: 20px; margin: 30px 0; border-radius: 4px; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div class="cover-page">
+        <div class="title">Product Requirements Document (PRD)</div>
+        <div class="subtitle">Gaurav Nandhan BA Studio<br>Enterprise Edition (v1.0.0)</div>
+        <div class="meta-data">
+            <strong>Document Standard:</strong> BABOK v3 Compliant<br>
+            <strong>Classification:</strong> Highly Confidential (Internal Enterprise Use Only)<br>
+            <strong>Target Architecture:</strong> Next.js (Frontend), Vercel (Edge), Neon (PostgreSQL)<br>
+            <strong>AI Engine:</strong> Google DeepMind Gemini 2.5 Pro / Flash<br>
+            <strong>Last Updated:</strong> May 2026
+        </div>
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>1.0 Executive Summary & Introduction</h2>
+    
+    <h3>1.1 Purpose of the Document</h3>
+    <p>This Product Requirements Document (PRD) provides a comprehensive, exhaustive blueprint for the Gaurav Nandhan BA Studio. It is designed to serve as the single source of truth for software engineers, quality assurance (QA) testers, business analysts, and enterprise security officers. This document dictates the exact architectural requirements, LLM prompt engineering constraints, database schemas, and data flow pipelines required to maintain the enterprise integrity of the platform.</p>
+
+    <h3>1.2 Product Vision & Objective</h3>
+    <p>The core objective of the Gaurav Nandhan BA Studio is to autonomously transform unstructured, ambiguous meeting minutes (MOM) into a full suite of highly structured, BABOK v3-compliant technical documentation, interactive prototypes, and architectural diagrams. By deploying a Multi-Agent AI architecture powered by Gemini 2.5 Pro, the studio aims to reduce the traditional Business Analysis documentation lifecycle from weeks to a matter of minutes (achieving an 80%+ reduction in time-to-market for initial requirements gathering) while strictly maintaining enterprise security, logic validation, and traceability.</p>
+
+    <h3>1.3 Scope of the System</h3>
+    <p>This PRD outlines the requirements for the core system architecture, including:</p>
+    <ul>
+        <li>The Next.js 16 frontend rendering engine.</li>
+        <li>The Vercel Serverless backend API routes.</li>
+        <li>The NextAuth.js based Multi-Tenant Role-Based Access Control (RBAC) system.</li>
+        <li>The `pii.ts` AI Shield data redaction middleware mechanism.</li>
+        <li>The 11 integrated document generation modules (BRD, FRD, PRD, SRD, Pitch, UML, Flowcharts, Wireframes, Prototypes, Test Cases, Regulatory Audit).</li>
+        <li>The Infrastructure-as-Code (Terraform) and End-to-End Automation (Playwright) manifest generators.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>2.0 Business Requirements & Market Justification</h2>
+
+    <h3>2.1 Problem Statement</h3>
+    <p>Traditional Business Analysis relies heavily on manual translation of stakeholder meetings into Business Requirements Documents (BRDs), Functional Requirements Documents (FRDs), and technical design artifacts. This analog process is highly prone to human error, cognitive bias, and extreme latency. A typical enterprise project requires 3-4 weeks of documentation before a single line of code is written, costing organizations thousands of dollars in lost productivity and misaligned requirements.</p>
+    <p>Furthermore, attempting to solve this problem by pasting meeting notes into public AI tools (like ChatGPT or public Gemini interfaces) poses massive data security risks, resulting in PII leaks and corporate data being used to train third-party models.</p>
+
+    <h3>2.2 Proposed Solution</h3>
+    <p>The Gaurav Nandhan BA Studio resolves both latency and security issues by providing a closed-loop, SOC2-compliant environment where users can safely ingest meeting notes. The proprietary "AI Shield" sanitizes the data before it touches an LLM. The system then utilizes a proprietary "Sovereign Versioning Engine" to parse the data and dispatch it to 11 distinct, highly-tuned AI Agents, each responsible for rendering a specific artifact in a standardized format.</p>
+
+    <h3>2.3 Business Value (MoSCoW Prioritization)</h3>
+    
+    <h4>Must Have (Critical Path for Enterprise MVP)</h4>
+    <ul>
+        <li><strong>Multi-Agent Generation Engine:</strong> The system must utilize distinct, specialized LLM agents (e.g., UX Architect, Senior BA, Systems Analyst) rather than a single monolithic prompt, to guarantee artifact specificity.</li>
+        <li><strong>AI Shield (PII Redaction):</strong> Automatic, immediate sanitization of all sensitive data (SSN, Emails, IPs) via Regex before transmitting to external LLMs.</li>
+        <li><strong>Immutable Audit Logging:</strong> Secure logging of all document generation and login actions, mapped to a specific user and organization.</li>
+        <li><strong>Multi-Tenant RBAC:</strong> Strict Role-Based Access Control ensuring `VIEWER` roles cannot consume enterprise billing quotas by generating documents.</li>
+    </ul>
+
+    <h4>Should Have (High Priority Enhancements)</h4>
+    <ul>
+        <li><strong>Sovereign Versioning Engine:</strong> A delta-analysis module that flags dependencies when new scope is added, explicitly marking impacted documents as "Stale/Review Required."</li>
+        <li><strong>E2E Automation Suite Generation:</strong> Generation of Playwright test scripts based on the AI-generated Wireframes or Prototypes to shift QA testing left.</li>
+        <li><strong>Infrastructure as Code (IaC):</strong> Generation of robust Terraform deployment manifests mapping to identified system requirements.</li>
+        <li><strong>Jira Synchronization:</strong> OAuth integration to automatically convert FRDs into Epics and User Stories and push them directly to a PM's active sprint.</li>
+    </ul>
+
+    <h4>Could Have (Future Roadmap)</h4>
+    <ul>
+        <li>Native Figma/Penpot API synchronization for automatic UI generation in design tools.</li>
+        <li>Voice-to-text integration for real-time meeting transcription directly within the studio.</li>
+    </ul>
+
+    <h4>Won't Have (Excluded from Current Scope)</h4>
+    <ul>
+        <li>Real-time Zoom/Teams audio/video stream ingestion.</li>
+        <li>Automatic deployment of code directly to production servers.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>3.0 Stakeholder Requirements & Personas</h2>
+
+    <h3>3.1 Primary Personas</h3>
+    
+    <h4>Persona A: The Senior Business Analyst (SBA)</h4>
+    <p><strong>Description:</strong> The primary end-user of the platform. They are responsible for gathering requirements from clients and translating them into technical specifications.</p>
+    <p><strong>Pain Points:</strong> Spending 80% of their week formatting Word documents and manually drawing UML diagrams in Visio.</p>
+    <p><strong>Requirements:</strong> Requires a conversational interface to upload meeting minutes, validate business logic, and instantly generate structured deliverables to present to clients. The output must be perfectly formatted and immediately exportable as a PDF.</p>
+
+    <h4>Persona B: The Project Manager (PM)</h4>
+    <p><strong>Description:</strong> Responsible for tracking project velocity and assigning tasks to developers based on the BA's requirements.</p>
+    <p><strong>Pain Points:</strong> Manually copying requirements from a BRD into Jira tickets, often losing context or formatting in the process.</p>
+    <p><strong>Requirements:</strong> Requires the "Jira Sync" functionality to automatically parse the FRD into a hierarchy of Epics, User Stories, and Tasks, and push it directly into their active sprint board via API.</p>
+
+    <h4>Persona C: The Quality Assurance Lead (QA)</h4>
+    <p><strong>Description:</strong> Responsible for ensuring the final software product meets the business requirements.</p>
+    <p><strong>Pain Points:</strong> Waiting until development is completely finished before they can begin writing and executing test scripts.</p>
+    <p><strong>Requirements:</strong> Requires the "E2E Automation Suite" feature to automatically generate Playwright automation scripts based purely on the AI-generated UI prototypes, allowing them to initiate Shift-Left testing before developers write a single line of backend code.</p>
+
+    <h3>3.2 Secondary Personas (Governance & Security)</h3>
+
+    <h4>Persona D: Chief Information Security Officer (CISO)</h4>
+    <p><strong>Description:</strong> Responsible for ensuring the enterprise does not violate HIPAA, GDPR, or SOC2 compliance laws by leaking data to public LLMs.</p>
+    <p><strong>Pain Points:</strong> Employees using unauthorized shadow-IT AI tools.</p>
+    <p><strong>Requirements:</strong> Requires absolute cryptographic proof that the "AI Shield" is actively intercepting and scrubbing all PII data before network transmission. Requires the Immutable Audit Log to track exactly which user generated which document at what timestamp.</p>
+
+    <h4>Persona E: The Enterprise Administrator</h4>
+    <p><strong>Description:</strong> Manages billing and corporate IT access.</p>
+    <p><strong>Pain Points:</strong> Paying for AI API tokens consumed by unauthorized users or accidental usage spikes.</p>
+    <p><strong>Requirements:</strong> Requires an Admin Dashboard to monitor API usage, manage user RBAC, and view global organization metrics.</p>
+
+    <div class="page-break"></div>
+
+    <h2>4.0 System Architecture & Database Schema</h2>
+
+    <h3>4.1 Architectural Overview</h3>
+    <p>The BA Studio is built on a highly scalable, serverless architecture optimized for AI streaming and real-time UI updates.</p>
+    <ul>
+        <li><strong>Frontend Framework:</strong> Next.js 16 (App Router) utilizing React Server Components (RSC) for optimized initial load times.</li>
+        <li><strong>Styling:</strong> Tailwind CSS combined with Framer Motion for micro-animations and UI interactions.</li>
+        <li><strong>Backend Execution:</strong> Vercel Serverless Edge Functions configured with a maximum execution duration of 60 seconds to accommodate long-running LLM generation tasks.</li>
+        <li><strong>Database:</strong> PostgreSQL hosted on Neon (Serverless Postgres), interfacing with the application via Prisma ORM.</li>
+        <li><strong>AI Engine:</strong> Google DeepMind Gemini API (`gemini-2.5-pro` for deep reasoning tasks, `gemini-2.5-flash` for high-speed synchronization tasks).</li>
+    </ul>
+
+    <h3>4.2 Database Schema (Prisma Data Models)</h3>
+    <p>To support Multi-Tenant RBAC and audit requirements, the database schema is strictly normalized. The core models include:</p>
+
+    <h4>Organization Model</h4>
+    <p>Represents a corporate tenant. Controls billing limits and subscription status.</p>
+    <div class="code-block">
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  plan      String   @default("ENTERPRISE")
+  isActive  Boolean  @default(true)
+  maxUsers  Int      @default(50)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  members   OrganizationMember[]
+  projects  Project[]
+  auditLogs AuditLog[]
+}
+    </div>
+
+    <h4>User & OrganizationMember Models</h4>
+    <p>Implements strict Role-Based Access Control connecting a user to a tenant with a specific role (`ADMIN`, `MEMBER`, or `VIEWER`).</p>
+    <div class="code-block">
+model OrganizationMember {
+  id             String       @id @default(cuid())
+  userId         String
+  organizationId String
+  role           Role         @default(VIEWER) // Enums: ADMIN, MEMBER, VIEWER
+  joinedAt       DateTime     @default(now())
+
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, organizationId])
+}
+    </div>
+
+    <h4>AuditLog Model</h4>
+    <p>Maintains SOC2 compliance by permanently recording all critical actions. These records cannot be modified or deleted via the application UI.</p>
+    <div class="code-block">
+model AuditLog {
+  id             String       @id @default(cuid())
+  organizationId String
+  userId         String
+  userEmail      String
+  action         String       // e.g., "LOGIN", "DOCUMENT_GENERATED"
+  resourceType   String?      // e.g., "FRD", "UML Diagram"
+  metadata       Json?
+  timestamp      DateTime     @default(now())
+
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+}
+    </div>
+
+    <div class="page-break"></div>
+
+    <h2>5.0 Detailed Functional Requirements (FR)</h2>
+
+    <h3>5.1 Sub-System A: The Analysis Brain (Intake Engine)</h3>
+    <p>The Intake Engine is responsible for parsing unstructured text from the user, determining business feasibility, and establishing the foundational "Snapshot" of confirmed requirements.</p>
+
+    <table>
+        <tr><th>ID</th><th>Title</th><th>Detailed Description</th><th>Acceptance Criteria</th></tr>
+        <tr>
+            <td><strong>FR-01</strong></td>
+            <td>MOM Parsing & Domain Detection</td>
+            <td>The system must ingest raw Meeting Minutes (MOM) via the `/api/analyze` route. The AI must extract the primary industry domain (e.g., Healthcare, FinTech). If multiple unrelated domains are detected (e.g., Aviation and Retail banking), it must flag a "Multi-Domain Conflict."</td>
+            <td><ul>
+                <li>API must return a JSON object with `domainDetected` string.</li>
+                <li>API must return `multiDomainDetected` boolean flag.</li>
+            </ul></td>
+        </tr>
+        <tr>
+            <td><strong>FR-02</strong></td>
+            <td>Readiness Checklist & Scoring</td>
+            <td>The AI must objectively evaluate the user's input against a 7-point Readiness Checklist (Domain Feasibility, Stakeholder Clarity, Core Process, Success Criteria, Scope Boundary, Integration Points, Non-Functional Needs). It must assign a `readinessScore` (0-10).</td>
+            <td><ul>
+                <li>The system must set `sessionState` to "QUESTIONING" if the score is &lt; 4.</li>
+                <li>The system must deny document generation until the state is "READY".</li>
+            </ul></td>
+        </tr>
+        <tr>
+            <td><strong>FR-03</strong></td>
+            <td>Feasibility Gatekeeper</td>
+            <td>The AI must scan the input for physical/logical flaws (e.g., "a boat that drives on the highway") or internal contradictions (e.g., "offline-first app with real-time server sync").</td>
+            <td><ul>
+                <li>Any detected flaws must be populated into the `feasibilityIssues` array.</li>
+                <li>The UI must display these flaws to the user as critical blockers.</li>
+            </ul></td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h3>5.2 Sub-System B: The Multi-Agent Generation Engine</h3>
+    <p>Once requirements are validated, the system utilizes specialized AI Agents, each configured with extreme systemic constraints, to generate specific artifacts via the `/api/chat` route.</p>
+
+    <table>
+        <tr><th>ID</th><th>Title</th><th>Detailed Description</th><th>Acceptance Criteria</th></tr>
+        <tr>
+            <td><strong>FR-04</strong></td>
+            <td>BRD Generation (Senior BA Agent)</td>
+            <td>Generates a comprehensive Business Requirements Document. The prompt forces strict adherence to MoSCoW prioritization for feature mapping.</td>
+            <td><ul>
+                <li>Output must include an Executive Summary.</li>
+                <li>Output must prioritize features into Must/Should/Could/Won't Have.</li>
+            </ul></td>
+        </tr>
+        <tr>
+            <td><strong>FR-05</strong></td>
+            <td>FRD Generation (Senior BA Agent)</td>
+            <td>Generates the Functional Requirements Document. The system is hard-coded to require a <strong>Requirement Traceability Matrix (RTM)</strong> at the bottom of the document by default.</td>
+            <td><ul>
+                <li>Output must utilize strict FR-XXX numbering format.</li>
+                <li>Output must include 100% plain-text Acceptance Criteria for every requirement.</li>
+                <li>Output must end with an RTM table mapping FRs to business objectives.</li>
+            </ul></td>
+        </tr>
+        <tr>
+            <td><strong>FR-06</strong></td>
+            <td>SRD Generation (Systems Analyst Agent)</td>
+            <td>Generates the System Requirements Document focusing on infrastructure, data flow, and non-functional bounds.</td>
+            <td><ul>
+                <li>Output must explicitly adhere to ISO/IEC 25010 standards for software quality metrics (Reliability, Usability, Security, etc.).</li>
+            </ul></td>
+        </tr>
+        <tr>
+            <td><strong>FR-07</strong></td>
+            <td>Regulatory Advisor Agent</td>
+            <td>Analyzes the confirmed requirements for sovereign compliance gaps (e.g., identifying the need for GDPR compliance if EU data is mentioned).</td>
+            <td><ul>
+                <li>Output must format as a clean, plain-text regulatory audit report.</li>
+            </ul></td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h3>5.3 Sub-System C: Visual Architecture Engine</h3>
+    <p>This sub-system is responsible for generating visual and interactive artifacts. Because LLMs are prone to syntax errors when writing diagram code, this engine uses highly hardened "Nuclear Syntax Constraints".</p>
+
+    <table>
+        <tr><th>ID</th><th>Title</th><th>Detailed Description</th><th>Acceptance Criteria</th></tr>
+        <tr>
+            <td><strong>FR-08</strong></td>
+            <td>UML Generation (System Architect Agent)</td>
+            <td>Generates a PlantUML Class Diagram visualizing data models and actors. The prompt strictly bans parentheses or spaces in relationship labels to prevent rendering crashes.</td>
+            <td><ul>
+                <li>Output must use `plantuml` code fences.</li>
+                <li>Output is limited to a maximum of 12 classes to ensure absolute stability in the rendering pipeline.</li>
+            </ul></td>
+        </tr>
+        <tr>
+            <td><strong>FR-09</strong></td>
+            <td>Flowchart Generation (Process Architect Agent)</td>
+            <td>Generates a Mermaid.js Process Map. The LLM is strictly instructed to use only `graph TD`, solid arrows (`-->`), and to place all text strictly inside quoted nodes (e.g., `A["Action"]`).</td>
+            <td><ul>
+                <li>Output must be strictly parsable Mermaid syntax.</li>
+                <li>The server must run a RegEx sanitizer (`replace(/\|?\s*-+\s*->/g, ' --> ')`) before sending the stream to the client to fix any malformed arrows the AI hallucinates.</li>
+            </ul></td>
+        </tr>
+        <tr>
+            <td><strong>FR-10</strong></td>
+            <td>Rapid Prototyping (UI/UX Agent)</td>
+            <td>Generates a high-fidelity, interactive SaaS dashboard prototype. The LLM outputs a single, self-contained HTML snippet utilizing Tailwind CSS for styling and Alpine.js for interactive state (e.g., clicking tabs).</td>
+            <td><ul>
+                <li>Output must utilize a deep navy/blue gradient visual aesthetic (Glassmorphism).</li>
+                <li>Output must NOT include `<html>`, `<head>`, or `<body>` tags (must be an embeddable snippet).</li>
+                <li>Output must include functional `@click` handlers for navigation.</li>
+            </ul></td>
+        </tr>
+        <tr>
+            <td><strong>FR-11</strong></td>
+            <td>Wireframe Generation (UX Architect Agent)</td>
+            <td>Generates a low-fidelity grayscale wireframe to establish layout consensus before high-fidelity prototyping.</td>
+            <td><ul>
+                <li>Output must maintain "Structural Symmetry" with the functional requirements (exact screen names/IDs).</li>
+                <li>Output must use actual text labels, banning "Lorem Ipsum" placeholder text.</li>
+            </ul></td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h3>5.4 Sub-System D: Developer Automation & Operations</h3>
+    <p>This sub-system bridges the gap between Business Analysis and Engineering by converting requirements directly into code and tickets.</p>
+
+    <table>
+        <tr><th>ID</th><th>Title</th><th>Detailed Description</th><th>Acceptance Criteria</th></tr>
+        <tr>
+            <td><strong>FR-12</strong></td>
+            <td>E2E Automation Suite Generation</td>
+            <td>The system sends the generated Prototype code and the AI-generated Test Cases to the `/api/generate/tests` route. The LLM writes a robust Playwright automation script to test the UI.</td>
+            <td><ul>
+                <li>The system must fall back to using Wireframes or Text-based Test Cases if the Prototype has not been generated yet.</li>
+                <li>The API route must utilize a `maxDuration = 60` configuration to prevent server timeouts while the AI writes the complex code.</li>
+            </ul></td>
+        </tr>
+        <tr>
+            <td><strong>FR-13</strong></td>
+            <td>Infrastructure as Code (IaC)</td>
+            <td>The system generates Terraform HCL manifests based on the System Requirements (e.g., defining AWS RDS instances if a database is required).</td>
+            <td><ul>
+                <li>The API must utilize a dynamic Regex (`/```\w*\s*([\s\S]*?)\s*```/`) to safely extract the code block from the AI's response, regardless of whether it labels the block as `typescript`, `terraform`, or `hcl`.</li>
+            </ul></td>
+        </tr>
+        <tr>
+            <td><strong>FR-14</strong></td>
+            <td>Jira Synchronization</td>
+            <td>The system pushes the FRD data directly to Jira. The LLM formats the requirements into a specific Epic > Story > Task JSON manifest which the backend API then POSTs to the Atlassian API.</td>
+            <td><ul>
+                <li>System must establish an OAuth 2.0 or Basic Auth connection using the credentials provided in the user's Settings modal.</li>
+                <li>Upon success, the UI must display a confirmation toast.</li>
+            </ul></td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h3>5.5 Sub-System E: Sovereign Versioning & UI State</h3>
+    <p>This ensures the user experience is fluid, states are persisted, and document regeneration is easily accessible.</p>
+
+    <table>
+        <tr><th>ID</th><th>Title</th><th>Detailed Description</th><th>Acceptance Criteria</th></tr>
+        <tr>
+            <td><strong>FR-15</strong></td>
+            <td>Sovereign Versioning Engine (Impact Analysis)</td>
+            <td>Every time the user updates requirements via the Chat, the `/api/analyze` route returns a cumulative `snapshot` of requirements. The system calculates the delta between the old snapshot and the new snapshot to determine which documents are now "Stale".</td>
+            <td><ul>
+                <li>The state variable `scopeHistory` must append the new snapshot object.</li>
+                <li>If `scopeHistory.length > 1`, impacted documents must display a warning icon indicating they need review.</li>
+            </ul></td>
+        </tr>
+        <tr>
+            <td><strong>FR-16</strong></td>
+            <td>Permanent Regenerate Functionality</td>
+            <td>The Document Toolbar must permanently display a "Regenerate" button to allow users to force the AI to re-write a document.</td>
+            <td><ul>
+                <li>If no revisions have been made (`scopeHistory.length === 1`), the button must read "Regenerate Document".</li>
+                <li>If revisions have been made (`scopeHistory.length > 1`), the button text must dynamically update to "Regenerate with v{X} Updates".</li>
+            </ul></td>
+        </tr>
+        <tr>
+            <td><strong>FR-17</strong></td>
+            <td>Universal Top Bar Toolbar</td>
+            <td>The Top Bar provides global export functionalities (Save Session, Export All PDF) and context-aware tools (Edit, Jira Sync, Copy).</td>
+            <td><ul>
+                <li>The Top Bar buttons must remain visible but enter a `disabled` state (`opacity-40`) while the AI is actively generating a document, preventing the UI layout from shifting or disappearing.</li>
+            </ul></td>
+        </tr>
+    </table>
+
+    <div class="page-break"></div>
+
+    <h2>6.0 Non-Functional Requirements (NFR)</h2>
+
+    <h3>6.1 Security & Compliance</h3>
+    <ul>
+        <li><strong>NFR-01 (PII Redaction / AI Shield):</strong> The `src/lib/pii.ts` module MUST be invoked on all user message payloads before transmission to the Gemini API. It must utilize RegEx matching to redact all Emails, Phone Numbers, Social Security Numbers (SSN), IP Addresses, and Credit Card numbers, replacing them with standardized tags (e.g., `[REDACTED_EMAIL]`). This is mandatory for enterprise data safety protocols.</li>
+        <li><strong>NFR-02 (SOC2 Audit Trails):</strong> Every login event and document generation event MUST be recorded in the PostgreSQL `AuditLog` table with an ISO 8601 timestamp, the exact `userId`, the `organizationId`, and the resource type accessed. This log must be immutable via the application interface.</li>
+        <li><strong>NFR-03 (NextAuth RBAC):</strong> Users possessing a `VIEWER` role MUST be programmatically blocked at the API route level (`/api/chat`, `/api/analyze`, `/api/generate/tests`) from executing LLM queries to protect corporate billing quotas. They may only view existing saved documents.</li>
+    </ul>
+
+    <h3>6.2 Performance & Scalability</h3>
+    <ul>
+        <li><strong>NFR-04 (API Rate Limiting):</strong> The `src/lib/rate-limit.ts` module MUST implement an in-memory Rate Limiter restricting users to a maximum of 10 generation requests per minute per IP/User identifier to mitigate DDoS attacks and API quota exhaustion.</li>
+        <li><strong>NFR-05 (Serverless Edge Configuration):</strong> All API Routes handling complex document or code generation MUST utilize the `export const maxDuration = 60;` configuration variable to override the Vercel default 10-second timeout, preventing 504 Gateway Timeouts during extensive AI processing tasks.</li>
+        <li><strong>NFR-06 (Streaming Responses):</strong> The `/api/chat` and `/api/analyze` routes MUST utilize `ReadableStream` architecture to stream tokens to the frontend in real-time, providing immediate visual feedback to the user and reducing perceived latency to under 2 seconds.</li>
+    </ul>
+
+    <div class="page-break"></div>
+
+    <h2>7.0 Requirement Traceability Matrix (RTM)</h2>
+
+    <p>This matrix maps all core functional requirements to their corresponding business objectives to ensure alignment and verify production readiness.</p>
+
+    <table>
+        <tr><th>Requirement ID</th><th>Requirement Title</th><th>Business Objective / Value</th><th>Validation Status</th></tr>
+        <tr><td>FR-01</td><td>MOM Parsing & Domain Detection</td><td>Automate initial requirements gathering and establish context.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-02</td><td>Readiness Checklist & Scoring</td><td>Prevent garbage-in, garbage-out data generation.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-03</td><td>Feasibility Gatekeeper</td><td>Identify logical flaws before engineering begins.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-04</td><td>BRD Generation</td><td>Reduce Business Analysis latency by 80%.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-05</td><td>FRD Generation (with RTM)</td><td>Provide structured rules for engineering teams.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-06</td><td>SRD Generation</td><td>Establish system performance and security benchmarks.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-07</td><td>Regulatory Advisor Agent</td><td>Mitigate legal compliance risks early in the lifecycle.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-08</td><td>UML Generation</td><td>Visualize system architecture for backend developers.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-09</td><td>Flowchart Generation</td><td>Visualize user journeys for stakeholders.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-10</td><td>UI Prototypes (Alpine/Tailwind)</td><td>Provide tangible, clickable assets to secure stakeholder sign-off rapidly.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-11</td><td>Wireframe Generation</td><td>Establish basic layout consensus.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-12</td><td>E2E Automation Suite Generation</td><td>Shift Quality Assurance testing left, reducing QA bottleneck.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-13</td><td>Infrastructure as Code (IaC)</td><td>Automate DevOps provisioning based on requirements.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-14</td><td>Jira Synchronization</td><td>Automate Project Management overhead and sprint planning.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-15</td><td>Sovereign Versioning Engine</td><td>Maintain absolute consistency when scope creep occurs.</td><td>Verified in Production</td></tr>
+        <tr><td>FR-16</td><td>Permanent Regenerate Functionality</td><td>Improve UX and allow manual correction of AI hallucinations.</td><td>Verified in Production</td></tr>
+        <tr><td>NFR-01</td><td>PII Redaction (AI Shield)</td><td>Guarantee Enterprise Data Security and HIPAA/PCI compliance.</td><td>Verified in Production</td></tr>
+        <tr><td>NFR-02</td><td>SOC2 Audit Trails</td><td>Provide irrefutable proof of system usage for auditors.</td><td>Verified in Production</td></tr>
+        <tr><td>NFR-03</td><td>NextAuth RBAC</td><td>Protect corporate IP and prevent unauthorized billing usage.</td><td>Verified in Production</td></tr>
+        <tr><td>NFR-04</td><td>API Rate Limiting</td><td>Protect system stability and financial resources.</td><td>Verified in Production</td></tr>
+        <tr><td>NFR-05</td><td>Serverless Edge Configuration</td><td>Prevent pipeline failures during massive text generation.</td><td>Verified in Production</td></tr>
+    </table>
+
+    <div class="alert">
+        <strong>Sign-off Note:</strong> This document represents the finalized, exhaustive technical requirements for the Gaurav Nandhan BA Studio Enterprise Edition v1.0.0. All requirements listed above have been audited, implemented, and verified in the production environment.
+    </div>
+
+</body>
+</html>
