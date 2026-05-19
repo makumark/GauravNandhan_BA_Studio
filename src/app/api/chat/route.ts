@@ -9,7 +9,7 @@ import { sanitizeInput } from '@/lib/pii';
 import { rateLimit } from '@/lib/rate-limit';
 
 // ── CRITICAL: Vercel max function duration (Pro plan supports up to 300s)
-export const maxDuration = 300;
+export const maxDuration = 60;
 
 const apiKey = process.env.GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey);

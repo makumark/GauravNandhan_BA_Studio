@@ -2,6 +2,11 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
+import { canGenerateDocuments } from '@/lib/permissions';
+import { sanitizeInput } from '@/lib/pii';
+import { rateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 60;
 
@@ -81,7 +86,28 @@ RULES:
 
 export async function POST(req: Request) {
   try {
-    const { message, history = [], round = 0 } = await req.json();
+    const session = await getServerSession(authOptions);
+    const userRole = (session?.user as any)?.role;
+    const userId = (session?.user as any)?.id;
+    const userEmail = session?.user?.email || 'anonymous';
+
+    const limiter = rateLimit(userId || userEmail, 10, 60000);
+    if (!limiter.success) {
+      return NextResponse.json(
+        { error: `Too many requests. Please try again in ${Math.ceil((limiter.reset - Date.now()) / 1000)}s.` },
+        { status: 429, headers: { 'X-RateLimit-Reset': limiter.reset.toString() } }
+      );
+    }
+
+    if (userRole && !canGenerateDocuments(userRole)) {
+      return NextResponse.json(
+        { error: 'Your role (Viewer) does not have permission to analyze requirements. Contact your Admin.' },
+        { status: 403 }
+      );
+    }
+
+    const { message: rawMessage, history = [], round = 0 } = await req.json();
+    const message = sanitizeInput(rawMessage);
 
     if (!apiKey) {
       return NextResponse.json({ error: 'API key is missing' }, { status: 500 });
