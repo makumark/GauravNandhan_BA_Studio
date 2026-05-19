@@ -1,20 +1,18 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
-import { getObservableGenerativeAI } from '@/lib/observability';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
 import { canGenerateDocuments } from '@/lib/permissions';
 import { sanitizeInput } from '@/lib/pii';
 import { rateLimit } from '@/lib/rate-limit';
-import { jsonToMermaid, jsonToPlantUML, jsonToMarkdown, jsonToHTML } from '@/lib/parsers';
 
 // ── CRITICAL: Vercel max function duration (Pro plan supports up to 300s)
 export const maxDuration = 60;
 
 const apiKey = process.env.GEMINI_API_KEY || '';
-// Removed direct initialization
+const genAI = new GoogleGenerativeAI(apiKey);
 
 const safetySettings = [
   { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
@@ -145,30 +143,26 @@ ${DECISION_PARTNER_INSTRUCTION}`
   'Flowcharts': {
     name: "Elite Process Architect",
     tool: "Mermaid",
-    instruction: `Generate professional Flowcharts strictly as a JSON object.
-MANDATORY JSON FORMAT:
-{
-  "nodes": [{ "id": "A", "label": "Action Text" }],
-  "edges": [{ "from": "A", "to": "B", "label": "Optional Label" }]
-}
-CRITICAL RULES:
-1. Output ONLY valid JSON.
-2. No markdown blocks outside the JSON.
+    instruction: `Generate professional Flowcharts using strictly stable syntax.
+MANDATORY STABILITY RULES:
+1. Use ONLY: graph TD
+2. Use ONLY solid arrows: -->
+3. NEVER use dotted arrows (-.->) or labels on arrows.
+4. Put all text INSIDE nodes: A["Action Text"] --> B["Next Step"]
+5. Every node MUST have a quoted label: ID["Text"]
+6. Maximum 12 nodes for absolute stability.
+7. Output ONLY the code block.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'UML Diagrams': {
     name: "System Architect Agent",
     tool: "PlantUML",
-    instruction: `Generate a professional, high-fidelity PlantUML Class Diagram strictly as a JSON object. 
-MANDATORY JSON FORMAT:
-{
-  "actors": ["Doctor", "Admin"],
-  "usecases": ["View Records", "Update Meds"],
-  "relationships": [{ "actor": "Doctor", "usecase": "View Records" }]
-}
-CRITICAL RULES:
-1. Output ONLY valid JSON.
-2. No markdown blocks outside the JSON.
+    instruction: `Generate a professional, high-fidelity PlantUML Class Diagram. 
+MANDATORY STABILITY RULES: 
+1. Use ONLY standard class and relationship syntax. 
+2. NEVER use parentheses () or spaces in relationship labels. 
+3. Use ONLY solid or dashed lines without complex decorators. 
+4. Maximum 12 classes for stability.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Test Cases': {
@@ -267,21 +261,15 @@ export async function POST(req: Request) {
 
     const agent = AGENT_CONFIGS[documentRequested as keyof typeof AGENT_CONFIGS] || AGENT_CONFIGS.DEFAULT;
 
-    const { genAI, requestOptions } = getObservableGenerativeAI({ 
-      userId, 
-      documentType: documentRequested ? documentRequested : 'chat', 
-      sessionId: 'none' 
-    });
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-pro', // UPGRADED: High-reasoning model for zero-error output
       generationConfig: {
         temperature: 0.1,
         topP: 0.8,
         topK: 40,
-        responseMimeType: documentRequested ? 'application/json' : 'text/plain',
       },
       safetySettings,
-    }, requestOptions);
+    });
 
     // Build context: include first user message (MOM) + recent messages
     const contextSize = documentRequested ? -15 : -5;
@@ -309,41 +297,10 @@ ${functionalContext ? `FUNCTIONAL REQUIREMENTS (SOURCE OF TRUTH):\n"""\n${functi
 CONVERSATION CONTEXT:
 ${context}
 
-CRITICAL INSTRUCTION: You MUST output strictly in JSON format.
-If the tool is Mermaid, output: {"nodes": [{ "id": "A", "label": "Text" }], "edges": [{ "from": "A", "to": "B", "label": "Optional" }]}
-If the tool is PlantUML, output: {"actors": ["User"], "usecases": ["Login"], "relationships": [{ "actor": "User", "usecase": "Login" }]}
-If the tool is HTML/Tailwind or HTML/Tailwind/JS (Alpine.js), output: {"html": "<div x-data...>...</div>"}
-If the tool is Markdown (BRD, FRD, PRD, Test Cases, etc.), output:
-{
-  "title": "Document Title",
-  "sections": [
-    { "heading": "Section Name", "content": ["Line 1", "Line 2"] }
-  ],
-  "traceability": [{ "reqId": "ID", "description": "desc" }]
-}
-Output ONLY the JSON object. Do NOT wrap it in markdown code blocks. Start immediately with '{'.
+CRITICAL RULE: Output ONLY the ${agent.tool} content. Start immediately. No preamble, no "Here is...", no markdown outside code fences.
       `.trim();
 
-      const result = await model.generateContent(prompt);
-      const jsonStr = result.response.text();
-
-      // ── Deterministic Parsing ──────────────────────────────────────────────
-      let finalContent = "Error: Failed to generate document.";
-      try {
-        const data = JSON.parse(jsonStr);
-        if (agent.tool === 'Mermaid') {
-          finalContent = "```mermaid\n" + jsonToMermaid(data) + "\n```";
-        } else if (agent.tool === 'PlantUML') {
-          finalContent = "```plantuml\n" + jsonToPlantUML(data) + "\n```";
-        } else if (agent.tool.includes('HTML')) {
-          finalContent = jsonToHTML(data);
-        } else {
-          finalContent = jsonToMarkdown(data);
-        }
-      } catch (parseError) {
-        console.error("JSON Parse Error:", parseError, "Raw JSON:", jsonStr);
-        finalContent = "Error: Invalid JSON returned by AI. Please try again.";
-      }
+      const result = await model.generateContentStream(prompt);
 
       // ── Audit log: document generation ──────────────────────────────────────
       if (orgId && userId && documentRequested) {
@@ -357,13 +314,31 @@ Output ONLY the JSON object. Do NOT wrap it in markdown code blocks. Start immed
         }).catch(() => {});
       }
 
-      // ── Stream final parsed output ───────────────────────────────────────
+      // ── Safe Stream with isClosed guard ──────────────────────────
       let isClosed = false;
       const stream = new ReadableStream({
         async start(controller) {
           try {
-            // Send the entire chunk at once, frontend will still treat it as a stream
-            controller.enqueue(new TextEncoder().encode(finalContent));
+            for await (const chunk of result.stream) {
+              if (isClosed) break;
+              const text = chunk.text();
+              if (text) {
+                // 2. Nuclear Syntax Hardening
+                let cleanText = text
+                  .replace(/\|?\s*-+\s*->/g, ' --> ') // Fix malformed arrows like | -- ->
+                  .replace(/--\s*>/g, ' --> ')        // Fix space in arrows
+                  .replace(/\["([^\]]+)"\]/g, (m, label) => {
+                    // Strip characters that break Mermaid labels even inside quotes
+                    const safeLabel = label.replace(/[()]/g, '').replace(/\//g, ' ');
+                    return `["${safeLabel}"]`;
+                  })
+                  .replace(/\{"([^"]+)"\}/g, (m, label) => {
+                    const safeLabel = label.replace(/[()]/g, '').replace(/\//g, ' ');
+                    return `{"${safeLabel}"}`;
+                  });
+                controller.enqueue(new TextEncoder().encode(cleanText));
+              }
+            }
           } catch (e: any) {
             console.error('Document Stream Error:', e);
             if (!isClosed) {
