@@ -5,11 +5,11 @@ import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
 import { canGenerateDocuments } from '@/lib/permissions';
-import { sanitizeInput } from '@/lib/pii';
+import { sanitizeInput, maskCardOutput } from '@/lib/pii';
 import { rateLimit } from '@/lib/rate-limit';
 
-// ── CRITICAL: Vercel max function duration (Pro plan supports up to 300s)
-export const maxDuration = 60;
+// ── CRITICAL: Raised to 120s so complex multi-screen prototypes fully complete
+export const maxDuration = 120;
 
 const apiKey = process.env.GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey);
@@ -131,13 +131,14 @@ ${DECISION_PARTNER_INSTRUCTION}`
     instruction: `Generate a CONCISE, high-fidelity, interactive SaaS dashboard prototype as an Alpine.js powered HTML snippet.
 STRICT RULES:
 1. Output a SINGLE self-contained HTML snippet — NOT a full document. Do NOT include <html>, <head>, or <body> tags.
-2. STRUCTURAL SYMMETRY: You MUST generate ALL screens defined in the Functional Requirements. The layout and navigation must be identical to the Low-Fidelity Wireframe.
+2. STRUCTURAL SYMMETRY: You MUST generate ALL screens defined in the Functional Requirements. The layout and navigation must be identical to the Low-Fidelity Wireframe. DO NOT stop early — every single screen MUST be present and reachable via navigation.
 3. VISUAL EXCELLENCE: Use deep navy (#0f172a background), blue gradients (from-blue-600 to-cyan-500), glassmorphism cards (bg-white/10 backdrop-blur-md), and white text.
 4. EVERY button, tab, and nav link MUST have a functional @click handler.
 5. Include realistic data (investor names, amounts, statuses) in tables or cards. No placeholder text like "Lorem Ipsum".
 6. CROSS-SCREEN PERSISTENCE & REACTIVE BINDING: Use a single global 'Master State' object in x-data. Fields in subsequent screens must be reactively bound to this object so that data entered on Screen 1 auto-populates Screens 2-6 instantly.
 7. EVENT-DRIVEN LOGIC: Implement functional triggers (e.g., clicking 'Approve' must physically move a record from a 'pending' array to a 'completed' array; selecting 'Family Floater' must dynamically toggle the visibility of dependent sections).
-8. Output ONLY inside triple-backtick html fences. No explanations outside the code block.
+8. PII SECURITY RULE: NEVER display full credit card, debit card, or bank account numbers. Any card number shown MUST be masked as ****-****-****-XXXX showing only the last 4 digits.
+9. Output ONLY inside triple-backtick html fences. No explanations outside the code block.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Flowcharts': {
@@ -323,7 +324,7 @@ CRITICAL RULE: Output ONLY the ${agent.tool} content. Start immediately. No prea
               if (isClosed) break;
               const text = chunk.text();
               if (text) {
-                // 2. Nuclear Syntax Hardening
+                // Nuclear Syntax Hardening (Mermaid)
                 let cleanText = text
                   .replace(/\|?\s*-+\s*->/g, ' --> ') // Fix malformed arrows like | -- ->
                   .replace(/--\s*>/g, ' --> ')        // Fix space in arrows
@@ -336,6 +337,12 @@ CRITICAL RULE: Output ONLY the ${agent.tool} content. Start immediately. No prea
                     const safeLabel = label.replace(/[()]/g, '').replace(/\//g, ' ');
                     return `{"${safeLabel}"}`;
                   });
+
+                // PII OUTPUT SHIELD: Mask card numbers in Prototype/Wireframe output
+                if (documentRequested === 'Prototypes' || documentRequested === 'Wireframes') {
+                  cleanText = maskCardOutput(cleanText);
+                }
+
                 controller.enqueue(new TextEncoder().encode(cleanText));
               }
             }
