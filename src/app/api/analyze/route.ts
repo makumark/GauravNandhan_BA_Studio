@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
-import { HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
-import { getObservableGenerativeAI } from '@/lib/observability';
+import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { canGenerateDocuments } from '@/lib/permissions';
@@ -12,7 +11,7 @@ import { rateLimit } from '@/lib/rate-limit';
 export const maxDuration = 60;
 
 const apiKey = process.env.GEMINI_API_KEY || '';
-// Removed direct initialization
+const genAI = new GoogleGenerativeAI(apiKey);
 
 const ANALYSIS_PROMPT = `You are a world-class Senior Business Analyst and Domain Expert with 25 years of experience across Banking, Insurance, Healthcare, Logistics, Retail, Government, and Technology sectors.
 
@@ -136,7 +135,6 @@ ${message}
 Analyze the evolution of these requirements. In the "snapshot" field, return the CUMULATIVE list of all confirmed requirements so far.
 Analyze this input now and respond with ONLY the JSON object.`;
 
-    const { genAI, requestOptions } = getObservableGenerativeAI({ userId, documentType: 'analyze', sessionId: 'none' });
     const model = genAI.getGenerativeModel({
       model: 'gemini-2.5-pro', // FIXED: Universal Pro model name
       safetySettings: [
@@ -149,7 +147,7 @@ Analyze this input now and respond with ONLY the JSON object.`;
         temperature: 0.1,
         responseMimeType: 'application/json',
       },
-    }, requestOptions);
+    });
 
     const result = await model.generateContent(prompt);
     const rawText = result.response.text().trim();
