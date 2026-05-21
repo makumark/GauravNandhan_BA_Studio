@@ -63,6 +63,13 @@ import pako from 'pako';
 import { AuthModal } from "@/components/AuthModal";
 import { JiraModal } from "@/components/JiraModal";
 import { calculateDelta } from "@/lib/versioning";
+import {
+  buildInMemoryGraph,
+  traverseDownstream,
+  type GraphNodeData,
+  type GraphEdgeData,
+  type InMemoryGraph,
+} from "@/lib/graph";
 
 
 import mermaid from 'mermaid';
@@ -485,6 +492,15 @@ export default function Home() {
   const [terraformPlan, setTerraformPlan] = useState<string | null>(null);
   const [isGeneratingIaC, setIsGeneratingIaC] = useState(false);
 
+  // ── Semantic Graph State (in-memory, zero cost) ───────────────────────────────────────────────────────────────────────
+  // Stores the current session's graph nodes and edges as plain JS objects.
+  // buildInMemoryGraph() converts these into an adjacency map for BFS traversal.
+  // Works for ALL users (logged in or not) — no DB required for traversal.
+  const [graphNodes, setGraphNodes] = useState<GraphNodeData[]>([]);
+  const [graphEdges, setGraphEdges] = useState<GraphEdgeData[]>([]);
+  // Latest traversal result — populated after each requirement change
+  const [lastTraversalPaths, setLastTraversalPaths] = useState<{from:string;to:string;relationship:string}[]>([]);
+
   const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([
     {
       role: "assistant",
@@ -509,7 +525,8 @@ export default function Home() {
         body: JSON.stringify({ 
           message: userMessage, 
           history: chatMessages, // Send full history for version tracking
-          round: newRound 
+          round: newRound,
+          projectId: currentProjectId ?? undefined,
         }),
       });
       if (!res.ok) return;
@@ -549,25 +566,46 @@ export default function Home() {
           timestamp: new Date().toLocaleTimeString() 
         }]);
 
-        // Precision Impact Analysis: Only mark docs as stale if they are linked to changed requirements
+        // ── SEMANTIC GRAPH: Update in-memory graph from latest analysis response ────────
+        const newNodes: GraphNodeData[] = data.graphNodes || [];
+        const newEdges: GraphEdgeData[] = data.graphEdges || [];
+        setGraphNodes(newNodes);
+        setGraphEdges(newEdges);
+
+        // ── SEMANTIC GRAPH: Precise stale-doc detection via BFS traversal ─────────────
         if (impactReport && (impactReport.modified.length > 0 || impactReport.removed.length > 0)) {
-          const changedIds = new Set([
-            ...impactReport.modified.map(m => m.updated.id),
-            ...impactReport.removed.map(r => r.id)
-          ]);
+          const changedIds = [
+            ...impactReport.modified.map((m: any) => m.updated.id),
+            ...impactReport.removed.map((r: any) => r.id),
+          ];
 
-          const newlyStale = new Set<string>();
-          Object.entries(documents).forEach(([name, doc]) => {
-            if (doc.links && doc.links.some(linkId => changedIds.has(linkId))) {
-              newlyStale.add(name);
+          if (newNodes.length > 0 && changedIds.length > 0) {
+            // Build adjacency map and run BFS — pure JS, zero cost
+            const graph: InMemoryGraph = buildInMemoryGraph(newNodes, newEdges);
+            const traversal = traverseDownstream(graph, changedIds);
+            setLastTraversalPaths(traversal.traversalPaths);
+
+            if (traversal.affectedDocTypes.length > 0) {
+              // Precise: only flag documents that the graph says are downstream
+              setStaleDocs(new Set(traversal.affectedDocTypes));
+            } else if (impactReport.impactScore > 7 || impactReport.architecturalConflict) {
+              // Fallback (same as before): broad staling only for high-impact changes
+              setStaleDocs(new Set(['BRD', 'FRD', 'PRD', 'SRD', 'UML Diagrams', 'Wireframes', 'Prototypes', 'Regulatory Advisor']));
             }
-          });
-
-          // If no links yet, only fall back to broad staling if the impact is significant
-          if (newlyStale.size === 0 && (impactReport.impactScore > 7 || impactReport.architecturalConflict)) {
-            setStaleDocs(new Set(['BRD', 'FRD', 'PRD', 'SRD', 'UML Diagrams', 'Wireframes', 'Prototypes', 'Regulatory Advisor']));
-          } else if (newlyStale.size > 0) {
-            setStaleDocs(prev => new Set([...Array.from(prev), ...Array.from(newlyStale)]));
+          } else {
+            // Legacy fallback: no graph data yet — use old link-based detection
+            const changedSet = new Set(changedIds);
+            const newlyStale = new Set<string>();
+            Object.entries(documents).forEach(([name, doc]) => {
+              if (doc.links && doc.links.some((linkId: string) => changedSet.has(linkId))) {
+                newlyStale.add(name);
+              }
+            });
+            if (newlyStale.size === 0 && (impactReport.impactScore > 7 || impactReport.architecturalConflict)) {
+              setStaleDocs(new Set(['BRD', 'FRD', 'PRD', 'SRD', 'UML Diagrams', 'Wireframes', 'Prototypes', 'Regulatory Advisor']));
+            } else if (newlyStale.size > 0) {
+              setStaleDocs(prev => new Set([...Array.from(prev), ...Array.from(newlyStale)]));
+            }
           }
         }
       }
@@ -680,6 +718,10 @@ export default function Home() {
     setLogicAlerts([]);
     setRequirementGaps([]);
     setStaleDocs(new Set());
+    // Reset semantic graph state
+    setGraphNodes([]);
+    setGraphEdges([]);
+    setLastTraversalPaths([]);
   };
 
   const handleSend = async () => {
@@ -2271,6 +2313,54 @@ export default function Home() {
                 </div>
               )}
 
+              {/* Knowledge Graph Panel — Semantic Graph Engine */}
+              {graphNodes.length > 0 && (
+                <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-2xl relative overflow-hidden group">
+                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
+                    <Network className="w-8 h-8 text-cyan-400" />
+                  </div>
+                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-cyan-400 mb-3 flex items-center gap-2">
+                    <Network className="w-3 h-3" /> Knowledge Graph
+                  </h4>
+                  <div className="space-y-1.5 mb-3">
+                    {(['REQUIREMENT','EPIC','FEATURE','SCREEN','API','TEST_CASE'] as const).map(type => {
+                      const count = graphNodes.filter(n => n.nodeType === type).length;
+                      if (count === 0) return null;
+                      const colors: Record<string,string> = {
+                        REQUIREMENT: 'bg-blue-500/20 text-blue-400',
+                        EPIC:        'bg-purple-500/20 text-purple-400',
+                        FEATURE:     'bg-indigo-500/20 text-indigo-400',
+                        SCREEN:      'bg-green-500/20 text-green-400',
+                        API:         'bg-orange-500/20 text-orange-400',
+                        TEST_CASE:   'bg-pink-500/20 text-pink-400',
+                      };
+                      return (
+                        <div key={type} className="flex items-center justify-between">
+                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter ${colors[type]}`}>{type.replace('_',' ')}</span>
+                          <span className="text-[10px] font-bold text-slate-300">{count} node{count !== 1 ? 's':''}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="text-[9px] text-slate-600 border-t border-slate-800 pt-2">
+                    {graphEdges.length} relationship{graphEdges.length !== 1 ? 's':''} mapped
+                  </div>
+                  {lastTraversalPaths.length > 0 && (
+                    <div className="mt-2 pt-2 border-t border-slate-800">
+                      <div className="text-[9px] font-bold text-cyan-500 uppercase tracking-tighter mb-1">Last Impact Path</div>
+                      {lastTraversalPaths.slice(0,3).map((p,i) => (
+                        <div key={i} className="text-[9px] text-slate-500 font-mono truncate">
+                          {p.from} <span className="text-cyan-600">→</span> {p.to}
+                        </div>
+                      ))}
+                      {lastTraversalPaths.length > 3 && (
+                        <div className="text-[9px] text-slate-600">+{lastTraversalPaths.length - 3} more paths</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               {/* Session Summary Placeholder if empty */}
               {conflicts.length === 0 && regulatoryFlags.length === 0 && !smeInsight && scopeHistory.length <= 1 && (
                 <div className="flex flex-col items-center justify-center py-12 text-center opacity-30">
@@ -2411,6 +2501,24 @@ export default function Home() {
                             <div className="mt-4 p-3 bg-red-500/10 border border-red-500/30 rounded-xl flex items-center gap-3">
                               <ShieldAlert className="w-4 h-4 text-red-400 flex-shrink-0" />
                               <p className="text-xs text-red-300 font-bold">{v.impact.architecturalConflict}</p>
+                            </div>
+                          )}
+
+                          {/* ── Semantic Graph Traversal Paths ────────────────────────────── */}
+                          {i === scopeHistory.length - 1 && lastTraversalPaths.length > 0 && (
+                            <div className="mt-4 p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-xl">
+                              <h4 className="text-[10px] font-bold uppercase tracking-widest text-cyan-400 mb-3 flex items-center gap-2">
+                                <Network className="w-3 h-3" /> Graph Traversal — Downstream Impact
+                              </h4>
+                              <div className="space-y-1.5">
+                                {lastTraversalPaths.map((path, pi) => (
+                                  <div key={pi} className="flex items-center gap-1.5 text-[10px] font-mono">
+                                    <span className="text-slate-400 bg-slate-800/60 px-1.5 py-0.5 rounded truncate max-w-[80px]">{path.from}</span>
+                                    <span className="text-cyan-600 text-[8px] uppercase tracking-tighter flex-shrink-0">{path.relationship.toLowerCase().replace('_',' ')}</span>
+                                    <span className="text-slate-300 bg-slate-800/60 px-1.5 py-0.5 rounded truncate max-w-[80px]">{path.to}</span>
+                                  </div>
+                                ))}
+                              </div>
                             </div>
                           )}
                         </div>

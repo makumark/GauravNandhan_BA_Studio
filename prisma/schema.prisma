@@ -79,8 +79,10 @@ model Project {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  messages  Message[]
-  documents Document[]
+  messages    Message[]
+  documents   Document[]
+  graphNodes  GraphNode[]
+  graphEdges  GraphEdge[]
 }
 
 // ── Core: Message ──────────────────────────────────────────────────────────────
@@ -102,4 +104,42 @@ model Document {
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+}
+
+// ── Semantic Graph: Knowledge Graph Nodes ────────────────────────────────────
+// Stores every artifact (Requirement, Screen, API, Test Case, Document)
+// as a named node scoped to a project. nodeId matches IDs from AI snapshots
+// (e.g. "REQ-1", "SCR-04", "API-02", "TC-12", "BRD").
+model GraphNode {
+  id        String   @id @default(cuid())
+  projectId String
+  nodeId    String   // e.g. "REQ-1", "SCR-04", "API-02", "TC-12"
+  nodeType  String   // "REQUIREMENT" | "SCREEN" | "API" | "TEST_CASE" | "DOCUMENT" | "EPIC" | "FEATURE"
+  label     String   // Human-readable name
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  outEdges  GraphEdge[] @relation("EdgeFrom")
+  inEdges   GraphEdge[] @relation("EdgeTo")
+
+  @@unique([projectId, nodeId])
+}
+
+// ── Semantic Graph: Directed Edges between Nodes ──────────────────────────────
+// Each edge captures a typed relationship between two graph nodes.
+// relationship values: "CONTAINS" | "RENDERS_ON" | "CALLS" | "VERIFIED_BY" | "DOCUMENTED_IN"
+model GraphEdge {
+  id           String   @id @default(cuid())
+  projectId    String
+  fromNodeId   String   // references GraphNode.id (cuid)
+  toNodeId     String   // references GraphNode.id (cuid)
+  relationship String
+  createdAt    DateTime @default(now())
+
+  project  Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  fromNode GraphNode @relation("EdgeFrom", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode   GraphNode @relation("EdgeTo",   fields: [toNodeId],   references: [id], onDelete: Cascade)
+
+  @@unique([projectId, fromNodeId, toNodeId, relationship])
 }

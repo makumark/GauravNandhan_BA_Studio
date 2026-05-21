@@ -7,6 +7,7 @@ import { authOptions } from '@/lib/auth';
 import { canGenerateDocuments } from '@/lib/permissions';
 import { sanitizeInput } from '@/lib/pii';
 import { rateLimit } from '@/lib/rate-limit';
+import { inferEdgesFromSnapshot, upsertGraph, type GraphNodeData, type GraphEdgeData } from '@/lib/graph';
 
 export const maxDuration = 60;
 
@@ -74,7 +75,21 @@ Response format:
     { "id": "REQ-1", "text": "Requirement description", "status": "CONFIRMED" | "PROPOSED" }
   ],
   "readinessScore": number (0-10),
-  "smeInsight": "string — one professional insight or domain benchmark"
+  "smeInsight": "string — one professional insight or domain benchmark",
+  "graphNodes": [
+    {
+      "nodeId": "string — unique ID matching snapshot IDs (e.g. REQ-1, SCR-01, API-01, TC-01)",
+      "nodeType": "REQUIREMENT" | "SCREEN" | "API" | "TEST_CASE" | "EPIC" | "FEATURE",
+      "label": "string — short human-readable name of this artifact"
+    }
+  ],
+  "graphEdges": [
+    {
+      "from": "string — source nodeId",
+      "to": "string — target nodeId",
+      "relationship": "CONTAINS" | "RENDERS_ON" | "CALLS" | "VERIFIED_BY" | "DOCUMENTED_IN"
+    }
+  ]
 }
 
 RULES:
@@ -82,7 +97,9 @@ RULES:
 - sessionState MUST be "READY" if readinessScore >= 4 OR round >= 3
 - If round >= 3, you MUST still provide 'clarifyingQuestions' but set sessionState to 'READY' to allow the user to proceed with existing information.
 - NEVER make up information — only respond based on what is provided.
-- Be SPECIFIC. "Who are the stakeholders?" is bad. "Could you specify whether the primary users are bank tellers, customers, or both?" is good.`;
+- Be SPECIFIC. "Who are the stakeholders?" is bad. "Could you specify whether the primary users are bank tellers, customers, or both?" is good.
+- For graphNodes: extract every distinct artifact (Requirements, UI Screens, APIs, Test Cases) mentioned or implied by the requirements. Use the same IDs from the snapshot for requirements.
+- For graphEdges: map which requirements drive which screens (RENDERS_ON), call which APIs (CALLS), and are verified by which test cases (VERIFIED_BY). Be precise.`;
 
 export async function POST(req: Request) {
   try {
@@ -106,7 +123,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { message: rawMessage, history = [], round = 0 } = await req.json();
+    const { message: rawMessage, history = [], round = 0, projectId } = await req.json();
     const message = sanitizeInput(rawMessage);
 
     if (!apiKey) {
@@ -193,7 +210,32 @@ Analyze this input now and respond with ONLY the JSON object.`;
         nonFunctionalNeeds: false,
       },
       smeInsight: analysis.smeInsight || '',
+      // ── Semantic Graph fields (new — always safe arrays) ────────────────────────────
+      graphNodes: Array.isArray(analysis.graphNodes) ? analysis.graphNodes as GraphNodeData[] : [],
+      graphEdges: Array.isArray(analysis.graphEdges) ? analysis.graphEdges as GraphEdgeData[] : [],
     };
+
+    // ── Semantic Graph: fill missing edges via heuristic inference ──────────────────
+    // If the AI returned nodes but no edges (or sparse edges), infer them.
+    if (safeAnalysis.graphNodes.length > 0 && safeAnalysis.graphEdges.length === 0) {
+      safeAnalysis.graphEdges = inferEdgesFromSnapshot(safeAnalysis.graphNodes);
+    }
+
+    // Also synthesise document nodes from the snapshot requirements
+    if (safeAnalysis.snapshot.length > 0 && safeAnalysis.graphNodes.length === 0) {
+      // Fallback: build basic REQUIREMENT nodes from the existing snapshot
+      safeAnalysis.graphNodes = safeAnalysis.snapshot.map((req: any) => ({
+        nodeId:   req.id,
+        nodeType: 'REQUIREMENT' as const,
+        label:    req.text.substring(0, 60),
+      }));
+      safeAnalysis.graphEdges = inferEdgesFromSnapshot(safeAnalysis.graphNodes);
+    }
+
+    // ── Server-side DB persistence: fire-and-forget, never blocks response ────────
+    if (projectId && safeAnalysis.graphNodes.length > 0) {
+      upsertGraph(projectId, safeAnalysis.graphNodes, safeAnalysis.graphEdges).catch(() => {});
+    }
 
     return NextResponse.json(safeAnalysis);
 
