@@ -153,7 +153,7 @@ Analyze the evolution of these requirements. In the "snapshot" field, return the
 Analyze this input now and respond with ONLY the JSON object.`;
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.0-flash', // UPDATED: gemini-1.5-flash deprecated, using gemini-2.0-flash
+      model: 'gemini-2.5-flash', // STABLE: Current production model as of May 2026
       safetySettings: [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
         { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
