@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     }
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-pro', // FIXED: Universal Pro model name
+      model: 'gemini-2.0-flash', // UPDATED: gemini-1.5-flash deprecated, using gemini-2.0-flash
       generationConfig: {
         temperature: 0.1,
         responseMimeType: 'application/json',

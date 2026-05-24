@@ -13,7 +13,7 @@ export async function POST(req: Request) {
 
     if (!apiKey) return NextResponse.json({ error: 'API key missing' }, { status: 500 });
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-pro' });
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash' }); // UPDATED: gemini-1.5-flash deprecated
 
     const isIaC = prototypeCode === "GENERATE_IAC";
 
