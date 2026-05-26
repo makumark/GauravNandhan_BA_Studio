@@ -532,7 +532,9 @@ export default function Home() {
           projectId: currentProjectId ?? undefined,
         }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        throw new Error(`Analysis API failed with status ${res.status}`);
+      }
       const data = await res.json();
       setSessionState(data.sessionState || 'QUESTIONING');
       setReadinessScore(data.readinessScore || 0);
@@ -746,11 +748,8 @@ export default function Home() {
     setMomInput("");
     setIsProcessing(true);
 
-    // Brain 1: Run analysis on first message or whenever session is still open
-    const isFirstUserMessage = !chatMessages.some(m => m.role === 'user');
-    if (isFirstUserMessage || sessionState === 'QUESTIONING') {
-      runAnalysis(userText);
-    }
+    // Brain 1: Always run analysis to keep intelligence panel and SME readiness updated
+    runAnalysis(userText);
     
     try {
       const response = await fetch('/api/chat', {

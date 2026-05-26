@@ -75,6 +75,15 @@ Response format:
     { "id": "REQ-1", "text": "Requirement description", "status": "CONFIRMED" | "PROPOSED" }
   ],
   "readinessScore": number (0-10),
+  "readinessChecklist": {
+    "domainFeasibility": boolean,
+    "stakeholderClarity": boolean,
+    "coreProcess": boolean,
+    "successCriteria": boolean,
+    "scopeBoundary": boolean,
+    "integrationPoints": boolean,
+    "nonFunctionalNeeds": boolean
+  },
   "smeInsight": "string — one professional insight or domain benchmark",
   "graphNodes": [
     {
@@ -199,6 +208,7 @@ Analyze this input now and respond with ONLY the JSON object.`;
       impactScore: analysis.impactScore || { businessValue: 0, technicalFeasibility: 0, strategicAlignment: 0 },
       requirementGaps: analysis.requirementGaps || [],
       logicAlerts: analysis.logicAlerts || [],
+      billionDollarDisruptions: analysis.billionDollarDisruptions || [],
       snapshot: Array.isArray(analysis.snapshot) ? analysis.snapshot : [],
       readinessChecklist: analysis.readinessChecklist || {
         domainFeasibility: false,
