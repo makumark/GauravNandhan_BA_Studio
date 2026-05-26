@@ -1891,6 +1891,7 @@ export default function Home() {
                                       <button 
                                         onClick={async () => {
                                           setIsGeneratingTests(true);
+                                          setPlaywrightScript('');
                                           try {
                                             const res = await fetch('/api/generate/tests', {
                                               method: 'POST',
@@ -1900,8 +1901,29 @@ export default function Home() {
                                                 testCases: content 
                                               })
                                             });
-                                            const data = await res.json();
-                                            setPlaywrightScript(data.script);
+                                            if (!res.ok) {
+                                              const errData = await res.json().catch(() => ({}));
+                                              throw new Error(errData.error || `Server error ${res.status}`);
+                                            }
+                                            // ── Stream the response live into the panel ──
+                                            const reader = res.body?.getReader();
+                                            const decoder = new TextDecoder();
+                                            let accumulated = '';
+                                            while (reader) {
+                                              const { done, value } = await reader.read();
+                                              if (done) break;
+                                              accumulated += decoder.decode(value, { stream: true });
+                                              // Strip code fences as they stream in
+                                              const clean = accumulated
+                                                .replace(/^```[\w]*\n?/i, '')
+                                                .replace(/\n?```$/i, '')
+                                                .trim();
+                                              setPlaywrightScript(clean);
+                                            }
+                                          } catch (err: any) {
+                                            console.error('Playwright generation error:', err);
+                                            alert(`Failed to generate Playwright script: ${err.message}`);
+                                            setPlaywrightScript(null);
                                           } finally {
                                             setIsGeneratingTests(false);
                                           }
