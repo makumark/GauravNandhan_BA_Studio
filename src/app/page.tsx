@@ -355,7 +355,8 @@ function LivePreviewIframe({ htmlContent, isProcessing, summary }: { htmlContent
   let fullHtml = debouncedHtml;
   
   // 1. DAWN OF CODE: Detect dangling scripts that aren't wrapped in <script>
-  if ((fullHtml.includes('function') || fullHtml.includes('const') || fullHtml.includes('let')) && !fullHtml.includes('<script')) {
+  // GUARD: Only trigger if there are truly NO html tags (pure JS blob), not Alpine.js HTML
+  if ((fullHtml.includes('function') || fullHtml.includes('const') || fullHtml.includes('let')) && !fullHtml.includes('<script') && !fullHtml.includes('<div') && !fullHtml.includes('<span') && !fullHtml.includes('x-data')) {
     const scriptRegex = /(function\s+\w+\(\)[\s\S]*?\n\s*\}\s*\n?)/g;
     const scripts = fullHtml.match(scriptRegex);
     if (scripts) {
@@ -1794,7 +1795,7 @@ export default function Home() {
                                   {(() => {
                                       const rawContent = documents[activeTab]?.content || "";
                                       // 1. PRIMARY EXTRACTION: Standard Markdown Blocks
-                                      const htmlMatch = rawContent.match(/```html\s+([\s\S]*?)(\s+```|$)/i);
+                                      const htmlMatch = rawContent.match(/```html\s*([\s\S]*?)\s*```/i);
                                       let htmlContent = "";
                                       let summary = "";
                                       
