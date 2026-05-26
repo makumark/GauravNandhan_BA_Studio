@@ -1957,6 +1957,7 @@ export default function Home() {
                                       <button 
                                         onClick={async () => {
                                           setIsGeneratingIaC(true);
+                                          setTerraformPlan('');
                                           try {
                                             const res = await fetch('/api/generate/tests', { 
                                               method: 'POST',
@@ -1966,8 +1967,29 @@ export default function Home() {
                                                 testCases: content 
                                               })
                                             });
-                                            const data = await res.json();
-                                            setTerraformPlan(data.script);
+                                            if (!res.ok) {
+                                              const errData = await res.json().catch(() => ({}));
+                                              throw new Error(errData.error || `Server error ${res.status}`);
+                                            }
+                                            // ── Stream the response live into the panel ──
+                                            const reader = res.body?.getReader();
+                                            const decoder = new TextDecoder();
+                                            let accumulated = '';
+                                            while (reader) {
+                                              const { done, value } = await reader.read();
+                                              if (done) break;
+                                              accumulated += decoder.decode(value, { stream: true });
+                                              // Strip HCL code fences as they stream in
+                                              const clean = accumulated
+                                                .replace(/^```[\w]*\n?/i, '')
+                                                .replace(/\n?```$/i, '')
+                                                .trim();
+                                              setTerraformPlan(clean);
+                                            }
+                                          } catch (err: any) {
+                                            console.error('IaC generation error:', err);
+                                            alert(`Failed to generate IaC Manifest: ${err.message}`);
+                                            setTerraformPlan(null);
                                           } finally {
                                             setIsGeneratingIaC(false);
                                           }
