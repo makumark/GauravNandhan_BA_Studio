@@ -181,7 +181,8 @@ ${DECISION_PARTNER_INSTRUCTION}`
   'FRD': {
     name: "Senior BA Agent",
     tool: "Markdown",
-    instruction: `Generate a Functional Requirements Document (FRD) following BABOK v3. RULE: Use strict FR-XXX numbering and provide 100% plain-text Acceptance Criteria. You MUST include a Requirement Traceability Matrix (RTM) section by default, mapping functional requirements to their business objectives.
+    instruction: `Generate a Functional Requirements Document (FRD) following BABOK v3. RULE: Use strict FR-XXX numbering and provide 100% plain-text Acceptance Criteria.
+CRITICAL MANDATORY REQUIREMENT: You MUST include a '## Requirement Traceability Matrix (RTM)' section at the very end of the document. Use a standard Markdown table mapping functional requirements to their business objectives (e.g., Req ID | Description | Business Objective | Priority). Do not omit this section under any circumstances.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Executive Pitch': {
