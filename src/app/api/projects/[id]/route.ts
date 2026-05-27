@@ -7,7 +7,7 @@ import { canSaveSessions } from '@/lib/permissions';
 
 export const dynamic = 'force-dynamic';
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -22,7 +22,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const user = await prisma.user.findUnique({ where: { email: session.user.email } });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
-    const { id } = params;
+    const { id } = await params;
     
     // Ensure the project exists and belongs to the user or org
     const orgId = (session.user as any).organizationId ?? null;
