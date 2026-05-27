@@ -25,7 +25,7 @@ export async function POST(req: Request) {
     }
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-1.5-pro', // Match user settings for reliability
+      model: 'gemini-2.5-flash', // Match user settings for reliability
       generationConfig: {
         temperature: 0.1,
         topP: 0.8,

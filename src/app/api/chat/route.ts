@@ -122,8 +122,7 @@ STRICT RULES:
 4. TEXTUAL CLARITY: Use actual text labels, field names, and descriptive titles from the requirements. NEVER use empty gray blocks or 'Lorem Ipsum' to represent text.
 5. Grayscale Palette: Use bg-white/bg-gray-100 for backgrounds and text-slate-800 for high-contrast text.
 6. PURE STATIC DESIGN: Do NOT use Javascript, Alpine.js, or any interactive @click logic. This must be a static mockup, NOT a functional screen.
-7. Output ONLY inside triple-backtick html fences. No explanations outside the code block.
-${DECISION_PARTNER_INSTRUCTION}`
+7. Output ONLY inside triple-backtick html fences. No explanations outside the code block.`
   },
   'Prototypes': {
     name: "Elite UI/UX Designer",
@@ -138,8 +137,7 @@ STRICT RULES:
 6. CROSS-SCREEN PERSISTENCE & REACTIVE BINDING: Use a single global 'Master State' object in x-data. Fields in subsequent screens must be reactively bound to this object.
 7. EVENT-DRIVEN LOGIC: Implement functional triggers inside x-data logic.
 8. PII SECURITY RULE: NEVER display full credit card, debit card, or bank account numbers.
-9. CRITICAL FORMATTING: You MUST wrap the ENTIRE Alpine.js component inside a single <div> element, and the ENTIRE output MUST be wrapped tightly inside triple-backtick html fences (\`\`\`html ... \`\`\`). Do NOT output raw javascript outside the HTML. Do NOT provide explanations.
-${DECISION_PARTNER_INSTRUCTION}`
+9. CRITICAL FORMATTING: You MUST wrap the ENTIRE Alpine.js component inside a single <div> element, and the ENTIRE output MUST be wrapped tightly inside triple-backtick html fences (```html ... ```). Do NOT output raw javascript outside the HTML. Do NOT provide explanations.`
   },
   'Flowcharts': {
     name: "Elite Process Architect",
