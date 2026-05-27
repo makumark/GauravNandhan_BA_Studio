@@ -137,7 +137,7 @@ STRICT RULES:
 6. CROSS-SCREEN PERSISTENCE & REACTIVE BINDING: Use a single global 'Master State' object in x-data. Fields in subsequent screens must be reactively bound to this object.
 7. EVENT-DRIVEN LOGIC: Implement functional triggers inside x-data logic.
 8. PII SECURITY RULE: NEVER display full credit card, debit card, or bank account numbers.
-9. CRITICAL FORMATTING: You MUST wrap the ENTIRE Alpine.js component inside a single <div> element, and the ENTIRE output MUST be wrapped tightly inside triple-backtick html fences (```html ... ```). Do NOT output raw javascript outside the HTML. Do NOT provide explanations.`
+9. CRITICAL FORMATTING: You MUST wrap the ENTIRE Alpine.js component inside a single <div> element, and the ENTIRE output MUST be wrapped tightly inside triple-backtick html fences (\`\`\`html ... \`\`\`). Do NOT output raw javascript outside the HTML. Do NOT provide explanations.`
   },
   'Flowcharts': {
     name: "Elite Process Architect",
