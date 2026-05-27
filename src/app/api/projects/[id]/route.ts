@@ -136,7 +136,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
         organizationId: orgId,
         userId: user.id,
         userEmail: user.email!,
-        action: 'SESSION_DELETED',
+        action: 'PROJECT_DELETED',
         resourceId: id,
         metadata: { title: existingProject.title }
       });
