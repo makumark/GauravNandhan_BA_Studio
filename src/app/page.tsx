@@ -945,6 +945,27 @@ export default function Home() {
     }
   };
 
+  const deleteProject = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this session? This action cannot be undone.")) return;
+    try {
+      const res = await fetch(`/api/projects/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setPastProjects(prev => prev.filter(p => p.id !== id));
+        if (currentProjectId === id) {
+          setCurrentProjectId(null);
+          setChatMessages([]);
+          setDocuments({});
+          setActiveTab("Chat");
+          setDocsReady(false);
+        }
+      } else {
+        alert("Failed to delete session.");
+      }
+    } catch (err) {
+      console.error("Delete error", err);
+    }
+  };
+
   const documentTypes = [
     { icon: FileText, label: "BRD" },
     { icon: FileText, label: "FRD" },
@@ -1375,25 +1396,34 @@ export default function Home() {
                 <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 px-1">Recent Projects</h3>
                 <div className="max-h-48 overflow-y-auto space-y-2 custom-scrollbar pr-2">
                   {pastProjects.map(p => (
-                    <button key={p.id} onClick={() => {
-                      setChatMessages(p.messages || []);
-                      const migratedDocs: Record<string, any> = {};
-                      Object.entries(p.documents || {}).forEach(([key, val]: [string, any]) => {
-                        if (typeof val === 'string') migratedDocs[key] = { content: val, confidence: 100 };
-                        else migratedDocs[key] = val;
-                      });
-                      setDocuments(migratedDocs);
-                      setCurrentProjectId(p.id);
-                      setIsProjectSelectionModalOpen(false);
-                      if (p.messages && p.messages.length > 1) setDocsReady(true);
-                      setActiveTab("Chat");
-                    }} className="w-full text-left p-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-all border border-slate-700 hover:border-blue-500/30 group">
-                      <div className="font-semibold text-slate-200 group-hover:text-blue-400 transition-colors mb-1">{p.title}</div>
-                      <div className="text-[10px] text-slate-500 flex justify-between items-center">
-                        <span>{new Date(p.updatedAt).toLocaleDateString()}</span>
-                        <span>{(p.messages?.length || 0)} messages</span>
-                      </div>
-                    </button>
+                    <div key={p.id} className="relative flex items-center group/item">
+                      <button onClick={() => {
+                        setChatMessages(p.messages || []);
+                        const migratedDocs: Record<string, any> = {};
+                        Object.entries(p.documents || {}).forEach(([key, val]: [string, any]) => {
+                          if (typeof val === 'string') migratedDocs[key] = { content: val, confidence: 100 };
+                          else migratedDocs[key] = val;
+                        });
+                        setDocuments(migratedDocs);
+                        setCurrentProjectId(p.id);
+                        setIsProjectSelectionModalOpen(false);
+                        if (p.messages && p.messages.length > 1) setDocsReady(true);
+                        setActiveTab("Chat");
+                      }} className="w-full text-left p-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-all border border-slate-700 hover:border-blue-500/30 group">
+                        <div className="font-semibold text-slate-200 group-hover:text-blue-400 transition-colors mb-1 pr-8">{p.title}</div>
+                        <div className="text-[10px] text-slate-500 flex justify-between items-center">
+                          <span>{new Date(p.updatedAt).toLocaleDateString()}</span>
+                          <span>{(p.messages?.length || 0)} messages</span>
+                        </div>
+                      </button>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); deleteProject(p.id); }} 
+                        className="absolute right-4 p-2 text-slate-500 hover:text-red-400 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                        title="Delete Session"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   ))}
                 </div>
               </div>
@@ -1505,33 +1535,41 @@ export default function Home() {
               </h2>
               <div className="space-y-1 max-h-48 overflow-y-auto custom-scrollbar pr-1">
                 {pastProjects.map((p, i) => (
-                  <button 
-                    key={p.id} 
-                    onClick={() => {
-                      setChatMessages(p.messages);
-                      // Legacy Support: Convert old string documents to new object format
-                      const migratedDocs: Record<string, any> = {};
-                      Object.entries(p.documents || {}).forEach(([key, val]: [string, any]) => {
-                        if (typeof val === 'string') {
-                          migratedDocs[key] = { content: val, confidence: 100, review: 'OPTIONAL', reason: 'Legacy migration' };
-                        } else {
-                          migratedDocs[key] = val;
-                        }
-                      });
-                      setDocuments(migratedDocs);
-                      setCurrentProjectId(p.id);
-                      setDocsReady(true);
-                      setActiveTab("Chat");
-                    }}
-                    className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all border border-transparent ${
-                      currentProjectId === p.id 
-                        ? 'bg-slate-800 text-blue-400 border-blue-500/20' 
-                        : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
-                    }`}
-                  >
-                    <div className="font-medium truncate mb-0.5">{p.title}</div>
-                    <div className="text-[9px] opacity-50">{new Date(p.updatedAt).toLocaleDateString()}</div>
-                  </button>
+                  <div key={p.id} className="relative flex items-center group/item">
+                    <button 
+                      onClick={() => {
+                        setChatMessages(p.messages);
+                        // Legacy Support: Convert old string documents to new object format
+                        const migratedDocs: Record<string, any> = {};
+                        Object.entries(p.documents || {}).forEach(([key, val]: [string, any]) => {
+                          if (typeof val === 'string') {
+                            migratedDocs[key] = { content: val, confidence: 100, review: 'OPTIONAL', reason: 'Legacy migration' };
+                          } else {
+                            migratedDocs[key] = val;
+                          }
+                        });
+                        setDocuments(migratedDocs);
+                        setCurrentProjectId(p.id);
+                        setDocsReady(true);
+                        setActiveTab("Chat");
+                      }}
+                      className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all border border-transparent ${
+                        currentProjectId === p.id 
+                          ? 'bg-slate-800 text-blue-400 border-blue-500/20' 
+                          : 'text-slate-400 hover:bg-slate-800/50 hover:text-slate-200'
+                      }`}
+                    >
+                      <div className="font-medium truncate mb-0.5 pr-6">{p.title}</div>
+                      <div className="text-[9px] opacity-50">{new Date(p.updatedAt).toLocaleDateString()}</div>
+                    </button>
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); deleteProject(p.id); }} 
+                      className="absolute right-2 p-1 text-slate-500 hover:text-red-400 opacity-0 group-hover/item:opacity-100 transition-opacity"
+                      title="Delete Session"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
                 ))}
               </div>
             </div>

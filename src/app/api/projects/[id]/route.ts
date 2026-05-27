@@ -93,3 +93,57 @@ export async function PUT(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: err.message }, { status: 500 });
   }
 }
+
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+    if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
+
+    const { id } = await params;
+    const orgId = (session.user as any).organizationId ?? null;
+    
+    const existingProject = await prisma.project.findUnique({
+      where: { id }
+    });
+
+    if (!existingProject) {
+      return NextResponse.json({ error: 'Project not found' }, { status: 404 });
+    }
+
+    if (existingProject.organizationId && existingProject.organizationId !== orgId) {
+       return NextResponse.json({ error: 'Unauthorized access to organization project' }, { status: 403 });
+    }
+    
+    if (!existingProject.organizationId && existingProject.userId !== user.id) {
+       return NextResponse.json({ error: 'Unauthorized access to personal project' }, { status: 403 });
+    }
+
+    // Delete project completely
+    await prisma.$transaction([
+      prisma.message.deleteMany({ where: { projectId: id } }),
+      prisma.document.deleteMany({ where: { projectId: id } }),
+      prisma.project.delete({ where: { id } })
+    ]);
+
+    // Audit log
+    if (orgId) {
+      await logAudit({
+        organizationId: orgId,
+        userId: user.id,
+        userEmail: user.email!,
+        action: 'SESSION_DELETED',
+        resourceId: id,
+        metadata: { title: existingProject.title }
+      });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 });
+  }
+}
