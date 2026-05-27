@@ -461,6 +461,8 @@ export default function Home() {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const [isJiraModalOpen, setIsJiraModalOpen] = useState(false);
   const [currentProjectId, setCurrentProjectId] = useState<string | null>(null);
+  const [isProjectSelectionModalOpen, setIsProjectSelectionModalOpen] = useState(false);
+  const [newProjectTitle, setNewProjectTitle] = useState("");
   const [staleDocs, setStaleDocs] = useState<Set<string>>(new Set());
 
   // ── Brain 1: Session State Machine ──────────────────────────────
@@ -639,10 +641,15 @@ export default function Home() {
   useEffect(() => {
     if (session?.user) {
       fetch('/api/projects').then(res => res.json()).then(data => {
-        if (Array.isArray(data)) setPastProjects(data);
+        if (Array.isArray(data)) {
+          setPastProjects(data);
+          if (!currentProjectId && data.length >= 0) {
+            setIsProjectSelectionModalOpen(true);
+          }
+        }
       });
     }
-  }, [session]);
+  }, [session, currentProjectId]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -782,6 +789,14 @@ export default function Home() {
       
       if (newMessages.length >= 1) {
         setDocsReady(true);
+      }
+      
+      if (currentProjectId) {
+         fetch(`/api/projects/${currentProjectId}`, {
+           method: 'PUT',
+           headers: { 'Content-Type': 'application/json' },
+           body: JSON.stringify({ messages: [...newMessages, { role: "assistant", content: assistantContent }] })
+         }).catch(console.error);
       }
     } catch (error: any) {
       console.error("Error communicating with BA Agent:", error);
@@ -1345,6 +1360,87 @@ export default function Home() {
   return (
     <div className="flex h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
       
+      {isProjectSelectionModalOpen && (
+        <div className="fixed inset-0 bg-[#0f172a]/95 backdrop-blur-md z-[9999] flex items-center justify-center p-4">
+          <div className="bg-slate-900 border border-slate-700 p-8 rounded-3xl max-w-lg w-full shadow-2xl relative overflow-hidden">
+            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-600 to-cyan-400"></div>
+            <h2 className="text-2xl font-bold text-white mb-2 flex items-center gap-3">
+              <LayoutDashboard className="w-6 h-6 text-blue-400" />
+              Select Workspace
+            </h2>
+            <p className="text-sm text-slate-400 mb-8 leading-relaxed">Please select a project to maintain isolated chat context, or create a new one.</p>
+            
+            {pastProjects.length > 0 && (
+              <div className="mb-8">
+                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 px-1">Recent Projects</h3>
+                <div className="max-h-48 overflow-y-auto space-y-2 custom-scrollbar pr-2">
+                  {pastProjects.map(p => (
+                    <button key={p.id} onClick={() => {
+                      setChatMessages(p.messages || []);
+                      const migratedDocs: Record<string, any> = {};
+                      Object.entries(p.documents || {}).forEach(([key, val]: [string, any]) => {
+                        if (typeof val === 'string') migratedDocs[key] = { content: val, confidence: 100 };
+                        else migratedDocs[key] = val;
+                      });
+                      setDocuments(migratedDocs);
+                      setCurrentProjectId(p.id);
+                      setIsProjectSelectionModalOpen(false);
+                      if (p.messages && p.messages.length > 1) setDocsReady(true);
+                      setActiveTab("Chat");
+                    }} className="w-full text-left p-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-all border border-slate-700 hover:border-blue-500/30 group">
+                      <div className="font-semibold text-slate-200 group-hover:text-blue-400 transition-colors mb-1">{p.title}</div>
+                      <div className="text-[10px] text-slate-500 flex justify-between items-center">
+                        <span>{new Date(p.updatedAt).toLocaleDateString()}</span>
+                        <span>{(p.messages?.length || 0)} messages</span>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+            
+            <div className="pt-6 border-t border-slate-800">
+              <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mb-3 px-1">Start New Project</h3>
+              <div className="flex gap-3">
+                <input 
+                  type="text" 
+                  value={newProjectTitle} 
+                  onChange={e => setNewProjectTitle(e.target.value)} 
+                  onKeyDown={e => {
+                     if(e.key === 'Enter') document.getElementById('create-proj-btn')?.click();
+                  }}
+                  placeholder="e.g. Banking App Redesign" 
+                  className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-4 py-3 text-sm text-white focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all shadow-inner"
+                />
+                <button id="create-proj-btn" disabled={isProcessing || !newProjectTitle.trim()} onClick={async () => {
+                  if(!newProjectTitle.trim()) return;
+                  setIsProcessing(true);
+                  try {
+                    const res = await fetch('/api/projects', {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ title: newProjectTitle, messages: [], documents: {} })
+                    });
+                    const newProj = await res.json();
+                    setPastProjects(prev => [newProj, ...prev]);
+                    setCurrentProjectId(newProj.id);
+                    setChatMessages([{ role: "assistant", content: `Hello! I am ready for the new project '${newProjectTitle}'. Please paste your Minutes of Meeting (MOM) to begin.` }]);
+                    setIsProjectSelectionModalOpen(false);
+                  } catch(e) {
+                    console.error(e);
+                  } finally {
+                    setIsProcessing(false);
+                    setNewProjectTitle("");
+                  }
+                }} className="px-6 py-3 bg-gradient-to-r from-blue-600 to-cyan-500 text-white text-sm font-bold rounded-xl hover:shadow-lg hover:shadow-blue-500/25 transition-all disabled:opacity-50">
+                  {isProcessing ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Create'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <aside className="w-72 bg-[#1e293b]/80 border-r border-slate-700/50 backdrop-blur-xl flex flex-col shadow-2xl z-10 no-print">
         <div className="p-6 border-b border-slate-700/50 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
