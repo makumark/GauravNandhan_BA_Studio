@@ -31,14 +31,50 @@ export function DynamicUIBuilder({ schema }: { schema: string }) {
   }
 
   return (
-    <div className="dynamic-ui-container w-full h-full bg-slate-900 text-slate-100 rounded-lg overflow-hidden shadow-2xl flex border border-slate-700">
+    <div className="dynamic-ui-container w-full h-full bg-slate-900 text-slate-100 rounded-lg overflow-x-auto overflow-y-auto shadow-2xl flex flex-row gap-6 p-6 border border-slate-700">
       {parsedSchema.screens.map((screen: any, idx: number) => (
-        <div key={idx} className="flex-1 flex flex-col p-6 overflow-y-auto">
+        <div key={idx} className="flex-none w-[400px] h-fit bg-slate-800/50 border border-slate-700 rounded-2xl flex flex-col p-6 shadow-lg">
           <h2 className="text-2xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
             {screen.title || screen.id}
           </h2>
-          <div className="flex flex-col gap-6">
+          <div className="flex flex-col gap-4">
             {screen.components?.map((comp: any, cIdx: number) => {
+              if (comp.type === 'progress-bar') {
+                const percent = comp.totalSteps ? Math.round((comp.currentStep / comp.totalSteps) * 100) : 50;
+                return (
+                  <div key={cIdx} className="w-full">
+                    <div className="flex justify-between text-xs text-slate-400 mb-1">
+                      <span>{comp.label || `Step ${comp.currentStep}`}</span>
+                      <span>{percent}%</span>
+                    </div>
+                    <div className="w-full bg-slate-700 rounded-full h-2">
+                      <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${percent}%` }}></div>
+                    </div>
+                  </div>
+                );
+              }
+              if (comp.type === 'heading') {
+                return React.createElement(`h${comp.level || 2}`, { key: cIdx, className: "text-lg font-bold text-slate-100 mt-2" }, comp.text);
+              }
+              if (comp.type === 'text' || comp.type === 'paragraph') {
+                return <p key={cIdx} className="text-sm text-slate-300 leading-relaxed">{comp.content || comp.text}</p>;
+              }
+              if (comp.type === 'input') {
+                return (
+                  <div key={cIdx} className="flex flex-col gap-1">
+                    {comp.label && <label className="text-xs font-semibold text-slate-400 uppercase">{comp.label} {comp.mandatory && <span className="text-red-400">*</span>}</label>}
+                    <input type={comp.type === 'tel' ? 'tel' : 'text'} placeholder={comp.placeholder} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200" disabled={comp.disabled} />
+                  </div>
+                );
+              }
+              if (comp.type === 'button') {
+                const isPrimary = comp.variant !== 'secondary';
+                return (
+                  <button key={cIdx} className={`px-4 py-2 mt-2 rounded-lg text-sm font-bold transition-all ${isPrimary ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'} ${comp.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
+                    {comp.text || comp.label}
+                  </button>
+                );
+              }
               if (comp.type === 'nav') {
                 return (
                   <nav key={cIdx} className="flex gap-4 border-b border-slate-700 pb-4">
@@ -81,7 +117,7 @@ export function DynamicUIBuilder({ schema }: { schema: string }) {
                 );
               }
               // Fallback
-              return <div key={cIdx} className="p-4 bg-slate-800 rounded">{JSON.stringify(comp)}</div>;
+              return <div key={cIdx} className="p-3 bg-slate-800/80 border border-slate-700 rounded text-xs font-mono break-all">{JSON.stringify(comp)}</div>;
             })}
           </div>
         </div>
