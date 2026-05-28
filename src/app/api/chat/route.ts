@@ -271,12 +271,8 @@ export async function POST(req: Request) {
       topK: 40,
     };
 
-    if (isVisual) {
-      generationConfig.responseMimeType = "application/json";
-    }
-
     const model = genAI.getGenerativeModel({
-      model: isVisual ? 'gemini-2.5-pro' : 'gemini-2.5-flash',
+      model: 'gemini-2.5-flash', // Use flash for all models to prevent generation lag
       generationConfig,
       safetySettings,
     });
@@ -309,20 +305,32 @@ CONVERSATION CONTEXT:
 ${context}
 
 CRITICAL RULE: Output ONLY the ${agent.tool} content. Start immediately. No preamble, no "Here is...", no markdown outside code fences. NEVER truncate or use placeholders like "... (skipping lines) ...". ALWAYS generate the FULL complete code.
-${isVisual ? `MANDATORY SCHEMA: You MUST return a strict JSON object with this exact structure:
-{
-  "summary": "A brief 1-2 sentence description",
-  "code": "The raw string of your code (HTML/React for prototypes, PlantUML for UML, etc). Do NOT wrap in markdown fences inside the JSON string."
-}
-DO NOT output any markdown blocks outside the JSON.` : ''}
       `.trim();
 
       let stream: ReadableStream;
+      const result = await model.generateContentStream(prompt);
+
+      // ── Audit log: document generation ──────────────────────────────────────
+      if (orgId && userId && documentRequested) {
+        logAudit({
+          organizationId: orgId,
+          userId,
+          userEmail,
+          action: 'DOCUMENT_GENERATED',
+          resourceType: documentRequested,
+          metadata: { domain: domainDetected || 'General' }
+        }).catch(() => {});
+      }
 
       if (isVisual) {
-        // Deterministic JSON engine should wait for full generation to prevent malformed partial JSON
-        const result = await model.generateContent(prompt);
-        let cleanText = result.response.text();
+        // Buffer visual docs server-side to safely apply the maskCardOutput regex.
+        // gemini-2.5-flash is fast enough (<30s) that buffering won't trigger the 60s Vercel timeout.
+        let fullText = "";
+        for await (const chunk of result.stream) {
+          fullText += chunk.text();
+        }
+        
+        let cleanText = fullText;
         if (documentRequested === 'Prototypes' || documentRequested === 'Wireframes') {
           cleanText = maskCardOutput(cleanText);
         }
@@ -333,21 +341,7 @@ DO NOT output any markdown blocks outside the JSON.` : ''}
           }
         });
       } else {
-        const result = await model.generateContentStream(prompt);
-
-        // ── Audit log: document generation ──────────────────────────────────────
-        if (orgId && userId && documentRequested) {
-          logAudit({
-            organizationId: orgId,
-            userId,
-            userEmail,
-            action: 'DOCUMENT_GENERATED',
-            resourceType: documentRequested,
-            metadata: { domain: domainDetected || 'General' }
-          }).catch(() => {});
-        }
-
-        // ── Safe Stream with isClosed guard ──────────────────────────
+        // ── Safe Stream with isClosed guard for text documents ───────────────
         let isClosed = false;
         stream = new ReadableStream({
           async start(controller) {
