@@ -140,8 +140,21 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
         </div>
       );
     }
-    // Fallback
-    return <div key={cIdx} className="p-3 bg-slate-800/80 border border-slate-700 rounded text-xs font-mono break-all">{JSON.stringify(comp)}</div>;
+    if (comp.type === 'text-display') {
+      return (
+        <div key={cIdx} className="flex flex-col gap-1 py-1">
+          {comp.label && <span className="text-xs font-semibold text-slate-400 uppercase">{comp.label}</span>}
+          {comp.value && <span className="text-sm text-slate-200">{comp.value}</span>}
+        </div>
+      );
+    }
+    // Fallback: Never display raw JSON. Try to extract any readable text properties.
+    const fallbackText = comp.text || comp.label || comp.title || comp.value || comp.content || comp.type;
+    return (
+      <div key={cIdx} className="flex flex-col gap-1 py-1 opacity-70">
+        <span className="text-sm text-slate-300">{fallbackText}</span>
+      </div>
+    );
   };
 
   return (
