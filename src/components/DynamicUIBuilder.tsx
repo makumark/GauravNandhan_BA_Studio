@@ -34,7 +34,7 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
     );
   }
 
-  if (!parsedSchema || !parsedSchema.screens) {
+  if (!parsedSchema || !parsedSchema.screens || !Array.isArray(parsedSchema.screens)) {
     return <div className="p-4 text-white">Awaiting UI Schema...</div>;
   }
 
@@ -68,7 +68,7 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
           ) : (comp.type === 'select' || comp.type === 'dropdown') ? (
             <select className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200" disabled={comp.disabled}>
               <option value="">{comp.placeholder || "Select option..."}</option>
-              {comp.options?.map((opt: string, optIdx: number) => <option key={optIdx} value={opt}>{opt}</option>)}
+              {Array.isArray(comp.options) && comp.options.map((opt: string, optIdx: number) => <option key={optIdx} value={opt}>{opt}</option>)}
             </select>
           ) : (
             <input type={comp.type === 'tel' ? 'tel' : comp.type === 'date-input' ? 'date' : comp.type === 'email-input' ? 'email' : comp.type === 'number-input' ? 'number' : 'text'} placeholder={comp.placeholder} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200" disabled={comp.disabled} />
@@ -94,7 +94,7 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
     if (comp.type === 'nav') {
       return (
         <nav key={cIdx} className="flex gap-4 border-b border-slate-700 pb-4">
-          {comp.links?.map((link: string, lIdx: number) => (
+          {Array.isArray(comp.links) && comp.links.map((link: string, lIdx: number) => (
             <button key={lIdx} className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">{link}</button>
           ))}
         </nav>
@@ -114,17 +114,19 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-800 text-slate-300">
               <tr>
-                {comp.columns?.map((col: string, colIdx: number) => (
+                {Array.isArray(comp.columns) && comp.columns.map((col: string, colIdx: number) => (
                   <th key={colIdx} className="p-3 font-semibold">{col}</th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-700/50">
-              {comp.rows?.map((row: any[], rowIdx: number) => (
+              {Array.isArray(comp.rows) && comp.rows.map((row: any, rowIdx: number) => (
                 <tr key={rowIdx} className="hover:bg-slate-800/50 transition-colors">
-                  {row.map((cell: any, cellIdx: number) => (
+                  {Array.isArray(row) ? row.map((cell: any, cellIdx: number) => (
                     <td key={cellIdx} className="p-3 text-slate-300">{cell}</td>
-                  ))}
+                  )) : (
+                    <td className="p-3 text-slate-300">{JSON.stringify(row)}</td>
+                  )}
                 </tr>
               ))}
             </tbody>
@@ -136,7 +138,7 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
       return (
         <div key={cIdx} className="flex flex-col gap-3 p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl">
           {(comp.title || comp.label) && <h3 className="text-sm font-bold text-slate-200">{comp.title || comp.label}</h3>}
-          {comp.components?.map((childComp: any, childIdx: number) => renderComponent(childComp, `${cIdx}-${childIdx}`))}
+          {Array.isArray(comp.components) && comp.components.map((childComp: any, childIdx: number) => renderComponent(childComp, `${cIdx}-${childIdx}`))}
         </div>
       );
     }
@@ -165,7 +167,7 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
             {screen.title || screen.id}
           </h2>
           <div className="flex flex-col gap-4">
-            {screen.components?.map((comp: any, cIdx: number) => renderComponent(comp, cIdx))}
+            {Array.isArray(screen.components) && screen.components.map((comp: any, cIdx: number) => renderComponent(comp, cIdx))}
           </div>
         </div>
       ))}
