@@ -2013,6 +2013,15 @@ export default function Home() {
                                       return <LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} />;
                                   })()}
                                 </div>
+                      ) : activeTab === "Flowcharts" ? (
+                                <div className="p-4 h-full">
+                                  {(() => {
+                                      const rawContent = documents[activeTab]?.content || "";
+                                      const match = rawContent.match(/```(?:mermaid)?\s*([\s\S]*?)\s*```/i);
+                                      const chartCode = match ? match[1].trim() : rawContent.trim();
+                                      return <MermaidRenderer chart={chartCode} isProcessing={isProcessing} />;
+                                  })()}
+                                </div>
                       ) : (
                         <div className="prose prose-invert prose-slate max-w-none p-10 prose-headings:text-blue-100">
                           {(() => {
