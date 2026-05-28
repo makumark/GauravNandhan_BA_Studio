@@ -781,15 +781,30 @@ export default function Home() {
       
       setChatMessages(prev => [...prev, { role: "assistant", content: "" }]);
 
+      // Throttle UI updates to every 100ms to prevent browser hang during streaming
+      let lastChatRender = 0;
       while (true) {
         const { done, value } = await reader?.read() || { done: true, value: undefined };
-        if (done) break;
+        if (done) {
+          // Final flush
+          setChatMessages(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1].content = assistantContent;
+            return updated;
+          });
+          break;
+        }
         assistantContent += decoder.decode(value);
-        setChatMessages(prev => {
-          const updated = [...prev];
-          updated[updated.length - 1].content = assistantContent;
-          return updated;
-        });
+        const now = Date.now();
+        if (now - lastChatRender > 100) {
+          lastChatRender = now;
+          const snapshot = assistantContent;
+          setChatMessages(prev => {
+            const updated = [...prev];
+            updated[updated.length - 1].content = snapshot;
+            return updated;
+          });
+        }
       }
       
       if (newMessages.length >= 1) {
@@ -863,14 +878,29 @@ export default function Home() {
       const decoder = new TextDecoder();
       let docContent = "";
       
+        // Throttle UI updates to every 100ms to prevent browser hang during streaming
+        let lastDocRender = 0;
         while (true) {
           const { done, value } = await reader?.read() || { done: true, value: undefined };
-          if (done) break;
+          if (done) {
+            // Final flush so the complete content is always shown
+            const finalContent = docContent;
+            setDocuments(prev => ({ 
+              ...prev, 
+              [docName]: { ...prev[docName], content: finalContent } 
+            }));
+            break;
+          }
           docContent += decoder.decode(value, { stream: true });
-          setDocuments(prev => ({ 
-            ...prev, 
-            [docName]: { ...prev[docName], content: docContent } 
-          }));
+          const now = Date.now();
+          if (now - lastDocRender > 100) {
+            lastDocRender = now;
+            const snapshot = docContent;
+            setDocuments(prev => ({ 
+              ...prev, 
+              [docName]: { ...prev[docName], content: snapshot } 
+            }));
+          }
         }
 
         // Final Meta-Parsing: Extract from [CONFIDENCE: XX% | REVIEW: ... | LINKS: ... | REASON: ...]
