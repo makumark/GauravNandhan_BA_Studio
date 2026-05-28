@@ -9,14 +9,19 @@ export function DynamicUIBuilder({ schema }: { schema: string }) {
   let parsedSchema;
   try {
     // We expect the LLM to output a JSON string, possibly wrapped in markdown backticks
-    const jsonStr = schema.replace(/```json/g, '').replace(/```/g, '').trim();
-    parsedSchema = JSON.parse(jsonStr);
+    const jsonStr = schema.replace(/```json/gi, '').replace(/```/g, '').trim();
+    try {
+      parsedSchema = JSON.parse(jsonStr);
+    } catch (e1) {
+      // Fallback for LLM hallucinations like trailing commas or unquoted keys
+      parsedSchema = new Function("return " + jsonStr)();
+    }
   } catch (e) {
     return (
       <div className="p-4 bg-red-900/50 text-red-200 border border-red-500 rounded-md">
         <h3 className="font-bold">UI Render Error</h3>
         <p>The AI generated invalid JSON schema. The self-healing agent has been notified.</p>
-        <pre className="mt-2 text-xs opacity-50">{schema}</pre>
+        <pre className="mt-2 text-xs opacity-50 whitespace-pre-wrap">{schema}</pre>
       </div>
     );
   }
