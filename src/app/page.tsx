@@ -681,6 +681,8 @@ export default function Home() {
         const newMessages = [...chatMessages, { role: "user", content: `Analyzing audio file: ${file.name}` }];
         setChatMessages(newMessages);
 
+        runAnalysis(`Analyzing audio file: ${file.name}`);
+
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -2588,10 +2590,20 @@ export default function Home() {
 
               {/* Session Summary Placeholder if empty */}
               {conflicts.length === 0 && regulatoryFlags.length === 0 && !smeInsight && scopeHistory.length <= 1 && (
-                <div className="flex flex-col items-center justify-center py-12 text-center opacity-30">
-                  <Bot className="w-12 h-12 text-slate-600 mb-4" />
-                  <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">Awaiting Analysis</p>
-                  <p className="text-[10px] text-slate-600 mt-2 px-6">Input requirements to activate intelligence monitoring.</p>
+                <div className="flex flex-col items-center justify-center py-12 text-center">
+                  {isAnalyzing ? (
+                    <div className="flex flex-col items-center opacity-70">
+                      <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
+                      <p className="text-xs text-blue-400 uppercase font-bold tracking-widest animate-pulse">Analyzing...</p>
+                      <p className="text-[10px] text-slate-500 mt-2 px-6">Scanning for conflicts, moats, and risks.</p>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col items-center opacity-30">
+                      <Bot className="w-12 h-12 text-slate-600 mb-4" />
+                      <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">No Intelligence Flags</p>
+                      <p className="text-[10px] text-slate-600 mt-2 px-6">Input more requirements to activate monitoring.</p>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
