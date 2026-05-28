@@ -22,44 +22,40 @@ const safetySettings = [
 ];
 
 const GOLD_STANDARD_EXAMPLES: Record<string, string> = {
-  'JSON UI Component': `
-### GOLD STANDARD: JSON UI COMPONENT SCHEMA
-Example: "Application Dashboard"
-\`\`\`json
-{
-  "screens": [
-    {
-      "id": "dashboard",
-      "title": "Main Dashboard",
-      "layout": "sidebar-main",
-      "components": [
-        { "type": "nav", "links": ["Dashboard", "Settings"] },
-        { "type": "card", "title": "Total Revenue", "value": "$50,000", "theme": "primary" },
-        { "type": "table", "columns": ["Name", "Status"], "rows": [["Initial Corp", "Approved"]] }
-      ]
-    }
-  ]
-}
-\`\`\`
-`,
-  'HTML Template': `
-### GOLD STANDARD: HTML TEMPLATE
-Example: "Application Dashboard"
+  'HTML/Tailwind/JS (Alpine.js)': `
+### GOLD STANDARD: CROSS-SCREEN PERSISTENCE (ALPINE.JS)
+Example: "Application Intake & Dashboard"
 \`\`\`html
-<div class="min-h-screen bg-slate-900 text-white p-8" x-data="{ open: false }">
-  <nav class="flex justify-between items-center mb-8">
-    <h1 class="text-2xl font-bold">Dashboard</h1>
-    <button @click="open = !open" class="px-4 py-2 bg-blue-600 rounded">Menu</button>
+<div x-data="{ 
+    activePage: 'form', 
+    records: [
+      { name: 'Initial Corp', status: 'Approved', amount: '$50,000' }
+    ],
+    newName: '',
+    submit() {
+      this.records.push({ name: this.newName, status: 'Pending', amount: '$0' });
+      this.newName = '';
+      this.activePage = 'dashboard';
+    }
+  }" class="flex h-64 bg-slate-900 text-white p-4">
+  <nav class="w-20 border-r border-white/10 flex flex-col gap-4 text-[10px]">
+    <button @click="activePage = 'form'" :class="activePage === 'form' ? 'text-blue-400' : ''">FORM</button>
+    <button @click="activePage = 'dashboard'" :class="activePage === 'dashboard' ? 'text-blue-400' : ''">LIST</button>
   </nav>
-  <div x-show="open" class="p-4 bg-slate-800 rounded mb-4">
-     <p>Menu is open!</p>
-  </div>
-  <div class="grid grid-cols-2 gap-4">
-    <div class="p-6 bg-slate-800 rounded shadow">
-      <h2 class="text-xl">Revenue</h2>
-      <p class="text-3xl font-bold">$50,000</p>
+  <main class="flex-1 p-4">
+    <div x-show="activePage === 'form'">
+      <input x-model="newName" class="bg-white/5 border border-white/10 p-2 w-full mb-2">
+      <button @click="submit()" class="bg-blue-600 px-4 py-2 rounded">Submit Record</button>
     </div>
-  </div>
+    <div x-show="activePage === 'dashboard'">
+      <template x-for="r in records">
+        <div class="flex justify-between border-b border-white/5 py-2">
+          <span x-text="r.name"></span>
+          <span x-text="r.status" class="text-green-400"></span>
+        </div>
+      </template>
+    </div>
+  </main>
 </div>
 \`\`\`
 `,
@@ -117,28 +113,31 @@ If the user provides a NEW or MODIFIED requirement, you MUST act as a Decision P
 const AGENT_CONFIGS: Record<string, any> = {
   'Wireframes': {
     name: "UX Architect Agent",
-    tool: "JSON UI Component",
-    instruction: `Generate a CONCISE, low-fidelity grayscale wireframe as a strict JSON UI Schema.
+    tool: "Static HTML/Tailwind",
+    instruction: `Generate a CONCISE, low-fidelity grayscale wireframe as a static HTML snippet.
 STRICT RULES:
-1. Output a SINGLE self-contained JSON object matching the standard.
-2. STRUCTURAL SYMMETRY: You MUST generate ALL screens defined in the Functional Requirements.
+1. Output a SINGLE self-contained HTML snippet — NOT a full document. Do NOT include <html>, <head>, or <body> tags.
+2. STRUCTURAL SYMMETRY: You MUST generate ALL screens defined in the Functional Requirements. Lay them out sequentially.
 3. Use the exact same screen names and IDs from the Functional Requirements.
-4. TEXTUAL CLARITY: Use actual text labels, field names, and descriptive titles. NEVER use 'Lorem Ipsum'.
-5. Set the theme to 'grayscale' in the schema.
-6. Output ONLY inside triple-backtick json fences. No explanations outside the code block.`
+4. TEXTUAL CLARITY: Use actual text labels, field names, and descriptive titles from the requirements. NEVER use empty gray blocks or 'Lorem Ipsum' to represent text.
+5. Grayscale Palette: Use bg-white/bg-gray-100 for backgrounds and text-slate-800 for high-contrast text.
+6. PURE STATIC DESIGN: Do NOT use Javascript, Alpine.js, or any interactive @click logic. This must be a static mockup, NOT a functional screen.
+7. Output ONLY inside triple-backtick html fences. No explanations outside the code block.`
   },
   'Prototypes': {
     name: "Elite UI/UX Designer",
-    tool: "HTML Template",
-    instruction: `Generate a CONCISE, high-fidelity SaaS dashboard prototype as a fully functional HTML/Tailwind/Alpine.js workflow.
+    tool: "HTML/Tailwind/JS (Alpine.js)",
+    instruction: `Generate a CONCISE, high-fidelity, interactive SaaS dashboard prototype as an Alpine.js powered HTML snippet.
 STRICT RULES:
-1. Output a SINGLE self-contained HTML block. Do NOT use html, head, or body tags, just output the content.
-2. STRUCTURAL SYMMETRY: You MUST generate functional workflows defined in the Functional Requirements.
-3. Set the theme to 'dark-navy-glassmorphism' to ensure deep navy, blue gradients, and glass cards by using appropriate Tailwind classes. Use Alpine.js for interactivity.
-4. Include realistic data (investor names, amounts, statuses) in tables or cards.
-5. Define functional states and interactive mock data within the HTML template where applicable.
-6. PII SECURITY RULE: NEVER output full credit card, debit card, or bank account numbers in the mock data.
-7. Output ONLY inside triple-backtick html fences. No explanations.`
+1. Output a SINGLE self-contained HTML snippet — NOT a full document. Do NOT include <html>, <head>, or <body> tags.
+2. STRUCTURAL SYMMETRY: You MUST generate ALL screens defined in the Functional Requirements. DO NOT stop early.
+3. VISUAL EXCELLENCE: Use deep navy (#0f172a background), blue gradients (from-blue-600 to-cyan-500), glassmorphism cards (bg-white/10 backdrop-blur-md), and white text.
+4. EVERY button, tab, and nav link MUST have a functional @click handler.
+5. Include realistic data (investor names, amounts, statuses) in tables or cards.
+6. CROSS-SCREEN PERSISTENCE & REACTIVE BINDING: Use a single global 'Master State' object in x-data. Fields in subsequent screens must be reactively bound to this object.
+7. EVENT-DRIVEN LOGIC: Implement functional triggers inside x-data logic.
+8. PII SECURITY RULE: NEVER display full credit card, debit card, or bank account numbers.
+9. CRITICAL FORMATTING: You MUST wrap the ENTIRE Alpine.js component inside a single <div> element, and the ENTIRE output MUST be wrapped tightly inside triple-backtick html fences (\`\`\`html ... \`\`\`). Do NOT output raw javascript outside the HTML. Do NOT provide explanations.`
   },
   'Flowcharts': {
     name: "Elite Process Architect",
@@ -163,7 +162,6 @@ MANDATORY STABILITY RULES:
 2. NEVER use parentheses () or spaces in relationship labels. 
 3. Use ONLY solid or dashed lines without complex decorators. 
 4. Maximum 12 classes for stability.
-5. NEVER use the 'artifact' keyword. Use ONLY 'class', 'interface', or 'enum'.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Test Cases': {
@@ -240,8 +238,7 @@ export async function POST(req: Request) {
       documentRequested,
       readinessScore,
       domainDetected,
-      functionalContext: encodedFunctionalContext,
-      glossary
+      functionalContext: encodedFunctionalContext
     } = await req.json();
 
     // Block VIEWER role from generating documents
@@ -297,11 +294,10 @@ TASK: Generate a professional and comprehensive ${documentRequested}.
 INSTRUCTIONS: ${agent.instruction}
 DOMAIN: ${domainDetected || 'FinTech / Regulatory Technology'}
 ${functionalContext ? `FUNCTIONAL REQUIREMENTS (SOURCE OF TRUTH):\n"""\n${functionalContext}\n"""` : ''}
-${glossary && glossary.length > 0 ? `ENTITY DICTIONARY (MANDATORY CONSISTENCY):\n"""\n${JSON.stringify(glossary, null, 2)}\n"""\nYou MUST adhere strictly to these terms and rules.` : ''}
 CONVERSATION CONTEXT:
 ${context}
 
-CRITICAL RULE: Output ONLY the ${agent.tool} content. Start immediately. No preamble, no "Here is...", no markdown outside code fences. NEVER truncate or use placeholders like "... (skipping lines) ...". ALWAYS generate the FULL complete code.
+CRITICAL RULE: Output ONLY the ${agent.tool} content. Start immediately. No preamble, no "Here is...", no markdown outside code fences.
       `.trim();
 
       const result = await model.generateContentStream(prompt);

@@ -1,7 +1,5 @@
 "use client";
 
-import { DynamicUIBuilder } from '@/components/DynamicUIBuilder';
-
 import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -60,7 +58,6 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from "framer-motion";
 import ReactMarkdown from 'react-markdown';
-import { CollaborativeEditor } from '@/components/CollaborativeEditor';
 import remarkGfm from 'remark-gfm';
 import pako from 'pako';
 import { AuthModal } from "@/components/AuthModal";
@@ -681,8 +678,6 @@ export default function Home() {
         
         const newMessages = [...chatMessages, { role: "user", content: `Analyzing audio file: ${file.name}` }];
         setChatMessages(newMessages);
-
-        runAnalysis(`Analyzing audio file: ${file.name}`);
 
         const response = await fetch('/api/chat', {
           method: 'POST',
@@ -1928,52 +1923,43 @@ export default function Home() {
                         <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="w-full flex-1 bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-200 font-mono text-sm focus:outline-none resize-none" />
                       </div>
                     ) : (
-                      activeTab === "Wireframes" ? (
+                              (activeTab === "Wireframes" || activeTab === "Prototypes") ? (
                                 <div className="p-4 h-full">
                                   {(() => {
                                       const rawContent = documents[activeTab]?.content || "";
-                                      // 1. Extract JSON schema
-                                      const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/i);
-                                      let jsonContent = "";
+                                      // 1. PRIMARY EXTRACTION: Standard Markdown Blocks
+                                      const htmlMatch = rawContent.match(/```html\s*([\s\S]*?)\s*```/i);
+                                      let htmlContent = "";
+                                      let summary = "";
                                       
-                                      if (jsonMatch) {
-                                        jsonContent = jsonMatch[1].trim();
+                                      if (htmlMatch) {
+                                        htmlContent = htmlMatch[1].trim();
+                                        summary = rawContent.replace(/```html[\s\S]*?```/gi, '').trim();
                                       } else {
-                                        // 2. Fallback
-                                        const tagStart = rawContent.indexOf('{');
-                                        const tagEnd = rawContent.lastIndexOf('}');
+                                        // 2. DEEP SCAN FALLBACK: Search for raw HTML structure if markdown tags are missing or broken
+                                        const tagStart = rawContent.indexOf('<');
+                                        const tagEnd = rawContent.lastIndexOf('>');
                                         if (tagStart !== -1 && tagEnd !== -1 && tagEnd > tagStart) {
-                                          jsonContent = rawContent.substring(tagStart, tagEnd + 1).trim();
+                                          htmlContent = rawContent.substring(tagStart, tagEnd + 1).trim();
+                                          summary = rawContent.substring(0, tagStart).trim();
                                         } else {
-                                          jsonContent = rawContent.trim();
+                                          htmlContent = rawContent.trim();
+                                          summary = "Direct code extraction...";
                                         }
                                       }
 
-                                      if (!jsonContent || jsonContent.length < 10) {
+                                      // 3. SANITIZATION: Clean up leftover markdown markers
+                                      htmlContent = htmlContent.replace(/^```html\s*/i, '').replace(/\s*```$/i, '').trim();
+
+                                      if (!htmlContent || htmlContent.length < 10) {
                                         return (
                                           <div className="p-8 bg-slate-900/80 border border-slate-700 rounded-2xl">
-                                            <p className="text-slate-400 text-sm italic mb-4">Rendering system is preparing the UI schema. If it remains blank, please click "Edit" to view raw logic.</p>
+                                            <p className="text-slate-400 text-sm italic mb-4">Rendering system is preparing the interface. If it remains blank, please click "Edit" to view raw logic.</p>
                                             <pre className="text-[10px] text-slate-500 font-mono overflow-auto max-h-96">{rawContent}</pre>
                                           </div>
                                         );
                                       }
 
-                                      return <DynamicUIBuilder schema={jsonContent} isProcessing={isProcessing} />;
-                                  })()}
-                                </div>
-                      ) : activeTab === "Prototypes" ? (
-                                <div className="p-4 h-full">
-                                  {(() => {
-                                      const rawContent = documents[activeTab]?.content || "";
-                                      const htmlMatch = rawContent.match(/```html\s*([\s\S]*?)\s*```/i) || rawContent.match(/```\s*([\s\S]*?)\s*```/i);
-                                      let htmlContent = "";
-                                      let summary = "";
-                                      if (htmlMatch) {
-                                         htmlContent = htmlMatch[1].trim();
-                                         summary = rawContent.replace(htmlMatch[0], '').trim();
-                                      } else {
-                                         htmlContent = rawContent.trim();
-                                      }
                                       return <LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} />;
                                   })()}
                                 </div>
@@ -2008,41 +1994,27 @@ export default function Home() {
                                 );
                               }
                             }
-                            const textDocs = ["BRD", "FRD", "PRD", "SRD", "Test Cases", "Executive Pitch", "Regulatory Advisor"];
-                            const isTextDoc = textDocs.includes(activeTab);
-
                             return (
                               <>
-                                {isTextDoc ? (
-                                  <CollaborativeEditor 
-                                    initialContent={content} 
-                                    onUpdate={(newMd) => {
-                                      setDocuments(prev => ({
-                                        ...prev, 
-                                        [activeTab]: { ...prev[activeTab], content: newMd }
-                                      }));
-                                    }} 
-                                  />
-                                ) : (
-                                  <ReactMarkdown 
-                                    remarkPlugins={[remarkGfm]} 
-                                    components={{ 
-                                      code({inline, className, children, ...props}: any) { 
-                                        const match = /language-(\w+)/.exec(className || ''); 
-                                        if (!inline && match && match[1] === 'mermaid') { 
-                                          const chartCode = String(children).replace(/\n$/, '');
-                                          if (chartCode.length < 10 || (!chartCode.includes('graph') && !chartCode.includes('flowchart'))) {
-                                            return <div className="p-4 bg-slate-900/50 rounded flex items-center gap-2 text-slate-500 text-xs italic"><Loader2 className="w-3 h-3 animate-spin" /> Rendering diagram...</div>;
-                                          }
-                                          return <MermaidRenderer chart={chartCode} isProcessing={isProcessing} /> 
-                                        } 
-                                        return <code className={className} {...props}>{children}</code> 
+                                <ReactMarkdown 
+                                  remarkPlugins={[remarkGfm]} 
+                                  components={{ 
+                                    code({inline, className, children, ...props}: any) { 
+                                      const match = /language-(\w+)/.exec(className || ''); 
+                                      if (!inline && match && match[1] === 'mermaid') { 
+                                        const chartCode = String(children).replace(/\n$/, '');
+                                        // If it's too short or doesn't have a basic graph structure yet, show loader
+                                        if (chartCode.length < 10 || (!chartCode.includes('graph') && !chartCode.includes('flowchart'))) {
+                                          return <div className="p-4 bg-slate-900/50 rounded flex items-center gap-2 text-slate-500 text-xs italic"><Loader2 className="w-3 h-3 animate-spin" /> Rendering diagram...</div>;
+                                        }
+                                        return <MermaidRenderer chart={chartCode} isProcessing={isProcessing} /> 
                                       } 
-                                    }}
-                                  >
-                                    {content}
-                                  </ReactMarkdown>
-                                )}
+                                      return <code className={className} {...props}>{children}</code> 
+                                    } 
+                                  }}
+                                >
+                                  {content}
+                                </ReactMarkdown>
                                 {activeTab === "Test Cases" && (
                                   <div className="mt-8 pt-6 border-t border-slate-700/50">
                                     <div className="flex items-center justify-between mb-4">
@@ -2066,12 +2038,20 @@ export default function Home() {
                                               const errData = await res.json().catch(() => ({}));
                                               throw new Error(errData.error || `Server error ${res.status}`);
                                             }
-                                            // ── DR-RUN Validation layer returns JSON now, not a stream ──
-                                            const data = await res.json();
-                                            if (data.code) {
-                                              setPlaywrightScript(data.code);
-                                            } else {
-                                              throw new Error("No code returned from validation layer.");
+                                            // ── Stream the response live into the panel ──
+                                            const reader = res.body?.getReader();
+                                            const decoder = new TextDecoder();
+                                            let accumulated = '';
+                                            while (reader) {
+                                              const { done, value } = await reader.read();
+                                              if (done) break;
+                                              accumulated += decoder.decode(value, { stream: true });
+                                              // Strip code fences as they stream in
+                                              const clean = accumulated
+                                                .replace(/^```[\w]*\n?/i, '')
+                                                .replace(/\n?```$/i, '')
+                                                .trim();
+                                              setPlaywrightScript(clean);
                                             }
                                           } catch (err: any) {
                                             console.error('Playwright generation error:', err);
@@ -2124,12 +2104,20 @@ export default function Home() {
                                               const errData = await res.json().catch(() => ({}));
                                               throw new Error(errData.error || `Server error ${res.status}`);
                                             }
-                                            // ── DR-RUN Validation layer returns JSON now, not a stream ──
-                                            const data = await res.json();
-                                            if (data.code) {
-                                              setTerraformPlan(data.code);
-                                            } else {
-                                              throw new Error("No code returned from validation layer.");
+                                            // ── Stream the response live into the panel ──
+                                            const reader = res.body?.getReader();
+                                            const decoder = new TextDecoder();
+                                            let accumulated = '';
+                                            while (reader) {
+                                              const { done, value } = await reader.read();
+                                              if (done) break;
+                                              accumulated += decoder.decode(value, { stream: true });
+                                              // Strip HCL code fences as they stream in
+                                              const clean = accumulated
+                                                .replace(/^```[\w]*\n?/i, '')
+                                                .replace(/\n?```$/i, '')
+                                                .trim();
+                                              setTerraformPlan(clean);
                                             }
                                           } catch (err: any) {
                                             console.error('IaC generation error:', err);
@@ -2605,20 +2593,10 @@ export default function Home() {
 
               {/* Session Summary Placeholder if empty */}
               {conflicts.length === 0 && regulatoryFlags.length === 0 && !smeInsight && scopeHistory.length <= 1 && (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  {isAnalyzing ? (
-                    <div className="flex flex-col items-center opacity-70">
-                      <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
-                      <p className="text-xs text-blue-400 uppercase font-bold tracking-widest animate-pulse">Analyzing...</p>
-                      <p className="text-[10px] text-slate-500 mt-2 px-6">Scanning for conflicts, moats, and risks.</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center opacity-30">
-                      <Bot className="w-12 h-12 text-slate-600 mb-4" />
-                      <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">No Intelligence Flags</p>
-                      <p className="text-[10px] text-slate-600 mt-2 px-6">Input more requirements to activate monitoring.</p>
-                    </div>
-                  )}
+                <div className="flex flex-col items-center justify-center py-12 text-center opacity-30">
+                  <Bot className="w-12 h-12 text-slate-600 mb-4" />
+                  <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">Awaiting Analysis</p>
+                  <p className="text-[10px] text-slate-600 mt-2 px-6">Input requirements to activate intelligence monitoring.</p>
                 </div>
               )}
             </div>

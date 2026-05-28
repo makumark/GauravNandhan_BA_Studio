@@ -104,6 +104,9 @@ model Document {
   content   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  versions    DocumentVersion[]
+  suggestions DocumentSuggestion[]
 }
 
 // ── Semantic Graph: Knowledge Graph Nodes ────────────────────────────────────
@@ -142,4 +145,27 @@ model GraphEdge {
   toNode   GraphNode @relation("EdgeTo",   fields: [toNodeId],   references: [id], onDelete: Cascade)
 
   @@unique([projectId, fromNodeId, toNodeId, relationship])
+}
+
+// ── Core: Document Version ──────────────────────────────────────────────────
+model DocumentVersion {
+  id         String   @id @default(cuid())
+  documentId String
+  content    String   // The text or JSON content at this version
+  createdAt  DateTime @default(now())
+  createdBy  String   // User ID who created this version
+
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+// ── Core: AI Suggestion (Tracked Changes) ───────────────────────────────────
+model DocumentSuggestion {
+  id             String   @id @default(cuid())
+  documentId     String
+  originalText   String
+  suggestedText  String
+  status         String   @default("PENDING") // PENDING | APPROVED | REJECTED
+  createdAt      DateTime @default(now())
+
+  document       Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
 }
