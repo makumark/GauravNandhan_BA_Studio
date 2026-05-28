@@ -161,8 +161,8 @@ ${DECISION_PARTNER_INSTRUCTION}`
 MANDATORY STABILITY RULES: 
 1. Use ONLY standard class and relationship syntax. 
 2. NEVER use parentheses () or spaces in relationship labels. 
-3. Use ONLY solid or dashed lines without complex decorators. 
-4. Maximum 12 classes for stability.
+3. MUST include 'left to right direction' and 'hide empty members' at the top of the diagram to prevent visual overlapping.
+4. Maximum 8 classes for layout stability. Max 4 properties/methods per class. Keep the diagram sparse and easy to read.
 5. NEVER use the 'artifact' keyword. Use ONLY 'class', 'interface', or 'enum'.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
