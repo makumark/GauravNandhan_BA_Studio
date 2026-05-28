@@ -1975,10 +1975,12 @@ export default function Home() {
                                       let finalSchema = jsonString;
                                       try {
                                         const parsed = JSON.parse(jsonString);
-                                        if (parsed.code) finalSchema = parsed.code;
+                                        if (parsed.code) {
+                                          finalSchema = typeof parsed.code === 'string' ? parsed.code : JSON.stringify(parsed.code);
+                                        }
                                       } catch(e) {}
 
-                                      if (!finalSchema || finalSchema.length < 10) {
+                                      if (!finalSchema || typeof finalSchema !== 'string' || finalSchema.length < 10) {
                                         return (
                                           <div className="p-8 bg-slate-900/80 border border-slate-700 rounded-2xl">
                                             <p className="text-slate-400 text-sm italic mb-4">Rendering system is preparing the UI schema. If it remains blank, please click "Edit" to view raw logic.</p>
@@ -2008,8 +2010,8 @@ export default function Home() {
                                       }
                                       try {
                                         const parsed = JSON.parse(jsonString);
-                                        htmlContent = parsed.code || "";
-                                        summary = parsed.summary || "";
+                                        htmlContent = typeof parsed.code === 'string' ? parsed.code : (parsed.code ? JSON.stringify(parsed.code) : "");
+                                        summary = typeof parsed.summary === 'string' ? parsed.summary : (parsed.summary ? JSON.stringify(parsed.summary) : "");
                                       } catch (e) {
                                         const htmlMatch = rawContent.match(/```html\s*([\s\S]*?)\s*```/i) || rawContent.match(/```\s*([\s\S]*?)\s*```/i);
                                         if (htmlMatch) {
@@ -2049,7 +2051,7 @@ export default function Home() {
                             }
                             try {
                               const parsed = JSON.parse(jsonString);
-                              code = parsed.code || "";
+                              code = typeof parsed.code === 'string' ? parsed.code : (parsed.code ? JSON.stringify(parsed.code) : "");
                               hasUml = code.includes('@startuml');
                             } catch (e) {
                               hasUml = content.includes('@startuml');
