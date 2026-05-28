@@ -1925,7 +1925,7 @@ export default function Home() {
                         <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="w-full flex-1 bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-200 font-mono text-sm focus:outline-none resize-none" />
                       </div>
                     ) : (
-                              (activeTab === "Wireframes" || activeTab === "Prototypes") ? (
+                      activeTab === "Wireframes" ? (
                                 <div className="p-4 h-full">
                                   {(() => {
                                       const rawContent = documents[activeTab]?.content || "";
@@ -1955,7 +1955,23 @@ export default function Home() {
                                         );
                                       }
 
-                                      return <DynamicUIBuilder schema={jsonContent} />;
+                                      return <DynamicUIBuilder schema={jsonContent} isProcessing={isProcessing} />;
+                                  })()}
+                                </div>
+                      ) : activeTab === "Prototypes" ? (
+                                <div className="p-4 h-full">
+                                  {(() => {
+                                      const rawContent = documents[activeTab]?.content || "";
+                                      const htmlMatch = rawContent.match(/```html\s*([\s\S]*?)\s*```/i) || rawContent.match(/```\s*([\s\S]*?)\s*```/i);
+                                      let htmlContent = "";
+                                      let summary = "";
+                                      if (htmlMatch) {
+                                         htmlContent = htmlMatch[1].trim();
+                                         summary = rawContent.replace(htmlMatch[0], '').trim();
+                                      } else {
+                                         htmlContent = rawContent.trim();
+                                      }
+                                      return <LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} />;
                                   })()}
                                 </div>
                       ) : (

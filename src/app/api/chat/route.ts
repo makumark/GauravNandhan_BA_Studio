@@ -42,6 +42,27 @@ Example: "Application Dashboard"
 }
 \`\`\`
 `,
+  'HTML Template': `
+### GOLD STANDARD: HTML TEMPLATE
+Example: "Application Dashboard"
+\`\`\`html
+<div class="min-h-screen bg-slate-900 text-white p-8" x-data="{ open: false }">
+  <nav class="flex justify-between items-center mb-8">
+    <h1 class="text-2xl font-bold">Dashboard</h1>
+    <button @click="open = !open" class="px-4 py-2 bg-blue-600 rounded">Menu</button>
+  </nav>
+  <div x-show="open" class="p-4 bg-slate-800 rounded mb-4">
+     <p>Menu is open!</p>
+  </div>
+  <div class="grid grid-cols-2 gap-4">
+    <div class="p-6 bg-slate-800 rounded shadow">
+      <h2 class="text-xl">Revenue</h2>
+      <p class="text-3xl font-bold">$50,000</p>
+    </div>
+  </div>
+</div>
+\`\`\`
+`,
   'Mermaid': `
 ### GOLD STANDARD: FLOWCHART (MERMAID)
 Example: "Order Fulfillment Logic"
@@ -108,16 +129,16 @@ STRICT RULES:
   },
   'Prototypes': {
     name: "Elite UI/UX Designer",
-    tool: "JSON UI Component",
-    instruction: `Generate a CONCISE, high-fidelity SaaS dashboard prototype as a strict JSON UI Schema.
+    tool: "HTML Template",
+    instruction: `Generate a CONCISE, high-fidelity SaaS dashboard prototype as a fully functional HTML/Tailwind/Alpine.js workflow.
 STRICT RULES:
-1. Output a SINGLE self-contained JSON object matching the standard.
-2. STRUCTURAL SYMMETRY: You MUST generate ALL screens defined in the Functional Requirements.
-3. Set the theme to 'dark-navy-glassmorphism' to ensure the builder renders deep navy, blue gradients, and glass cards.
+1. Output a SINGLE self-contained HTML block. Do NOT use html, head, or body tags, just output the content.
+2. STRUCTURAL SYMMETRY: You MUST generate functional workflows defined in the Functional Requirements.
+3. Set the theme to 'dark-navy-glassmorphism' to ensure deep navy, blue gradients, and glass cards by using appropriate Tailwind classes. Use Alpine.js for interactivity.
 4. Include realistic data (investor names, amounts, statuses) in tables or cards.
-5. Define functional states and interactive mock data within the JSON schema where applicable.
+5. Define functional states and interactive mock data within the HTML template where applicable.
 6. PII SECURITY RULE: NEVER output full credit card, debit card, or bank account numbers in the mock data.
-7. Output ONLY inside triple-backtick json fences. No explanations.`
+7. Output ONLY inside triple-backtick html fences. No explanations.`
   },
   'Flowcharts': {
     name: "Elite Process Architect",

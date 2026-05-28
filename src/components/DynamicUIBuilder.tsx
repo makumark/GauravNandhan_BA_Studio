@@ -5,7 +5,7 @@ import React from 'react';
 // Example structured JSON:
 // { "screens": [{ "id": "dashboard", "title": "Dashboard", "layout": "sidebar-main", "components": [...] }] }
 
-export function DynamicUIBuilder({ schema }: { schema: string }) {
+export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isProcessing?: boolean }) {
   let parsedSchema;
   try {
     // We expect the LLM to output a JSON string, possibly wrapped in markdown backticks
@@ -17,6 +17,14 @@ export function DynamicUIBuilder({ schema }: { schema: string }) {
       parsedSchema = new Function("return " + jsonStr)();
     }
   } catch (e) {
+    if (isProcessing) {
+      return (
+        <div className="flex flex-col items-center justify-center p-12 bg-slate-900/50 rounded-2xl border border-slate-700/30 min-h-[300px]">
+          <div className="w-8 h-8 animate-spin border-4 border-blue-500 border-t-transparent rounded-full mb-4" />
+          <p className="text-slate-400 text-sm font-medium animate-pulse">Generating UI Schema...</p>
+        </div>
+      );
+    }
     return (
       <div className="p-4 bg-red-900/50 text-red-200 border border-red-500 rounded-md">
         <h3 className="font-bold">UI Render Error</h3>
@@ -59,12 +67,28 @@ export function DynamicUIBuilder({ schema }: { schema: string }) {
               if (comp.type === 'text' || comp.type === 'paragraph') {
                 return <p key={cIdx} className="text-sm text-slate-300 leading-relaxed">{comp.content || comp.text}</p>;
               }
-              if (comp.type === 'input') {
+              if (comp.type === 'input' || comp.type === 'text-input' || comp.type === 'date-input' || comp.type === 'email-input' || comp.type === 'number-input' || comp.type === 'select' || comp.type === 'textarea') {
                 return (
                   <div key={cIdx} className="flex flex-col gap-1">
-                    {comp.label && <label className="text-xs font-semibold text-slate-400 uppercase">{comp.label} {comp.mandatory && <span className="text-red-400">*</span>}</label>}
-                    <input type={comp.type === 'tel' ? 'tel' : 'text'} placeholder={comp.placeholder} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200" disabled={comp.disabled} />
+                    {comp.label && <label className="text-xs font-semibold text-slate-400 uppercase">{comp.label} {(comp.mandatory || comp.required) && <span className="text-red-400">*</span>}</label>}
+                    {comp.type === 'textarea' ? (
+                      <textarea placeholder={comp.placeholder} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200 min-h-[80px]" disabled={comp.disabled} />
+                    ) : comp.type === 'select' ? (
+                      <select className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200" disabled={comp.disabled}>
+                        <option value="">{comp.placeholder || "Select option..."}</option>
+                        {comp.options?.map((opt: string, optIdx: number) => <option key={optIdx} value={opt}>{opt}</option>)}
+                      </select>
+                    ) : (
+                      <input type={comp.type === 'tel' ? 'tel' : comp.type === 'date-input' ? 'date' : comp.type === 'email-input' ? 'email' : comp.type === 'number-input' ? 'number' : 'text'} placeholder={comp.placeholder} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200" disabled={comp.disabled} />
+                    )}
                   </div>
+                );
+              }
+              if (comp.type === 'link') {
+                return (
+                  <a key={cIdx} href="#" className="text-sm text-blue-400 hover:text-blue-300 underline mt-2 inline-block">
+                    {comp.text || comp.label}
+                  </a>
                 );
               }
               if (comp.type === 'button') {
