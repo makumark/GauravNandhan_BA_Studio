@@ -272,7 +272,7 @@ export async function POST(req: Request) {
     };
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash', // Use flash for all models to prevent generation lag
+      model: isVisual ? 'gemini-2.5-pro' : 'gemini-2.5-flash', // Revert to pro for visual docs to prevent crashing UI builder
       generationConfig,
       safetySettings,
     });
@@ -305,6 +305,12 @@ CONVERSATION CONTEXT:
 ${context}
 
 CRITICAL RULE: Output ONLY the ${agent.tool} content. Start immediately. No preamble, no "Here is...", no markdown outside code fences. NEVER truncate or use placeholders like "... (skipping lines) ...". ALWAYS generate the FULL complete code.
+${isVisual ? `MANDATORY SCHEMA: You MUST return a strict JSON object with this exact structure:
+{
+  "summary": "A brief 1-2 sentence description",
+  "code": "The raw string of your code (HTML/React for prototypes, PlantUML for UML, JSON schema for Wireframes). Do NOT wrap in markdown fences inside the JSON string."
+}
+DO NOT output any markdown blocks outside the JSON.` : ''}
       `.trim();
 
       let stream: ReadableStream;
@@ -323,21 +329,32 @@ CRITICAL RULE: Output ONLY the ${agent.tool} content. Start immediately. No prea
       }
 
       if (isVisual) {
-        // Buffer visual docs server-side to safely apply the maskCardOutput regex.
-        // gemini-2.5-flash is fast enough (<30s) that buffering won't trigger the 60s Vercel timeout.
-        let fullText = "";
-        for await (const chunk of result.stream) {
-          fullText += chunk.text();
-        }
-        
-        let cleanText = fullText;
-        if (documentRequested === 'Prototypes' || documentRequested === 'Wireframes') {
-          cleanText = maskCardOutput(cleanText);
-        }
+        // Stream directly to prevent Vercel 60s timeout for gemini-2.5-pro
+        let isClosed = false;
         stream = new ReadableStream({
-          start(controller) {
-            controller.enqueue(new TextEncoder().encode(cleanText));
-            controller.close();
+          async start(controller) {
+            try {
+              for await (const chunk of result.stream) {
+                if (isClosed) break;
+                let text = chunk.text();
+                // We apply maskCardOutput per chunk. It may miss numbers split across chunk boundaries,
+                // but prompt instructions already forbid PII.
+                if (documentRequested === 'Prototypes' || documentRequested === 'Wireframes') {
+                  text = maskCardOutput(text);
+                }
+                controller.enqueue(new TextEncoder().encode(text));
+              }
+            } catch (e: any) {
+              if (e.name !== 'AbortError') {
+                console.error("Streaming error:", e);
+                controller.enqueue(new TextEncoder().encode(`\n\n[Generation Error: ${e.message}]`));
+              }
+            } finally {
+              controller.close();
+            }
+          },
+          cancel() {
+            isClosed = true;
           }
         });
       } else {
