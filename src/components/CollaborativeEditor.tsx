@@ -31,7 +31,7 @@ export function CollaborativeEditor({ initialContent, documentId, onUpdate }: Co
     content: initialContent,
     onUpdate: ({ editor }) => {
       if (onUpdate) {
-        onUpdate(editor.storage.markdown.getMarkdown());
+        onUpdate((editor.storage as any).markdown.getMarkdown());
       }
     },
     onSelectionUpdate: ({ editor }) => {
@@ -47,7 +47,7 @@ export function CollaborativeEditor({ initialContent, documentId, onUpdate }: Co
 
   // Keep content in sync if initialContent changes significantly (e.g. switching tabs)
   useEffect(() => {
-    if (editor && initialContent !== editor.storage.markdown.getMarkdown()) {
+    if (editor && initialContent !== (editor.storage as any).markdown.getMarkdown()) {
       editor.commands.setContent(initialContent);
     }
   }, [initialContent, editor]);
