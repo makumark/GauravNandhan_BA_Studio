@@ -2041,24 +2041,12 @@ export default function Home() {
                                     }} 
                                   />
                                 ) : (
-                                  <ReactMarkdown 
-                                    remarkPlugins={[remarkGfm]} 
-                                    components={{ 
-                                      code({inline, className, children, ...props}: any) { 
-                                        const match = /language-(\w+)/.exec(className || ''); 
-                                        if (!inline && match && match[1] === 'mermaid') { 
-                                          const chartCode = String(children).replace(/\n$/, '');
-                                          if (chartCode.length < 10 || (!chartCode.includes('graph') && !chartCode.includes('flowchart'))) {
-                                            return <div className="p-4 bg-slate-900/50 rounded flex items-center gap-2 text-slate-500 text-xs italic"><Loader2 className="w-3 h-3 animate-spin" /> Rendering diagram...</div>;
-                                          }
-                                          return <MermaidRenderer chart={chartCode} isProcessing={isProcessing} /> 
-                                        } 
-                                        return <code className={className} {...props}>{children}</code> 
-                                      } 
-                                    }}
-                                  >
-                                    {content}
-                                  </ReactMarkdown>
+                                  <div className="prose prose-invert prose-slate max-w-none">
+                                    <div className="whitespace-pre-wrap font-sans text-sm text-slate-300 leading-relaxed p-4 border border-slate-700/50 rounded-xl bg-slate-900/50">
+                                      {content}
+                                      <span className="inline-block w-2 h-4 bg-blue-400 animate-pulse ml-1 align-middle"></span>
+                                    </div>
+                                  </div>
                                 )}
                                 {activeTab === "Test Cases" && (
                                   <div className="mt-8 pt-6 border-t border-slate-700/50">
