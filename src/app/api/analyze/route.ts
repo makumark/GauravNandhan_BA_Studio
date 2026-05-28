@@ -98,6 +98,9 @@ Response format:
       "to": "string — target nodeId",
       "relationship": "CONTAINS" | "RENDERS_ON" | "CALLS" | "VERIFIED_BY" | "DOCUMENTED_IN"
     }
+  ],
+  "glossary": [
+    { "term": "string", "definition": "string", "type": "ENTITY|RULE|FIELD" }
   ]
 }
 
@@ -223,6 +226,7 @@ Analyze this input now and respond with ONLY the JSON object.`;
       // ── Semantic Graph fields (new — always safe arrays) ────────────────────────────
       graphNodes: Array.isArray(analysis.graphNodes) ? analysis.graphNodes as GraphNodeData[] : [],
       graphEdges: Array.isArray(analysis.graphEdges) ? analysis.graphEdges as GraphEdgeData[] : [],
+      glossary: Array.isArray(analysis.glossary) ? analysis.glossary : [],
     };
 
     // ── Semantic Graph: fill missing edges via heuristic inference ──────────────────

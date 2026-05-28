@@ -1,5 +1,7 @@
 "use client";
 
+import { DynamicUIBuilder } from '@/components/DynamicUIBuilder';
+
 import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -1927,40 +1929,33 @@ export default function Home() {
                                 <div className="p-4 h-full">
                                   {(() => {
                                       const rawContent = documents[activeTab]?.content || "";
-                                      // 1. PRIMARY EXTRACTION: Standard Markdown Blocks
-                                      const htmlMatch = rawContent.match(/```html\s*([\s\S]*?)\s*```/i);
-                                      let htmlContent = "";
-                                      let summary = "";
+                                      // 1. Extract JSON schema
+                                      const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/i);
+                                      let jsonContent = "";
                                       
-                                      if (htmlMatch) {
-                                        htmlContent = htmlMatch[1].trim();
-                                        summary = rawContent.replace(/```html[\s\S]*?```/gi, '').trim();
+                                      if (jsonMatch) {
+                                        jsonContent = jsonMatch[1].trim();
                                       } else {
-                                        // 2. DEEP SCAN FALLBACK: Search for raw HTML structure if markdown tags are missing or broken
-                                        const tagStart = rawContent.indexOf('<');
-                                        const tagEnd = rawContent.lastIndexOf('>');
+                                        // 2. Fallback
+                                        const tagStart = rawContent.indexOf('{');
+                                        const tagEnd = rawContent.lastIndexOf('}');
                                         if (tagStart !== -1 && tagEnd !== -1 && tagEnd > tagStart) {
-                                          htmlContent = rawContent.substring(tagStart, tagEnd + 1).trim();
-                                          summary = rawContent.substring(0, tagStart).trim();
+                                          jsonContent = rawContent.substring(tagStart, tagEnd + 1).trim();
                                         } else {
-                                          htmlContent = rawContent.trim();
-                                          summary = "Direct code extraction...";
+                                          jsonContent = rawContent.trim();
                                         }
                                       }
 
-                                      // 3. SANITIZATION: Clean up leftover markdown markers
-                                      htmlContent = htmlContent.replace(/^```html\s*/i, '').replace(/\s*```$/i, '').trim();
-
-                                      if (!htmlContent || htmlContent.length < 10) {
+                                      if (!jsonContent || jsonContent.length < 10) {
                                         return (
                                           <div className="p-8 bg-slate-900/80 border border-slate-700 rounded-2xl">
-                                            <p className="text-slate-400 text-sm italic mb-4">Rendering system is preparing the interface. If it remains blank, please click "Edit" to view raw logic.</p>
+                                            <p className="text-slate-400 text-sm italic mb-4">Rendering system is preparing the UI schema. If it remains blank, please click "Edit" to view raw logic.</p>
                                             <pre className="text-[10px] text-slate-500 font-mono overflow-auto max-h-96">{rawContent}</pre>
                                           </div>
                                         );
                                       }
 
-                                      return <LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} />;
+                                      return <DynamicUIBuilder schema={jsonContent} />;
                                   })()}
                                 </div>
                       ) : (
@@ -2038,20 +2033,12 @@ export default function Home() {
                                               const errData = await res.json().catch(() => ({}));
                                               throw new Error(errData.error || `Server error ${res.status}`);
                                             }
-                                            // ── Stream the response live into the panel ──
-                                            const reader = res.body?.getReader();
-                                            const decoder = new TextDecoder();
-                                            let accumulated = '';
-                                            while (reader) {
-                                              const { done, value } = await reader.read();
-                                              if (done) break;
-                                              accumulated += decoder.decode(value, { stream: true });
-                                              // Strip code fences as they stream in
-                                              const clean = accumulated
-                                                .replace(/^```[\w]*\n?/i, '')
-                                                .replace(/\n?```$/i, '')
-                                                .trim();
-                                              setPlaywrightScript(clean);
+                                            // ── DR-RUN Validation layer returns JSON now, not a stream ──
+                                            const data = await res.json();
+                                            if (data.code) {
+                                              setPlaywrightScript(data.code);
+                                            } else {
+                                              throw new Error("No code returned from validation layer.");
                                             }
                                           } catch (err: any) {
                                             console.error('Playwright generation error:', err);
@@ -2104,20 +2091,12 @@ export default function Home() {
                                               const errData = await res.json().catch(() => ({}));
                                               throw new Error(errData.error || `Server error ${res.status}`);
                                             }
-                                            // ── Stream the response live into the panel ──
-                                            const reader = res.body?.getReader();
-                                            const decoder = new TextDecoder();
-                                            let accumulated = '';
-                                            while (reader) {
-                                              const { done, value } = await reader.read();
-                                              if (done) break;
-                                              accumulated += decoder.decode(value, { stream: true });
-                                              // Strip HCL code fences as they stream in
-                                              const clean = accumulated
-                                                .replace(/^```[\w]*\n?/i, '')
-                                                .replace(/\n?```$/i, '')
-                                                .trim();
-                                              setTerraformPlan(clean);
+                                            // ── DR-RUN Validation layer returns JSON now, not a stream ──
+                                            const data = await res.json();
+                                            if (data.code) {
+                                              setTerraformPlan(data.code);
+                                            } else {
+                                              throw new Error("No code returned from validation layer.");
                                             }
                                           } catch (err: any) {
                                             console.error('IaC generation error:', err);
