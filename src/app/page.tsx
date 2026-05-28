@@ -1962,24 +1962,23 @@ export default function Home() {
                                 <div className="p-4 h-full">
                                   {(() => {
                                       const rawContent = documents[activeTab]?.content || "";
-                                      // 1. Extract JSON schema
+                                      let jsonString = rawContent;
                                       const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/i);
-                                      let jsonContent = "";
-                                      
-                                      if (jsonMatch) {
-                                        jsonContent = jsonMatch[1].trim();
-                                      } else {
-                                        // 2. Fallback
+                                      if (jsonMatch) jsonString = jsonMatch[1].trim();
+                                      else {
                                         const tagStart = rawContent.indexOf('{');
                                         const tagEnd = rawContent.lastIndexOf('}');
                                         if (tagStart !== -1 && tagEnd !== -1 && tagEnd > tagStart) {
-                                          jsonContent = rawContent.substring(tagStart, tagEnd + 1).trim();
-                                        } else {
-                                          jsonContent = rawContent.trim();
+                                          jsonString = rawContent.substring(tagStart, tagEnd + 1).trim();
                                         }
                                       }
+                                      let finalSchema = jsonString;
+                                      try {
+                                        const parsed = JSON.parse(jsonString);
+                                        if (parsed.code) finalSchema = parsed.code;
+                                      } catch(e) {}
 
-                                      if (!jsonContent || jsonContent.length < 10) {
+                                      if (!finalSchema || finalSchema.length < 10) {
                                         return (
                                           <div className="p-8 bg-slate-900/80 border border-slate-700 rounded-2xl">
                                             <p className="text-slate-400 text-sm italic mb-4">Rendering system is preparing the UI schema. If it remains blank, please click "Edit" to view raw logic.</p>
@@ -1988,7 +1987,7 @@ export default function Home() {
                                         );
                                       }
 
-                                      return <DynamicUIBuilder schema={jsonContent} isProcessing={isProcessing} />;
+                                      return <DynamicUIBuilder schema={finalSchema} isProcessing={isProcessing} />;
                                   })()}
                                 </div>
                       ) : activeTab === "Prototypes" ? (
@@ -1997,8 +1996,18 @@ export default function Home() {
                                       const rawContent = documents[activeTab]?.content || "";
                                       let htmlContent = "";
                                       let summary = "";
+                                      let jsonString = rawContent;
+                                      const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/i);
+                                      if (jsonMatch) jsonString = jsonMatch[1].trim();
+                                      else {
+                                        const tagStart = rawContent.indexOf('{');
+                                        const tagEnd = rawContent.lastIndexOf('}');
+                                        if (tagStart !== -1 && tagEnd !== -1 && tagEnd > tagStart) {
+                                          jsonString = rawContent.substring(tagStart, tagEnd + 1).trim();
+                                        }
+                                      }
                                       try {
-                                        const parsed = JSON.parse(rawContent);
+                                        const parsed = JSON.parse(jsonString);
                                         htmlContent = parsed.code || "";
                                         summary = parsed.summary || "";
                                       } catch (e) {
@@ -2028,14 +2037,24 @@ export default function Home() {
                             const content = documents[activeTab]?.content || "";
                             let code = "";
                             let hasUml = false;
+                            let jsonString = content;
+                            const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/i);
+                            if (jsonMatch) jsonString = jsonMatch[1].trim();
+                            else {
+                              const tagStart = content.indexOf('{');
+                              const tagEnd = content.lastIndexOf('}');
+                              if (tagStart !== -1 && tagEnd !== -1 && tagEnd > tagStart) {
+                                jsonString = content.substring(tagStart, tagEnd + 1).trim();
+                              }
+                            }
                             try {
-                              const parsed = JSON.parse(content);
+                              const parsed = JSON.parse(jsonString);
                               code = parsed.code || "";
                               hasUml = code.includes('@startuml');
                             } catch (e) {
                               hasUml = content.includes('@startuml');
                               if (hasUml) {
-                                const plantumlMatch = content.match(/@startuml([\s\S]*?)@enduml/);
+                                const plantumlMatch = content.match(/@startuml([\s\S]*?)@enduml/i);
                                 code = plantumlMatch ? plantumlMatch[0].trim() : content;
                               }
                             }
