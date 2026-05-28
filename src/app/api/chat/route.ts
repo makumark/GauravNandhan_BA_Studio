@@ -263,14 +263,21 @@ export async function POST(req: Request) {
       : "";
 
     const agent = AGENT_CONFIGS[documentRequested as keyof typeof AGENT_CONFIGS] || AGENT_CONFIGS.DEFAULT;
+    const isVisual = documentRequested === 'Prototypes' || documentRequested === 'Wireframes' || documentRequested === 'UML Diagrams';
+
+    const generationConfig: any = {
+      temperature: 0.1,
+      topP: 0.8,
+      topK: 40,
+    };
+
+    if (isVisual) {
+      generationConfig.responseMimeType = "application/json";
+    }
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash', // STABLE: Current production model as of May 2026
-      generationConfig: {
-        temperature: 0.1,
-        topP: 0.8,
-        topK: 40,
-      },
+      model: isVisual ? 'gemini-2.5-pro' : 'gemini-2.5-flash',
+      generationConfig,
       safetySettings,
     });
 
@@ -302,74 +309,96 @@ CONVERSATION CONTEXT:
 ${context}
 
 CRITICAL RULE: Output ONLY the ${agent.tool} content. Start immediately. No preamble, no "Here is...", no markdown outside code fences. NEVER truncate or use placeholders like "... (skipping lines) ...". ALWAYS generate the FULL complete code.
+${isVisual ? `MANDATORY SCHEMA: You MUST return a strict JSON object with this exact structure:
+{
+  "summary": "A brief 1-2 sentence description",
+  "code": "The raw string of your code (HTML/React for prototypes, PlantUML for UML, etc). Do NOT wrap in markdown fences inside the JSON string."
+}
+DO NOT output any markdown blocks outside the JSON.` : ''}
       `.trim();
 
-      const result = await model.generateContentStream(prompt);
+      let stream: ReadableStream;
 
-      // ── Audit log: document generation ──────────────────────────────────────
-      if (orgId && userId && documentRequested) {
-        logAudit({
-          organizationId: orgId,
-          userId,
-          userEmail,
-          action: 'DOCUMENT_GENERATED',
-          resourceType: documentRequested,
-          metadata: { domain: domainDetected || 'General' }
-        }).catch(() => {});
-      }
+      if (isVisual) {
+        // Deterministic JSON engine should wait for full generation to prevent malformed partial JSON
+        const result = await model.generateContent(prompt);
+        let cleanText = result.response.text();
+        if (documentRequested === 'Prototypes' || documentRequested === 'Wireframes') {
+          cleanText = maskCardOutput(cleanText);
+        }
+        stream = new ReadableStream({
+          start(controller) {
+            controller.enqueue(new TextEncoder().encode(cleanText));
+            controller.close();
+          }
+        });
+      } else {
+        const result = await model.generateContentStream(prompt);
 
-      // ── Safe Stream with isClosed guard ──────────────────────────
-      let isClosed = false;
-      const stream = new ReadableStream({
-        async start(controller) {
-          try {
-            for await (const chunk of result.stream) {
-              if (isClosed) break;
-              const text = chunk.text();
-              if (text) {
-                // Nuclear Syntax Hardening (Mermaid)
-                let cleanText = text
-                  .replace(/\|?\s*-+\s*->/g, ' --> ') // Fix malformed arrows like | -- ->
-                  .replace(/--\s*>/g, ' --> ')        // Fix space in arrows
-                  .replace(/\["([^\]]+)"\]/g, (m, label) => {
-                    // Strip characters that break Mermaid labels even inside quotes
-                    const safeLabel = label.replace(/[()]/g, '').replace(/\//g, ' ');
-                    return `["${safeLabel}"]`;
-                  })
-                  .replace(/\{"([^"]+)"\}/g, (m, label) => {
-                    const safeLabel = label.replace(/[()]/g, '').replace(/\//g, ' ');
-                    return `{"${safeLabel}"}`;
-                  });
+        // ── Audit log: document generation ──────────────────────────────────────
+        if (orgId && userId && documentRequested) {
+          logAudit({
+            organizationId: orgId,
+            userId,
+            userEmail,
+            action: 'DOCUMENT_GENERATED',
+            resourceType: documentRequested,
+            metadata: { domain: domainDetected || 'General' }
+          }).catch(() => {});
+        }
 
-                // PII OUTPUT SHIELD: Mask card numbers in Prototype/Wireframe output
-                if (documentRequested === 'Prototypes' || documentRequested === 'Wireframes') {
-                  cleanText = maskCardOutput(cleanText);
+        // ── Safe Stream with isClosed guard ──────────────────────────
+        let isClosed = false;
+        stream = new ReadableStream({
+          async start(controller) {
+            try {
+              for await (const chunk of result.stream) {
+                if (isClosed) break;
+                const text = chunk.text();
+                if (text) {
+                  // Nuclear Syntax Hardening (Mermaid)
+                  let cleanText = text
+                    .replace(/\|?\s*-+\s*->/g, ' --> ') // Fix malformed arrows like | -- ->
+                    .replace(/--\s*>/g, ' --> ')        // Fix space in arrows
+                    .replace(/\["([^\]]+)"\]/g, (m, label) => {
+                      // Strip characters that break Mermaid labels even inside quotes
+                      const safeLabel = label.replace(/[()]/g, '').replace(/\//g, ' ');
+                      return `["${safeLabel}"]`;
+                    })
+                    .replace(/\{"([^"]+)"\}/g, (m, label) => {
+                      const safeLabel = label.replace(/[()]/g, '').replace(/\//g, ' ');
+                      return `{"${safeLabel}"}`;
+                    });
+
+                  controller.enqueue(new TextEncoder().encode(cleanText));
                 }
-
-                controller.enqueue(new TextEncoder().encode(cleanText));
+              }
+            } catch (e: any) {
+              console.error('Document Stream Error:', e);
+              if (!isClosed) {
+                isClosed = true;
+                controller.error(e);
+              }
+            } finally {
+              if (!isClosed) {
+                isClosed = true;
+                controller.close();
               }
             }
-          } catch (e: any) {
-            console.error('Document Stream Error:', e);
-            if (!isClosed) {
-              isClosed = true;
-              controller.error(e);
-            }
-          } finally {
-            if (!isClosed) {
-              isClosed = true;
-              controller.close();
-            }
-          }
-        },
-        cancel() {
-          isClosed = true;
+          },
+          cancel() {
+            isClosed = true;
+          },
+        });
+      }
+
+      return new Response(stream, {
+        headers: {
+          'Content-Type': 'text/plain; charset=utf-8',
+          'Cache-Control': 'no-cache',
         },
       });
-
-      return new Response(stream);
     }
-
     // ── CHAT (Brain 1 Intake) ────────────────────────────────────────
     const chatPrompt = `You are the ${agent.name}. You are a professional Business Analyst powered by the BABOK v3 framework.
 RULES:

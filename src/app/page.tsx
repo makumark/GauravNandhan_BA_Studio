@@ -1965,14 +1965,20 @@ export default function Home() {
                                 <div className="p-4 h-full">
                                   {(() => {
                                       const rawContent = documents[activeTab]?.content || "";
-                                      const htmlMatch = rawContent.match(/```html\s*([\s\S]*?)\s*```/i) || rawContent.match(/```\s*([\s\S]*?)\s*```/i);
                                       let htmlContent = "";
                                       let summary = "";
-                                      if (htmlMatch) {
-                                         htmlContent = htmlMatch[1].trim();
-                                         summary = rawContent.replace(htmlMatch[0], '').trim();
-                                      } else {
-                                         htmlContent = rawContent.trim();
+                                      try {
+                                        const parsed = JSON.parse(rawContent);
+                                        htmlContent = parsed.code || "";
+                                        summary = parsed.summary || "";
+                                      } catch (e) {
+                                        const htmlMatch = rawContent.match(/```html\s*([\s\S]*?)\s*```/i) || rawContent.match(/```\s*([\s\S]*?)\s*```/i);
+                                        if (htmlMatch) {
+                                           htmlContent = htmlMatch[1].trim();
+                                           summary = rawContent.replace(htmlMatch[0], '').trim();
+                                        } else {
+                                           htmlContent = rawContent.trim();
+                                        }
                                       }
                                       return <LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} />;
                                   })()}
@@ -1981,11 +1987,23 @@ export default function Home() {
                         <div className="prose prose-invert prose-slate max-w-none p-10 prose-headings:text-blue-100">
                           {(() => {
                             const content = documents[activeTab]?.content || "";
-                            if (content.includes('@startuml')) {
-                               const plantumlMatch = content.match(/@startuml([\s\S]*?)@enduml/);
-                               if (plantumlMatch) {
+                            let code = "";
+                            let hasUml = false;
+                            try {
+                              const parsed = JSON.parse(content);
+                              code = parsed.code || "";
+                              hasUml = code.includes('@startuml');
+                            } catch (e) {
+                              hasUml = content.includes('@startuml');
+                              if (hasUml) {
+                                const plantumlMatch = content.match(/@startuml([\s\S]*?)@enduml/);
+                                code = plantumlMatch ? plantumlMatch[0].trim() : content;
+                              }
+                            }
+
+                            if (hasUml) {
                                  // Clean code: Remove themes and other non-standard PlantUML junk
-                                 const code = plantumlMatch[0].trim()
+                                 code = code
                                    .replace(/!theme\s+\w+/g, '!theme plain') // Force plain theme for stability
                                    .replace(/\*\*/g, '')
                                    .replace(/\\_/g, '_');
@@ -2007,13 +2025,12 @@ export default function Home() {
                                   </div>
                                 );
                               }
-                            }
                             const textDocs = ["BRD", "FRD", "PRD", "SRD", "Test Cases", "Executive Pitch", "Regulatory Advisor"];
                             const isTextDoc = textDocs.includes(activeTab);
 
                             return (
                               <>
-                                {isTextDoc ? (
+                                {isTextDoc && !isProcessing ? (
                                   <CollaborativeEditor 
                                     initialContent={content} 
                                     onUpdate={(newMd) => {
@@ -2611,6 +2628,14 @@ export default function Home() {
                       <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
                       <p className="text-xs text-blue-400 uppercase font-bold tracking-widest animate-pulse">Analyzing...</p>
                       <p className="text-[10px] text-slate-500 mt-2 px-6">Scanning for conflicts, moats, and risks.</p>
+                    </div>
+                  ) : chatMessages.length > 1 ? (
+                    <div className="flex flex-col items-center opacity-80">
+                      <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4 border border-emerald-500/20">
+                        <Check className="w-6 h-6 text-emerald-400" />
+                      </div>
+                      <p className="text-xs text-emerald-400 uppercase font-bold tracking-widest text-center">All Systems Nominal</p>
+                      <p className="text-[10px] text-slate-500 mt-2 px-6 text-center">No critical conflicts, regulatory gaps, or scope creep detected in current requirements.</p>
                     </div>
                   ) : (
                     <div className="flex flex-col items-center opacity-30">
