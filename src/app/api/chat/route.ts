@@ -176,6 +176,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
     name: "Senior BA Agent",
     tool: "Markdown",
     instruction: `Generate a Business Requirements Document (BRD) following BABOK v3. RULE: Use strictly numbered sections (1.0, 1.1). NO complex symbols or breaking syntax.
+CRITICAL RULE: NEVER include a Requirement Traceability Matrix (RTM) in this document. The RTM must only be generated in the FRD.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'FRD': {
@@ -195,12 +196,14 @@ ${DECISION_PARTNER_INSTRUCTION}`
     name: "Product Manager Agent",
     tool: "Markdown",
     instruction: `Generate a Product Requirements Document (PRD). RULE: Use MoSCoW prioritization and standard Markdown lists.
+CRITICAL RULE: NEVER include a Requirement Traceability Matrix (RTM) in this document. The RTM must only be generated in the FRD.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'SRD': {
     name: "Systems Analyst Agent",
     tool: "Markdown",
     instruction: `Generate a System Requirements Document (SRD). RULE: Focus on ISO/IEC 25010 standards using strictly stable Markdown.
+CRITICAL RULE: NEVER include a Requirement Traceability Matrix (RTM) in this document. The RTM must only be generated in the FRD.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Regulatory Advisor': {
@@ -213,6 +216,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
     name: "Senior BA Agent",
     tool: "Markdown",
     instruction: `Perform professional BA analysis following BABOK v3. RULE: Keep responses structured, professional, and strictly free of breaking syntax characters like stray parentheses in code blocks.
+CRITICAL RULE: NEVER include a Requirement Traceability Matrix (RTM) unless explicitly generating an FRD.
 ${DECISION_PARTNER_INSTRUCTION}`
   }
 };
@@ -314,7 +318,6 @@ DO NOT output any markdown blocks outside the JSON.` : ''}
       `.trim();
 
       let stream: ReadableStream;
-      const result = await model.generateContentStream(prompt);
 
       // ── Audit log: document generation ──────────────────────────────────────
       if (orgId && userId && documentRequested) {
@@ -334,6 +337,11 @@ DO NOT output any markdown blocks outside the JSON.` : ''}
         stream = new ReadableStream({
           async start(controller) {
             try {
+              // Write a space immediately to keep the Vercel connection alive
+              controller.enqueue(new TextEncoder().encode(" "));
+              
+              const result = await model.generateContentStream(prompt);
+              
               for await (const chunk of result.stream) {
                 if (isClosed) break;
                 let text = chunk.text();
@@ -363,6 +371,11 @@ DO NOT output any markdown blocks outside the JSON.` : ''}
         stream = new ReadableStream({
           async start(controller) {
             try {
+              // Write a space immediately to keep the Vercel connection alive
+              controller.enqueue(new TextEncoder().encode(" "));
+              
+              const result = await model.generateContentStream(prompt);
+              
               for await (const chunk of result.stream) {
                 if (isClosed) break;
                 const text = chunk.text();

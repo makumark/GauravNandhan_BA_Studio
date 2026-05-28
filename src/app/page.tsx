@@ -2052,13 +2052,18 @@ export default function Home() {
                             try {
                               const parsed = JSON.parse(jsonString);
                               code = typeof parsed.code === 'string' ? parsed.code : (parsed.code ? JSON.stringify(parsed.code) : "");
-                              hasUml = code.includes('@startuml');
+                              hasUml = code.includes('@startuml') || activeTab === "UML Diagrams";
                             } catch (e) {
-                              hasUml = content.includes('@startuml');
+                              hasUml = content.includes('@startuml') || activeTab === "UML Diagrams";
                               if (hasUml) {
                                 const plantumlMatch = content.match(/@startuml([\s\S]*?)@enduml/i);
-                                code = plantumlMatch ? plantumlMatch[0].trim() : content;
+                                code = plantumlMatch ? plantumlMatch[0].trim() : (code || content);
                               }
+                            }
+                            
+                            // Ensure PlantUML code has the required tags if missing
+                            if (hasUml && code && !code.includes('@startuml')) {
+                              code = `@startuml\n${code}\n@enduml`;
                             }
 
                             if (hasUml) {
