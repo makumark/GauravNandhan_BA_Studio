@@ -2000,7 +2000,7 @@ export default function Home() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-600 italic">Awaiting analysis data.</p>
+                  <p className="text-[10px] text-slate-600 italic">{isAnalyzing ? "Regenerating analysis..." : "Awaiting analysis data."}</p>
                 )}
               </div>
 
@@ -2027,7 +2027,7 @@ export default function Home() {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-[10px] text-slate-600 italic">No strategic moats identified yet.</p>
+                  <p className="text-[10px] text-slate-600 italic">{isAnalyzing ? "Regenerating analysis..." : "No strategic moats identified yet."}</p>
                 )}
               </div>
 
