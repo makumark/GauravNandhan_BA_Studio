@@ -71,7 +71,7 @@ DO NOT output any markdown blocks outside the JSON.` : ''}
     `.trim();
 
     const model = genAI.getGenerativeModel({
-      model: isVisual ? 'gemini-2.5-pro' : 'gemini-2.5-flash',
+      model: 'gemini-2.5-flash',
       safetySettings: [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
         { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
