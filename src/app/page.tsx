@@ -461,6 +461,11 @@ export default function Home() {
   const handleDocumentClick = async (docName: string, force = false) => {
     if (!docsReady) return;
     
+    if (!currentProjectId) {
+      alert("⚠️ Please 'Save Session' first to generate complex documents in the background.");
+      return;
+    }
+
     setActiveTab(docName);
     setIsEditing(false);
     
@@ -477,22 +482,27 @@ export default function Home() {
     }
 
     setIsProcessing(true);
-    let response: any;
+    // Initialize the document with "Analyzing..." so the UI shows the spinner
+    setDocuments(prev => ({
+      ...prev,
+      [docName]: { ...prev[docName], content: "", confidence: 0, review: undefined }
+    }));
+
     const functionalContext = documents['FRD']?.content || documents['PRD']?.content || documents['BRD']?.content || "";
     const designContext = docName === 'Prototypes' ? documents['Wireframes']?.content : "";
     const combinedContext = `${functionalContext}\n\n${designContext}`.trim();
 
     try {
-      response = await fetch('/api/chat', {
+      const response = await fetch('/api/generate/document', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
+          projectId: currentProjectId,
           messages: chatMessages, 
           documentRequested: docName, 
-          sessionState, 
-          readinessScore, 
-          feasibilityIssues,
-          functionalContext: btoa(encodeURIComponent(combinedContext))
+          domainDetected,
+          functionalContext: combinedContext,
+          glossary
         })
       });
       
@@ -506,77 +516,66 @@ export default function Home() {
         throw new Error(errorMsg);
       }
 
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-      let docContent = "";
-      
-        // Throttle UI updates to every 100ms to prevent browser hang during streaming
-        let lastDocRender = 0;
-        while (true) {
-          const { done, value } = await reader?.read() || { done: true, value: undefined };
-          if (done) {
-            // Final flush so the complete content is always shown
-            const finalContent = docContent;
-            setDocuments(prev => ({ 
-              ...prev, 
-              [docName]: { ...prev[docName], content: finalContent } 
-            }));
-            break;
-          }
-          docContent += decoder.decode(value, { stream: true });
-          const now = Date.now();
-          if (now - lastDocRender > 100) {
-            lastDocRender = now;
-            const snapshot = docContent;
-            setDocuments(prev => ({ 
-              ...prev, 
-              [docName]: { ...prev[docName], content: snapshot } 
-            }));
-          }
-        }
+      // Start Polling
+      const pollInterval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/documents/status?projectId=${currentProjectId}&type=${docName}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.status === 'ready') {
+              clearInterval(pollInterval);
+              setIsProcessing(false);
+              
+              let docContent = data.content;
 
-        // Final Meta-Parsing: Extract from [CONFIDENCE: XX% | REVIEW: ... | LINKS: ... | REASON: ...]
-        const metaMatch = docContent.match(/\[CONFIDENCE:\s*(\d+)%\s*\|\s*REVIEW:\s*(REQUIRED|OPTIONAL)\s*\|\s*LINKS:\s*([\s\S]*?)\s*\|\s*REASON:\s*([\s\S]*?)\]/i);
+              // Final Meta-Parsing: Extract from [CONFIDENCE: XX% | REVIEW: ... | LINKS: ... | REASON: ...]
+              const metaMatch = docContent.match(/\[CONFIDENCE:\s*(\d+)%\s*\|\s*REVIEW:\s*(REQUIRED|OPTIONAL)\s*\|\s*LINKS:\s*([\s\S]*?)\s*\|\s*REASON:\s*([\s\S]*?)\]/i);
 
-        if (metaMatch) {
-          const confidence = parseInt(metaMatch[1]);
-          const review = metaMatch[2].toUpperCase();
-          const links = metaMatch[3].split(',').map(l => l.trim()).filter(l => l && l !== 'ID1' && l !== 'ID2');
-          const reason = metaMatch[4].trim();
-          
-          // Clean the content (remove the metadata tag from the visible document)
-          const cleanContent = docContent.replace(/\[CONFIDENCE:[\s\S]*?\]/gi, '').trim();
+              if (metaMatch) {
+                const confidence = parseInt(metaMatch[1]);
+                const review = metaMatch[2].toUpperCase();
+                const links = metaMatch[3].split(',').map((l: string) => l.trim()).filter((l: string) => l && l !== 'ID1' && l !== 'ID2');
+                const reason = metaMatch[4].trim();
+                
+                // Clean the content (remove the metadata tag from the visible document)
+                const cleanContent = docContent.replace(/\[CONFIDENCE:[\s\S]*?\]/gi, '').trim();
 
-          setDocuments(prev => ({
-            ...prev,
-            [docName]: { 
-              content: cleanContent, 
-              confidence, 
-              review, 
-              reason,
-              links
-            }
-          }));
-        } else {
-          // Fallback: If AI used separate tags or non-standard format
-          const confMatch = docContent.match(/CONFIDENCE:\s*(\d+)%/i);
-          const reviewMatch = docContent.match(/REVIEW:\s*(REQUIRED|OPTIONAL)/i);
-          const linksMatch = docContent.match(/LINKS:\s*([^\]|]*)/i);
-          const reasonMatch = docContent.match(/REASON:\s*([^\]|]*)/i);
+                setDocuments(prev => ({
+                  ...prev,
+                  [docName]: { 
+                    content: cleanContent, 
+                    confidence, 
+                    review, 
+                    reason,
+                    links
+                  }
+                }));
+              } else {
+                // Fallback: If AI used separate tags or non-standard format
+                const confMatch = docContent.match(/CONFIDENCE:\s*(\d+)%/i);
+                const reviewMatch = docContent.match(/REVIEW:\s*(REQUIRED|OPTIONAL)/i);
+                const linksMatch = docContent.match(/LINKS:\s*([^\]|]*)/i);
+                const reasonMatch = docContent.match(/REASON:\s*([^\]|]*)/i);
 
-          if (confMatch || reviewMatch || linksMatch) {
-             setDocuments(prev => ({
-              ...prev,
-              [docName]: { 
-                ...prev[docName],
-                confidence: confMatch ? parseInt(confMatch[1]) : 100, 
-                review: reviewMatch ? reviewMatch[1].toUpperCase() : 'OPTIONAL', 
-                links: linksMatch ? linksMatch[1].split(',').map(l => l.trim()).filter(l => l && l !== 'ID1' && l !== 'ID2') : [],
-                reason: reasonMatch ? reasonMatch[1].trim() : 'Validated by Protocol'
+                setDocuments(prev => ({
+                  ...prev,
+                  [docName]: { 
+                    ...prev[docName],
+                    content: docContent,
+                    confidence: confMatch ? parseInt(confMatch[1]) : 100, 
+                    review: reviewMatch ? reviewMatch[1].toUpperCase() : 'OPTIONAL', 
+                    links: linksMatch ? linksMatch[1].split(',').map((l: string) => l.trim()).filter((l: string) => l && l !== 'ID1' && l !== 'ID2') : [],
+                    reason: reasonMatch ? reasonMatch[1].trim() : 'Validated by Protocol'
+                  }
+                }));
               }
-            }));
+            }
           }
+        } catch (e) {
+          console.error("Polling error:", e);
         }
+      }, 3000);
+
     } catch (error: any) {
       console.error("Error generating document:", error);
       alert(`Error generating document: ${error.message}`);
