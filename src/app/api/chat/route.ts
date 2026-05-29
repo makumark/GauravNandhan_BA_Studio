@@ -231,7 +231,7 @@ export async function POST(req: Request) {
     const userEmail = session?.user?.email || 'anonymous';
 
     // ── RATE LIMITING: Prevent abuse (10 req/min per user) ───────────────────
-    const limiter = rateLimit(userId || userEmail, 10, 60000);
+    const limiter = await rateLimit(userId || userEmail, 10, 60000);
     if (!limiter.success) {
       return NextResponse.json(
         { error: `Too many requests. Please try again in ${Math.ceil((limiter.reset - Date.now()) / 1000)}s.` },

@@ -1,0 +1,1996 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Product Requirements Document — Gaurav Nandhan BA Studio</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
+    @page {
+      size: A4;
+      margin: 18mm 18mm 22mm 18mm;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+      font-size: 10.5pt;
+      line-height: 1.65;
+      color: #1e293b;
+      background: #fff;
+    }
+
+    /* ── COVER PAGE ─────────────────────────────────────────── */
+    .cover {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      text-align: center;
+      padding: 60px 40px;
+      page-break-after: always;
+      background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #0f172a 100%);
+      color: white;
+    }
+
+    .cover-logo {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 28px;
+      box-shadow: 0 0 40px rgba(59,130,246,0.4);
+    }
+
+    .cover-logo svg { width: 44px; height: 44px; }
+
+    .cover h1 {
+      font-size: 38pt;
+      font-weight: 900;
+      letter-spacing: -1px;
+      background: linear-gradient(135deg, #ffffff, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 6px;
+    }
+
+    .cover h2 {
+      font-size: 16pt;
+      font-weight: 400;
+      color: #94a3b8;
+      margin-bottom: 32px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .cover-badge {
+      display: inline-block;
+      background: rgba(59,130,246,0.2);
+      border: 1px solid rgba(59,130,246,0.5);
+      color: #93c5fd;
+      padding: 8px 24px;
+      border-radius: 40px;
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 40px;
+    }
+
+    .cover-meta {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    .cover-meta-item {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 12px;
+      padding: 16px;
+    }
+
+    .cover-meta-item .label {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: #64748b;
+      margin-bottom: 4px;
+      font-weight: 600;
+    }
+
+    .cover-meta-item .value {
+      font-size: 10pt;
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    .cover-version-strip {
+      margin-top: 50px;
+      display: flex;
+      gap: 30px;
+      align-items: center;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      padding-top: 24px;
+    }
+
+    .cover-version-strip span {
+      font-size: 8.5pt;
+      color: #475569;
+    }
+
+    .cover-version-strip strong { color: #94a3b8; }
+
+    /* ── TOC ─────────────────────────────────────────────────── */
+    .toc {
+      page-break-after: always;
+      padding: 40px 0;
+    }
+
+    .toc h2 {
+      font-size: 20pt;
+      font-weight: 800;
+      color: #0f172a;
+      margin-bottom: 28px;
+      padding-bottom: 12px;
+      border-bottom: 3px solid #3b82f6;
+    }
+
+    .toc-section {
+      margin-bottom: 8px;
+    }
+
+    .toc-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      padding: 6px 0;
+      border-bottom: 1px dotted #e2e8f0;
+      font-size: 10pt;
+    }
+
+    .toc-item a { color: #1e40af; text-decoration: none; font-weight: 500; }
+    .toc-item .toc-num { color: #94a3b8; font-size: 9pt; }
+    .toc-sub { margin-left: 20px; }
+    .toc-sub .toc-item a { color: #334155; font-weight: 400; font-size: 9.5pt; }
+
+    /* ── SECTION LAYOUT ──────────────────────────────────────── */
+    .section {
+      page-break-before: always;
+      padding-top: 8px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .section-icon {
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .section-icon svg { width: 22px; height: 22px; color: white; fill: white; }
+
+    .section-header h2 {
+      font-size: 18pt;
+      font-weight: 800;
+      color: #0f172a;
+      line-height: 1.2;
+    }
+
+    .section-num {
+      font-size: 9pt;
+      color: #94a3b8;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    /* ── TYPOGRAPHY ──────────────────────────────────────────── */
+    h3 {
+      font-size: 13pt;
+      font-weight: 700;
+      color: #1e3a5f;
+      margin: 24px 0 10px;
+      padding-left: 12px;
+      border-left: 3px solid #3b82f6;
+    }
+
+    h4 {
+      font-size: 11pt;
+      font-weight: 600;
+      color: #1e40af;
+      margin: 18px 0 8px;
+    }
+
+    p { margin-bottom: 10px; color: #334155; line-height: 1.7; }
+
+    ul, ol {
+      padding-left: 20px;
+      margin-bottom: 14px;
+    }
+
+    li {
+      margin-bottom: 5px;
+      color: #334155;
+      line-height: 1.6;
+    }
+
+    li strong { color: #1e293b; }
+
+    /* ── TABLES ──────────────────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 16px 0 24px;
+      font-size: 9.5pt;
+      page-break-inside: avoid;
+    }
+
+    thead tr {
+      background: #1e40af;
+      color: white;
+    }
+
+    th {
+      padding: 10px 12px;
+      text-align: left;
+      font-weight: 700;
+      font-size: 8.5pt;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    td {
+      padding: 9px 12px;
+      border-bottom: 1px solid #e2e8f0;
+      vertical-align: top;
+    }
+
+    tr:nth-child(even) td { background: #f8fafc; }
+    tr:hover td { background: #eff6ff; }
+
+    /* ── CALLOUT BOXES ───────────────────────────────────────── */
+    .callout {
+      border-radius: 10px;
+      padding: 14px 18px;
+      margin: 16px 0;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      page-break-inside: avoid;
+    }
+
+    .callout-icon { font-size: 16pt; flex-shrink: 0; margin-top: 2px; }
+
+    .callout-info { background: #eff6ff; border: 1px solid #bfdbfe; }
+    .callout-info .callout-body { color: #1e40af; }
+
+    .callout-warn { background: #fffbeb; border: 1px solid #fde68a; }
+    .callout-warn .callout-body { color: #92400e; }
+
+    .callout-success { background: #f0fdf4; border: 1px solid #bbf7d0; }
+    .callout-success .callout-body { color: #14532d; }
+
+    .callout-note { background: #faf5ff; border: 1px solid #d8b4fe; }
+    .callout-note .callout-body { color: #581c87; }
+
+    .callout-title { font-weight: 700; font-size: 10pt; margin-bottom: 4px; }
+    .callout-body { font-size: 9.5pt; line-height: 1.6; }
+
+    /* ── FEATURE CARDS ───────────────────────────────────────── */
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 14px;
+      margin: 16px 0 24px;
+    }
+
+    .feature-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px;
+      background: #f8fafc;
+      page-break-inside: avoid;
+    }
+
+    .feature-card-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .feature-card-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      background: linear-gradient(135deg, #3b82f6, #06b6d4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 14pt;
+      flex-shrink: 0;
+    }
+
+    .feature-card h4 {
+      font-size: 10.5pt;
+      color: #1e3a5f;
+      margin: 0;
+    }
+
+    .feature-card p {
+      font-size: 9pt;
+      color: #475569;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    /* ── BADGES ──────────────────────────────────────────────── */
+    .badge {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 20px;
+      font-size: 8pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .badge-blue { background: #dbeafe; color: #1d4ed8; border: 1px solid #bfdbfe; }
+    .badge-green { background: #d1fae5; color: #065f46; border: 1px solid #a7f3d0; }
+    .badge-amber { background: #fef3c7; color: #92400e; border: 1px solid #fde68a; }
+    .badge-red { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .badge-purple { background: #ede9fe; color: #5b21b6; border: 1px solid #c4b5fd; }
+
+    /* ── FOOTER ──────────────────────────────────────────────── */
+    .page-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 36px;
+      padding-top: 12px;
+      border-top: 1px solid #e2e8f0;
+      font-size: 8pt;
+      color: #94a3b8;
+    }
+
+    /* ── INLINE CODE ─────────────────────────────────────────── */
+    code {
+      background: #f1f5f9;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 9pt;
+      color: #0f172a;
+      border: 1px solid #e2e8f0;
+    }
+
+    /* ── DIVIDER ─────────────────────────────────────────────── */
+    .divider {
+      border: none;
+      border-top: 1px solid #e2e8f0;
+      margin: 20px 0;
+    }
+
+    /* ── STATUS INDICATOR ────────────────────────────────────── */
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 8px;
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .dot-green { background: #22c55e; }
+    .dot-blue { background: #3b82f6; }
+    .dot-amber { background: #f59e0b; }
+    .dot-red { background: #ef4444; }
+
+    /* ── PRINT HELPERS ───────────────────────────────────────── */
+    @media print {
+      .no-print { display: none !important; }
+      body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+
+    .avoid-break { page-break-inside: avoid; }
+
+    /* ── ROLE TABLE ──────────────────────────────────────────── */
+    .role-chip {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 12px;
+      font-size: 8pt;
+      font-weight: 700;
+    }
+
+    .role-admin { background: #ede9fe; color: #5b21b6; }
+    .role-lead { background: #dbeafe; color: #1d4ed8; }
+    .role-analyst { background: #d1fae5; color: #065f46; }
+    .role-viewer { background: #f1f5f9; color: #475569; }
+
+    /* Architecture diagram placeholder */
+    .arch-box {
+      border: 1.5px solid #bfdbfe;
+      border-radius: 8px;
+      background: #eff6ff;
+      padding: 12px 16px;
+      margin: 8px 0;
+      font-size: 9pt;
+      color: #1e40af;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    .arch-arrow {
+      text-align: center;
+      color: #94a3b8;
+      font-size: 14pt;
+      margin: 4px 0;
+    }
+
+    .flow-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin: 16px 0;
+    }
+
+    .flow-step {
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 12px;
+      background: white;
+      page-break-inside: avoid;
+    }
+
+    .flow-step-num {
+      width: 24px;
+      height: 24px;
+      background: #3b82f6;
+      color: white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 9pt;
+      font-weight: 800;
+      margin-bottom: 8px;
+    }
+
+    .flow-step h5 { font-size: 9pt; color: #1e3a5f; font-weight: 700; margin-bottom: 4px; }
+    .flow-step p { font-size: 8.5pt; color: #64748b; margin: 0; }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin: 16px 0;
+    }
+
+    .metric-card {
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 14px;
+      background: #f8fafc;
+      text-align: center;
+    }
+
+    .metric-value {
+      font-size: 20pt;
+      font-weight: 900;
+      color: #1e3a5f;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .metric-label {
+      font-size: 8pt;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+
+    /* Separator between document sections */
+    .doc-sep {
+      margin: 32px 0 0;
+      page-break-before: always;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════ -->
+<!--                     COVER PAGE                    -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="cover">
+  <div class="cover-logo">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44l-2.08-8A2.5 2.5 0 0 1 7.5 8H8"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44l2.08-8A2.5 2.5 0 0 0 16.5 8H16"/>
+    </svg>
+  </div>
+
+  <h2>Product Requirements Document</h2>
+  <h1>Gaurav Nandhan<br>BA Studio</h1>
+
+  <div class="cover-badge">BABOK v3 Compliant · Enterprise Edition · v1.0</div>
+
+  <div class="cover-meta">
+    <div class="cover-meta-item">
+      <div class="label">Document Type</div>
+      <div class="value">PRD — End-to-End</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">Status</div>
+      <div class="value">✅ Approved</div>
+    </div>
+    <div class="cover-meta-item">
+      <div class="label">Date</div>
+      <div class="value">May 2026</div>
+    </div>
+  </div>
+
+  <div class="cover-version-strip">
+    <span><strong>Author:</strong> Gaurav Nandhan</span>
+    <span>•</span>
+    <span><strong>Platform:</strong> Next.js 15 / PostgreSQL</span>
+    <span>•</span>
+    <span><strong>Deployment:</strong> Vercel</span>
+    <span>•</span>
+    <span><strong>Version:</strong> 1.0.0</span>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!--                  TABLE OF CONTENTS                -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="toc">
+  <h2>Table of Contents</h2>
+
+  <div class="toc-section">
+    <div class="toc-item"><a href="#s1">1. Executive Summary</a><span class="toc-num">3</span></div>
+    <div class="toc-item"><a href="#s2">2. Product Overview</a><span class="toc-num">3</span></div>
+    <div class="toc-item"><a href="#s3">3. Objectives &amp; Success Metrics</a><span class="toc-num">4</span></div>
+    <div class="toc-item"><a href="#s4">4. User Personas &amp; Roles</a><span class="toc-num">5</span></div>
+    <div class="toc-item"><a href="#s5">5. System Architecture</a><span class="toc-num">6</span></div>
+    <div class="toc-item"><a href="#s6">6. Feature Requirements — Core BA Workflow</a><span class="toc-num">7</span></div>
+    <div class="toc-sub">
+      <div class="toc-item"><a href="#f1">6.1 AI-Powered Chat Interface</a><span class="toc-num">7</span></div>
+      <div class="toc-item"><a href="#f2">6.2 Document Generation Engine</a><span class="toc-num">8</span></div>
+      <div class="toc-item"><a href="#f3">6.3 UML Diagram Generation (PlantUML)</a><span class="toc-num">9</span></div>
+      <div class="toc-item"><a href="#f4">6.4 Mermaid Flowchart Generation</a><span class="toc-num">9</span></div>
+      <div class="toc-item"><a href="#f5">6.5 Wireframe Builder (Dynamic UI)</a><span class="toc-num">10</span></div>
+      <div class="toc-item"><a href="#f6">6.6 Interactive Prototype Preview</a><span class="toc-num">10</span></div>
+    </div>
+    <div class="toc-item"><a href="#s7">7. Intelligence Panel Features</a><span class="toc-num">11</span></div>
+    <div class="toc-sub">
+      <div class="toc-item"><a href="#g1">7.1 Feasibility &amp; SME Readiness Analyzer</a><span class="toc-num">11</span></div>
+      <div class="toc-item"><a href="#g2">7.2 Conflict Detector</a><span class="toc-num">11</span></div>
+      <div class="toc-item"><a href="#g3">7.3 Regulatory Advisor</a><span class="toc-num">12</span></div>
+      <div class="toc-item"><a href="#g4">7.4 Logic Debugger</a><span class="toc-num">12</span></div>
+      <div class="toc-item"><a href="#g5">7.5 Requirement Gap Analysis</a><span class="toc-num">12</span></div>
+      <div class="toc-item"><a href="#g6">7.6 Billion Dollar Opportunities Engine</a><span class="toc-num">12</span></div>
+      <div class="toc-item"><a href="#g7">7.7 Strategic Moats Advisor</a><span class="toc-num">13</span></div>
+    </div>
+    <div class="toc-item"><a href="#s8">8. Semantic Knowledge Graph Engine</a><span class="toc-num">13</span></div>
+    <div class="toc-item"><a href="#s9">9. Scope Evolution &amp; Versioning</a><span class="toc-num">14</span></div>
+    <div class="toc-item"><a href="#s10">10. Traceability Matrix</a><span class="toc-num">15</span></div>
+    <div class="toc-item"><a href="#s11">11. Export &amp; Share Features</a><span class="toc-num">15</span></div>
+    <div class="toc-item"><a href="#s12">12. Jira Integration</a><span class="toc-num">16</span></div>
+    <div class="toc-item"><a href="#s13">13. Test Automation — Playwright Generator</a><span class="toc-num">16</span></div>
+    <div class="toc-item"><a href="#s14">14. Infrastructure-as-Code (Terraform) Generator</a><span class="toc-num">17</span></div>
+    <div class="toc-item"><a href="#s15">15. Collaboration &amp; Real-time Editing</a><span class="toc-num">17</span></div>
+    <div class="toc-item"><a href="#s16">16. Authentication &amp; Session Management</a><span class="toc-num">18</span></div>
+    <div class="toc-item"><a href="#s17">17. Enterprise &amp; Organization Features</a><span class="toc-num">18</span></div>
+    <div class="toc-item"><a href="#s18">18. Admin Panel</a><span class="toc-num">19</span></div>
+    <div class="toc-item"><a href="#s19">19. Audit Logging</a><span class="toc-num">20</span></div>
+    <div class="toc-item"><a href="#s20">20. Data Model</a><span class="toc-num">21</span></div>
+    <div class="toc-item"><a href="#s21">21. API Reference</a><span class="toc-num">22</span></div>
+    <div class="toc-item"><a href="#s22">22. Security &amp; Compliance</a><span class="toc-num">23</span></div>
+    <div class="toc-item"><a href="#s23">23. Non-Functional Requirements</a><span class="toc-num">24</span></div>
+    <div class="toc-item"><a href="#s24">24. Deployment Architecture</a><span class="toc-num">24</span></div>
+    <div class="toc-item"><a href="#s25">25. Risks &amp; Mitigations</a><span class="toc-num">25</span></div>
+    <div class="toc-item"><a href="#s26">26. Glossary</a><span class="toc-num">26</span></div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 1 — EXECUTIVE SUMMARY                     -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s1">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 1</div>
+      <h2>Executive Summary</h2>
+    </div>
+  </div>
+
+  <p><strong>Gaurav Nandhan BA Studio</strong> is an AI-powered, enterprise-grade Business Analysis platform built on Next.js 15 and deployed on Vercel. It transforms raw requirements — supplied as Minutes of Meeting (MOM), voice recordings, or document uploads — into a full suite of BABOK v3-compliant professional artifacts.</p>
+
+  <p>The platform eliminates the hours-long manual effort traditionally required to produce BRDs, FRDs, PRDs, SRDs, UML diagrams, wireframes, prototypes, test cases, and executive pitches. Beyond document generation, it provides a living Intelligence Panel with continuous feasibility analysis, regulatory scanning, conflict detection, gap analysis, and strategic opportunity identification.</p>
+
+  <div class="callout callout-success">
+    <div class="callout-icon">✅</div>
+    <div class="callout-body">
+      <div class="callout-title">Core Value Proposition</div>
+      A BA analyst that previously spent 3–5 days producing a complete set of project artifacts can now generate the same output in under 30 minutes, with AI confidence scores and human-review flags ensuring quality assurance before sign-off.
+    </div>
+  </div>
+
+  <div class="metric-grid">
+    <div class="metric-card">
+      <div class="metric-value">11+</div>
+      <div class="metric-label">Document Types</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value">4</div>
+      <div class="metric-label">User Roles</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value">7</div>
+      <div class="metric-label">Intelligence Modules</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-value">∞</div>
+      <div class="metric-label">Graph Traversals</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 2 — PRODUCT OVERVIEW                      -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s2">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 2</div>
+      <h2>Product Overview</h2>
+    </div>
+  </div>
+
+  <h3>2.1 Problem Statement</h3>
+  <p>Business analysts in enterprise environments spend a disproportionate amount of time on documentation tasks that are repetitive, error-prone, and siloed. Common pain points include:</p>
+  <ul>
+    <li>Manually converting unstructured meeting notes into structured BRDs and FRDs</li>
+    <li>Producing consistent UML diagrams and flowcharts without specialized tooling</li>
+    <li>No automated detection of contradictions, regulatory flags, or logic gaps in requirements</li>
+    <li>Inability to rapidly prototype UI flows for stakeholder review</li>
+    <li>No real-time impact analysis when requirements change mid-project</li>
+    <li>Lack of integrated traceability from requirements through test cases</li>
+  </ul>
+
+  <h3>2.2 Solution</h3>
+  <p>BA Studio provides an integrated workspace where a Business Analyst pastes MOM, requirements, or audio recordings into a chat interface. An AI agent processes the input through multiple analytical lenses and generates all required artifacts on demand. A real-time Intelligence Panel continuously monitors the session for quality, completeness, and risks.</p>
+
+  <h3>2.3 Technology Stack</h3>
+  <table>
+    <thead>
+      <tr><th>Layer</th><th>Technology</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Frontend Framework</td><td>Next.js 15 (App Router)</td><td>Server + client components, streaming</td></tr>
+      <tr><td>UI Library</td><td>Tailwind CSS + Framer Motion</td><td>Styling, animations, transitions</td></tr>
+      <tr><td>AI Engine</td><td>Google Gemini 2.0 Flash</td><td>Document generation, analysis, streaming</td></tr>
+      <tr><td>Database</td><td>PostgreSQL (Neon/Supabase)</td><td>Projects, messages, documents, graph</td></tr>
+      <tr><td>ORM</td><td>Prisma</td><td>Type-safe database access</td></tr>
+      <tr><td>Authentication</td><td>NextAuth.js v4 (Credentials)</td><td>JWT sessions, org-aware tokens</td></tr>
+      <tr><td>Diagram Rendering</td><td>PlantUML API + Mermaid.js</td><td>UML and flowchart rendering</td></tr>
+      <tr><td>Deployment</td><td>Vercel (Edge + Serverless)</td><td>Global CDN, auto-scaling</td></tr>
+      <tr><td>Markdown</td><td>react-markdown + remark-gfm</td><td>Rich document rendering</td></tr>
+      <tr><td>Compression</td><td>pako (zlib)</td><td>PlantUML URL encoding</td></tr>
+    </tbody>
+  </table>
+
+  <h3>2.4 Deployment URL</h3>
+  <p>The application is deployed on Vercel with environment-driven PostgreSQL connections. A <code>Start_BA_Studio.bat</code> script automates local startup. Database migrations are managed via <code>prisma migrate</code>.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 3 — OBJECTIVES & SUCCESS METRICS          -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s3">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 3</div>
+      <h2>Objectives &amp; Success Metrics</h2>
+    </div>
+  </div>
+
+  <h3>3.1 Primary Objectives</h3>
+  <ol>
+    <li>Reduce BA documentation cycle time from days to under 30 minutes</li>
+    <li>Ensure 100% BABOK v3 compliance across all generated artifacts</li>
+    <li>Provide real-time intelligence to identify risks before they impact project delivery</li>
+    <li>Enable multi-user collaboration on projects within an organization</li>
+    <li>Maintain a living traceability chain from requirements through test cases and deployment</li>
+  </ol>
+
+  <h3>3.2 Success Metrics (KPIs)</h3>
+  <table>
+    <thead>
+      <tr><th>KPI</th><th>Target</th><th>Measurement Method</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Document generation time</td><td>&lt; 60 seconds per document</td><td>Server-side streaming latency</td></tr>
+      <tr><td>AI Confidence Score</td><td>&ge; 85% average for READY sessions</td><td>Metadata tag extraction per document</td></tr>
+      <tr><td>SME Readiness Score</td><td>7/7 before document generation</td><td>Analyze API checklist</td></tr>
+      <tr><td>Regulatory flag coverage</td><td>100% of known domains</td><td>Regulatory Advisor accuracy audit</td></tr>
+      <tr><td>Graph traversal accuracy</td><td>Zero false stale-doc positives</td><td>BFS unit test coverage</td></tr>
+      <tr><td>Audit log completeness</td><td>100% action coverage</td><td>Audit log review</td></tr>
+      <tr><td>User seat utilization</td><td>Admin can manage within plan limits</td><td>License usage dashboard</td></tr>
+      <tr><td>Session save reliability</td><td>99.9% success rate</td><td>Vercel function logs</td></tr>
+    </tbody>
+  </table>
+
+  <h3>3.3 Out of Scope (v1.0)</h3>
+  <ul>
+    <li>Real-time multi-cursor collaborative editing (planned v2)</li>
+    <li>OAuth providers (Google, GitHub) — only Credentials auth in v1</li>
+    <li>Native mobile application</li>
+    <li>Integration with Confluence or Notion</li>
+    <li>Automated email delivery of generated PDFs</li>
+  </ul>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 4 — USER PERSONAS & ROLES                 -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s4">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 4</div>
+      <h2>User Personas &amp; Roles</h2>
+    </div>
+  </div>
+
+  <h3>4.1 Primary Personas</h3>
+
+  <div class="feature-grid">
+    <div class="feature-card avoid-break">
+      <div class="feature-card-header">
+        <div class="feature-card-icon">👑</div>
+        <h4>Admin</h4>
+      </div>
+      <p>Organization administrator with full control over the tenant. Manages user seats, assigns roles, views audit logs, and monitors license usage. Only role with access to the Admin Panel.</p>
+    </div>
+
+    <div class="feature-card avoid-break">
+      <div class="feature-card-header">
+        <div class="feature-card-icon">🧠</div>
+        <h4>BA Lead</h4>
+      </div>
+      <p>Senior Business Analyst responsible for quality assurance of generated artifacts. Can create, edit, and export all document types. Manages multiple projects. Reviews AI confidence scores.</p>
+    </div>
+
+    <div class="feature-card avoid-break">
+      <div class="feature-card-header">
+        <div class="feature-card-icon">✏️</div>
+        <h4>BA Analyst</h4>
+      </div>
+      <p>Day-to-day user of the platform. Pastes MOM, drives the chat session, generates documents, exports PDFs, and syncs tickets to Jira. Standard operational role.</p>
+    </div>
+
+    <div class="feature-card avoid-break">
+      <div class="feature-card-header">
+        <div class="feature-card-icon">👁️</div>
+        <h4>Viewer</h4>
+      </div>
+      <p>Read-only stakeholder (PM, client, sponsor) who can view shared project outputs via public share links. Cannot modify any content. No login required for shared links.</p>
+    </div>
+  </div>
+
+  <h3>4.2 Role Permission Matrix</h3>
+  <table>
+    <thead>
+      <tr><th>Capability</th><th><span class="role-chip role-admin">Admin</span></th><th><span class="role-chip role-lead">BA Lead</span></th><th><span class="role-chip role-analyst">BA Analyst</span></th><th><span class="role-chip role-viewer">Viewer</span></th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Chat with AI agent</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      <tr><td>Generate all document types</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      <tr><td>Edit &amp; save documents</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      <tr><td>Export PDF / Download</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      <tr><td>Jira Sync</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      <tr><td>Save &amp; manage sessions</td><td>✅</td><td>✅</td><td>✅</td><td>❌</td></tr>
+      <tr><td>View shared public link</td><td>✅</td><td>✅</td><td>✅</td><td>✅</td></tr>
+      <tr><td>Invite users</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+      <tr><td>Manage user roles</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+      <tr><td>View audit logs</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+      <tr><td>Access Admin Panel</td><td>✅</td><td>❌</td><td>❌</td><td>❌</td></tr>
+    </tbody>
+  </table>
+
+  <h3>4.3 Guest / Unauthenticated User</h3>
+  <p>Users who are not signed in can still use the chat interface and generate documents for the current browser session. However, they cannot save sessions to the database, generate shareable links, or access organization features. A non-intrusive "Sign In to Save Work" CTA is displayed.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 5 — SYSTEM ARCHITECTURE                   -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s5">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><rect x="2" y="3" width="20" height="14" rx="2"/><path d="M8 21h8M12 17v4"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 5</div>
+      <h2>System Architecture</h2>
+    </div>
+  </div>
+
+  <h3>5.1 High-Level Architecture</h3>
+
+  <div class="arch-box">🌐 Browser (React / Next.js Client Components)</div>
+  <div class="arch-arrow">⬇ HTTPS API calls &amp; streaming responses</div>
+  <div class="arch-box">⚡ Vercel Edge + Serverless Functions (Next.js API Routes)</div>
+  <div class="arch-arrow">⬇ Prisma ORM queries &amp; Gemini API calls</div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:8px 0;">
+    <div class="arch-box">🗄️ PostgreSQL Database<br><small style="font-size:8pt;color:#475569">(Neon / Supabase)</small></div>
+    <div class="arch-box">🤖 Google Gemini 2.0 Flash API<br><small style="font-size:8pt;color:#475569">(Streaming completions)</small></div>
+  </div>
+
+  <div class="arch-arrow">⬇ Rendered Diagrams</div>
+  <div class="arch-box">📐 PlantUML.com API &nbsp;|&nbsp; 🌊 Mermaid.js (in-browser)</div>
+
+  <h3>5.2 Request Flow — Document Generation</h3>
+  <div class="flow-grid">
+    <div class="flow-step">
+      <div class="flow-step-num">1</div>
+      <h5>User Input</h5>
+      <p>BA pastes MOM or types requirements in the chat textarea</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">2</div>
+      <h5>Parallel Analysis</h5>
+      <p><code>/api/analyze</code> runs feasibility, domain detection, graph extraction concurrently</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">3</div>
+      <h5>Chat Response</h5>
+      <p><code>/api/chat</code> streams AI response token-by-token to the UI (100ms throttle)</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">4</div>
+      <h5>Document Click</h5>
+      <p>User clicks sidebar item, triggering <code>/api/chat?documentRequested=BRD</code></p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">5</div>
+      <h5>Streaming Render</h5>
+      <p>Document streams into view with live markdown rendering</p>
+    </div>
+    <div class="flow-step">
+      <div class="flow-step-num">6</div>
+      <h5>Meta Extraction</h5>
+      <p>Confidence %, review flag, and requirement links parsed from AI output tail</p>
+    </div>
+  </div>
+
+  <h3>5.3 State Management</h3>
+  <p>All application state is managed via React <code>useState</code> hooks in the root <code>page.tsx</code> component. No external state management library (Redux, Zustand) is used. The Semantic Knowledge Graph runs entirely in-memory via plain JavaScript objects — zero API calls per traversal.</p>
+
+  <h3>5.4 Database Persistence Triggers</h3>
+  <ul>
+    <li><strong>Session Save:</strong> Explicit user action writes <code>Project + Messages + Documents</code> to PostgreSQL</li>
+    <li><strong>Auto-save on message:</strong> If <code>currentProjectId</code> is set, each new assistant message triggers a <code>PUT /api/projects/:id</code></li>
+    <li><strong>Graph persistence:</strong> Fire-and-forget <code>upsertGraph()</code> called after each analyze response — never blocks main flow</li>
+    <li><strong>Audit logs:</strong> Written server-side on every significant action via <code>logAudit()</code></li>
+  </ul>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 6 — CORE BA WORKFLOW FEATURES             -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s6">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 6</div>
+      <h2>Feature Requirements — Core BA Workflow</h2>
+    </div>
+  </div>
+
+  <div id="f1">
+    <h3>6.1 AI-Powered Chat Interface</h3>
+    <p>The primary interaction surface. A full-screen chat panel allows the BA to have a natural conversation with the AI agent about project requirements.</p>
+
+    <h4>Input Methods</h4>
+    <ul>
+      <li><strong>Text Input:</strong> Multi-line auto-expanding textarea. Supports <code>Enter</code> to send, <code>Shift+Enter</code> for newline.</li>
+      <li><strong>File Attachment (📎):</strong> Accepts <code>.txt</code>, <code>.md</code>, <code>.csv</code> files. Content is appended to the chat input with filename prefix.</li>
+      <li><strong>Audio Upload (🎤):</strong> Accepts <code>audio/*</code> MIME types. Audio is base64-encoded and sent to the Gemini API for transcription + analysis. BA does not need to transcribe manually.</li>
+      <li><strong>Paste:</strong> Native clipboard paste; full MOM text can be pasted directly.</li>
+    </ul>
+
+    <h4>Streaming Response</h4>
+    <p>AI responses stream token-by-token via the ReadableStream API. UI updates are throttled to every 100ms to prevent browser hang during long document generation. A "typing cursor" animation (<code>animate-pulse</code>) is displayed during streaming. Framer Motion animations (blur fade-in) are applied to each new message bubble.</p>
+
+    <h4>Message Rendering</h4>
+    <ul>
+      <li>All messages are rendered with <strong>react-markdown</strong> and <strong>remark-gfm</strong>, supporting tables, code blocks, bold, italic, and lists.</li>
+      <li>Assistant messages: blue-gradient Brain avatar, dark card background.</li>
+      <li>User messages: right-aligned, blue gradient card.</li>
+    </ul>
+
+    <h4>Session State Machine</h4>
+    <p>The chat has a three-state lifecycle driven by the Analyze API:</p>
+    <table>
+      <thead><tr><th>State</th><th>Description</th><th>Documents Available?</th></tr></thead>
+      <tbody>
+        <tr><td><code>INTAKE</code></td><td>Initial state — waiting for first MOM input</td><td>No</td></tr>
+        <tr><td><code>QUESTIONING</code></td><td>AI has detected requirements; asking clarifying questions</td><td>Yes (partial)</td></tr>
+        <tr><td><code>READY</code></td><td>All 7 readiness checklist items passed; full artifact suite unlocked</td><td>Yes (full suite)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div id="f2" class="doc-sep">
+    <h3>6.2 Document Generation Engine</h3>
+    <p>BA Studio generates 11 distinct document types from the left-hand sidebar. Each document is generated on demand when the user clicks its entry, using the full conversation history as context.</p>
+
+    <h4>Supported Document Types</h4>
+    <table>
+      <thead><tr><th>Document</th><th>Type</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td><strong>BRD</strong></td><td>Text (Markdown)</td><td>Business Requirements Document — stakeholder needs, business objectives, constraints</td></tr>
+        <tr><td><strong>FRD</strong></td><td>Text (Markdown)</td><td>Functional Requirements Document — detailed system behavior, use cases</td></tr>
+        <tr><td><strong>PRD</strong></td><td>Text (Markdown)</td><td>Product Requirements Document — feature specifications, user stories, acceptance criteria</td></tr>
+        <tr><td><strong>SRD</strong></td><td>Text (Markdown)</td><td>System Requirements Document — technical specs, API definitions, infrastructure needs</td></tr>
+        <tr><td><strong>Regulatory Advisor</strong></td><td>Text (Markdown)</td><td>Compliance guidance — GDPR, HIPAA, PCI-DSS, SOC2, domain-specific regulations</td></tr>
+        <tr><td><strong>Executive Pitch</strong></td><td>Text (Markdown)</td><td>C-suite presentation — value proposition, ROI, competitive positioning</td></tr>
+        <tr><td><strong>Test Cases</strong></td><td>Text (Markdown)</td><td>BDD-style acceptance criteria, edge cases, negative tests</td></tr>
+        <tr><td><strong>UML Diagrams</strong></td><td>PlantUML code + SVG</td><td>Class, sequence, activity, use-case diagrams rendered via PlantUML.com</td></tr>
+        <tr><td><strong>Flowcharts</strong></td><td>Mermaid.js</td><td>Process flows rendered client-side with Mermaid.js</td></tr>
+        <tr><td><strong>Wireframes</strong></td><td>JSON Schema → Dynamic UI</td><td>Structured component schema rendered by DynamicUIBuilder</td></tr>
+        <tr><td><strong>Prototypes</strong></td><td>HTML/CSS/JS (iframe)</td><td>Fully interactive HTML prototype with Tailwind + Alpine.js, rendered in sandbox iframe</td></tr>
+      </tbody>
+    </table>
+
+    <h4>AI Confidence System</h4>
+    <p>Every generated document includes a trailing metadata tag that the system parses:</p>
+    <code>[CONFIDENCE: 87% | REVIEW: REQUIRED | LINKS: REQ-1,REQ-3 | REASON: Missing SLA definitions]</code>
+    <ul style="margin-top:10px">
+      <li><strong>Confidence %:</strong> Displayed as a color-coded badge (green ≥90%, amber ≥70%, red &lt;70%)</li>
+      <li><strong>Review flag:</strong> REQUIRED (⚠️) or Verified (✅)</li>
+      <li><strong>Links:</strong> Requirement IDs this document is derived from — used for stale detection</li>
+      <li><strong>Reason:</strong> Human-readable explanation of the confidence score</li>
+    </ul>
+
+    <h4>Stale Document Detection</h4>
+    <p>When requirements change after document generation, affected documents are automatically flagged as stale via the Semantic Graph BFS traversal. A visual warning indicator appears on stale sidebar items, and a "Regenerate Stale Artifacts" button appears in the Cascading Impact panel.</p>
+
+    <h4>Regenerate with Updates</h4>
+    <p>Each document toolbar shows a "Regenerate with vN Updates" button when the scope history has more than one version. This re-generates the document with the latest requirement snapshot, ensuring documents reflect current state.</p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 6 cont. — UML, Mermaid, Wireframes        -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="f3">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 6 (continued)</div>
+      <h2>Diagram Generation &amp; Visual Outputs</h2>
+    </div>
+  </div>
+
+  <div id="f3">
+    <h3>6.3 UML Diagram Generation (PlantUML)</h3>
+    <p>The AI generates valid PlantUML source code wrapped in <code>@startuml ... @enduml</code> tags. The system:</p>
+    <ol>
+      <li>Extracts PlantUML code from the AI response (regex match or JSON <code>.code</code> field)</li>
+      <li>Applies cleanup passes: strips <code>!theme</code> directives, removes markdown artifacts (<code>**</code>, <code>\_</code>)</li>
+      <li>Encodes the source using pako deflate → custom PlantUML base64 alphabet</li>
+      <li>Constructs a <code>https://www.plantuml.com/plantuml/svg/~1{encoded}</code> URL</li>
+      <li>Renders the SVG as an <code>&lt;img&gt;</code> tag with loading state and error fallback</li>
+    </ol>
+    <p>A collapsible "PlantUML Source" section and an "Open &amp; Edit in PlantUML Editor" external link are always shown below the rendered diagram.</p>
+  </div>
+
+  <div id="f4">
+    <h3>6.4 Mermaid Flowchart Generation</h3>
+    <p>Flowcharts are rendered entirely in the browser using the <strong>Mermaid.js</strong> library. The system applies a multi-pass scrubber to handle AI-generated code that may contain Mermaid-incompatible syntax:</p>
+    <ul>
+      <li>Strips all parentheses (which break Mermaid node labels)</li>
+      <li>Normalizes arrow syntax to <code>--&gt;</code></li>
+      <li>Wraps subgraph titles containing special characters in double quotes</li>
+      <li>Forces <code>graph TD</code> header if no valid diagram type is detected</li>
+      <li>1-second debounce applied during streaming to avoid partial-render errors</li>
+    </ul>
+    <p>On render error, a "Visual Engine Fallback" panel displays the raw Mermaid code alongside a human-readable error so the user can still access the logic.</p>
+  </div>
+
+  <div id="f5">
+    <h3>6.5 Wireframe Builder (DynamicUIBuilder)</h3>
+    <p>Wireframes are not static images — they are generated as a <strong>JSON component schema</strong> and rendered dynamically by the <code>DynamicUIBuilder</code> component. The schema describes a hierarchy of UI components (headings, cards, inputs, buttons, navigation bars, data tables) which are rendered as styled React elements.</p>
+
+    <div class="callout callout-info">
+      <div class="callout-icon">ℹ️</div>
+      <div class="callout-body">
+        <div class="callout-title">Design Rationale</div>
+        Using a JSON schema instead of static HTML means wireframes are portable, editable, and semantically meaningful. Each component in the schema can be individually analyzed for accessibility and design consistency.
+      </div>
+    </div>
+
+    <p>If the AI returns a JSON object with a <code>.code</code> string field, that string is used as the schema. Fallback parsing extracts the first JSON object from the raw content. A blank-state message prompts the user to click "Edit" if the schema cannot be parsed.</p>
+  </div>
+
+  <div id="f6">
+    <h3>6.6 Interactive Prototype Preview</h3>
+    <p>Prototypes are generated as full HTML documents with embedded Tailwind CSS and Alpine.js. They are rendered in a sandboxed <code>&lt;iframe&gt;</code> with the following security constraints:</p>
+    <ul>
+      <li><code>sandbox="allow-scripts allow-modals allow-forms allow-same-origin allow-popups"</code></li>
+      <li>External navigation links (<code>&lt;a href="..."&gt;</code>) are intercepted and cancelled unless they point to <code>#</code></li>
+      <li>Form submissions are prevented (<code>evt.preventDefault()</code>)</li>
+    </ul>
+    <p>Tailwind CDN and Alpine.js CDN are auto-injected if not already present in the generated HTML. A 2-second debounce during streaming prevents partial HTML from rendering in the iframe. A language selector dropdown (English, Telugu, Hindi, Arabic) is shown in the header when the Prototypes tab is active.</p>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 7 — INTELLIGENCE PANEL                    -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s7">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M9.5 2A2.5 2.5 0 0 1 12 4.5v15a2.5 2.5 0 0 1-4.96-.44l-2.08-8A2.5 2.5 0 0 1 7.5 8H8"/><path d="M14.5 2A2.5 2.5 0 0 0 12 4.5v15a2.5 2.5 0 0 0 4.96-.44l2.08-8A2.5 2.5 0 0 0 16.5 8H16"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 7</div>
+      <h2>Intelligence Panel Features</h2>
+    </div>
+  </div>
+
+  <p>The Intelligence Panel is a persistent right-hand sidebar that runs continuously alongside every chat session. It is populated by the <code>/api/analyze</code> endpoint which is invoked in parallel with every user message. The panel contains 7+ distinct analytical modules:</p>
+
+  <div id="g1">
+    <h3>7.1 Feasibility &amp; SME Readiness Analyzer</h3>
+    <p>The readiness score is a 0–7 scale tracked against a structured checklist. Each checklist item maps to a fundamental BA completeness criterion:</p>
+    <table>
+      <thead><tr><th>#</th><th>Checklist Item</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>1</td><td>hasProblemStatement</td><td>Clear problem or opportunity defined</td></tr>
+        <tr><td>2</td><td>hasStakeholders</td><td>Key stakeholders identified</td></tr>
+        <tr><td>3</td><td>hasScope</td><td>In-scope and out-of-scope boundaries defined</td></tr>
+        <tr><td>4</td><td>hasFunctionalReqs</td><td>At least 3 functional requirements articulated</td></tr>
+        <tr><td>5</td><td>hasNonFunctionalReqs</td><td>Performance, scalability, or security constraints mentioned</td></tr>
+        <tr><td>6</td><td>hasTimeline</td><td>Delivery timeline or phase structure indicated</td></tr>
+        <tr><td>7</td><td>hasTechContext</td><td>Technology stack or integration constraints mentioned</td></tr>
+      </tbody>
+    </table>
+    <p>The UI displays a colored progress bar (red → amber → green) and individual dot indicators for each criterion. The session transitions to <code>READY</code> state when all 7 items pass, unlocking the complete document generation suite.</p>
+
+    <p><strong>Feasibility Issues</strong> list structural gaps detected in the requirements. <strong>Contradictions</strong> surface internal inconsistencies. Both are displayed as expandable lists in the Intelligence Panel.</p>
+  </div>
+
+  <div id="g2">
+    <h3>7.2 Conflict Detector</h3>
+    <p>The AI identifies conflicts between different stakeholder requirements or between different parts of the same MOM. For each conflict detected, the system shows:</p>
+    <ul>
+      <li>A plain-English <strong>description</strong> of the conflicting statements</li>
+      <li>A <strong>proposed resolution</strong> with a recommended compromise approach</li>
+    </ul>
+    <p>Conflicts are highlighted in a red-tinted card in the Intelligence Panel and must be manually reviewed and resolved by the BA before proceeding.</p>
+  </div>
+
+  <div id="g3">
+    <h3>7.3 Regulatory Advisor</h3>
+    <p>Automatically detects domain-specific regulatory obligations from the project domain (e.g., Healthcare → HIPAA; FinTech → PCI-DSS, RBI guidelines; EdTech → FERPA; E-Commerce → GDPR). Flags are displayed as bullet points with an "Add to Scope" button that appends the regulatory requirement to the chat input for the AI to incorporate.</p>
+  </div>
+
+  <div id="g4">
+    <h3>7.4 Logic Debugger</h3>
+    <p>Detects logical inconsistencies and process design flaws that are not immediately visible as text contradictions. Each alert contains:</p>
+    <ul>
+      <li><strong>Type:</strong> Category of logic issue (e.g., "Circular Dependency", "Orphaned Process", "Undefined Exception Handler")</li>
+      <li><strong>Description:</strong> Precise description of the issue</li>
+      <li><strong>Risk:</strong> Business impact classification (HIGH / MEDIUM / LOW)</li>
+    </ul>
+  </div>
+
+  <div id="g5">
+    <h3>7.5 Requirement Gap Analysis</h3>
+    <p>Identifies categories of requirements that are entirely missing from the MOM. Each gap is classified by:</p>
+    <ul>
+      <li><strong>Area:</strong> The missing domain (e.g., "Error Handling", "Reporting", "Notification System")</li>
+      <li><strong>Severity:</strong> HIGH or MEDIUM</li>
+      <li><strong>Gap description:</strong> Specific missing requirement</li>
+    </ul>
+    <p>An "Auto-Fill Gap Prompts" button appends all identified gaps as bullet points to the input field, allowing the BA to quickly prompt the AI to address them.</p>
+  </div>
+
+  <div id="g6">
+    <h3>7.6 Billion Dollar Opportunities Engine</h3>
+    <p>A forward-looking module that analyzes the project context and suggests adjacent market opportunities, potential pivot points, or feature extensions that could dramatically increase the business value of the product. Each opportunity is shown with:</p>
+    <ul>
+      <li><strong>Title:</strong> The opportunity name</li>
+      <li><strong>Impact:</strong> Description of business impact</li>
+      <li><strong>Effort:</strong> Low / Medium / High effort estimate (color-coded badge)</li>
+    </ul>
+  </div>
+
+  <div id="g7">
+    <h3>7.7 Strategic Moats Advisor</h3>
+    <p>Identifies competitive moats (network effects, data advantages, switching costs, proprietary technology) present or achievable in the project context. Displayed as a list of strategic assets the product can build over time.</p>
+  </div>
+
+  <h3>7.8 SME Domain Insight</h3>
+  <p>Provides a subject-matter expert perspective on the detected domain. For example, for a banking project, the SME Insight might surface industry-specific concerns like Core Banking System (CBS) integration patterns, SWIFT messaging compliance, or real-time settlement requirements. An "Explore deeper" link appends the insight as a prompt for further AI analysis.</p>
+
+  <h3>7.9 Impact Score</h3>
+  <p>After scope changes, a numeric impact score (0–10) is computed and displayed alongside a summary of what changed. This score drives the cascading impact detection and stale document identification.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 8 — SEMANTIC KNOWLEDGE GRAPH              -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s8">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><circle cx="12" cy="5" r="3"/><circle cx="5" cy="19" r="3"/><circle cx="19" cy="19" r="3"/><path d="M12 8L5.5 16M12 8l6.5 8M5 17l7-9 7 9"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 8</div>
+      <h2>Semantic Knowledge Graph Engine</h2>
+    </div>
+  </div>
+
+  <p>The Semantic Graph Engine is the most technically sophisticated component of BA Studio. It maintains a directed property graph of all project artifacts and their relationships, enabling precise downstream impact analysis with zero additional API cost.</p>
+
+  <h3>8.1 Node Types</h3>
+  <table>
+    <thead><tr><th>Node Type</th><th>Example IDs</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>REQUIREMENT</code></td><td>REQ-1, REQ-2</td><td>Individual functional or non-functional requirements</td></tr>
+      <tr><td><code>EPIC</code></td><td>EPIC-1</td><td>Large feature groupings (SAFe/Agile)</td></tr>
+      <tr><td><code>FEATURE</code></td><td>FEAT-01</td><td>Mid-level feature decomposition</td></tr>
+      <tr><td><code>SCREEN</code></td><td>SCR-01, SCR-04</td><td>UI screens or pages</td></tr>
+      <tr><td><code>API</code></td><td>API-01, API-03</td><td>API endpoints or services</td></tr>
+      <tr><td><code>TEST_CASE</code></td><td>TC-01, TC-12</td><td>Individual acceptance test cases</td></tr>
+      <tr><td><code>DOCUMENT</code></td><td>BRD, FRD</td><td>Generated BA artifact documents</td></tr>
+    </tbody>
+  </table>
+
+  <h3>8.2 Relationship Types (Edges)</h3>
+  <table>
+    <thead><tr><th>Relationship</th><th>Direction</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td><code>CONTAINS</code></td><td>Epic → Feature → Requirement</td><td>Hierarchical decomposition</td></tr>
+      <tr><td><code>RENDERS_ON</code></td><td>Requirement → Screen</td><td>This requirement is realized on this UI screen</td></tr>
+      <tr><td><code>CALLS</code></td><td>Requirement/Feature → API</td><td>This requirement triggers this API call</td></tr>
+      <tr><td><code>VERIFIED_BY</code></td><td>Requirement → Test Case</td><td>This requirement is validated by this test</td></tr>
+      <tr><td><code>DOCUMENTED_IN</code></td><td>Requirement/Feature → Document</td><td>This requirement is documented in this artifact</td></tr>
+    </tbody>
+  </table>
+
+  <h3>8.3 BFS Traversal Algorithm</h3>
+  <p>When requirements change (added, modified, or removed), the engine runs a breadth-first search (BFS) from the changed node IDs to find all transitively affected downstream artifacts:</p>
+  <ol>
+    <li>Build an adjacency map in memory using <code>buildInMemoryGraph(nodes, edges)</code></li>
+    <li>Seed the BFS queue with all changed requirement node IDs</li>
+    <li>Traverse the graph, collecting all reachable nodes and recording traversal paths</li>
+    <li>Map each affected node type to its downstream BA document types (e.g., SCREEN → Wireframes, Prototypes)</li>
+    <li>Flag only the precisely affected document types as stale</li>
+  </ol>
+
+  <h3>8.4 Graph Persistence</h3>
+  <p>Graph data is persisted to PostgreSQL via <code>upsertGraph()</code> called server-side after each analyze response. The function is fire-and-forget — it never throws or blocks the main flow. The database tables are <code>GraphNode</code> and <code>GraphEdge</code>, scoped to a project.</p>
+
+  <h3>8.5 Knowledge Graph Panel UI</h3>
+  <p>The right-hand panel displays a live count of nodes by type, the number of relationships mapped, the last BFS traversal paths (first 3 shown inline), and a "View Full Impact ↗" button that opens a modal with the complete traversal result grouped by node type.</p>
+
+  <div class="callout callout-note">
+    <div class="callout-icon">📌</div>
+    <div class="callout-body">
+      <div class="callout-title">Design Principle</div>
+      The graph traversal is a pure JavaScript function that runs entirely in the browser with zero API calls. This means impact analysis is instantaneous, costs nothing per query, and works for all users including unauthenticated guest users.
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 9 — SCOPE EVOLUTION & VERSIONING          -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s9">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><polyline points="22 17 13.5 8.5 8.5 13.5 2 7"/><polyline points="16 17 22 17 22 11"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 9</div>
+      <h2>Scope Evolution &amp; Versioning Engine</h2>
+    </div>
+  </div>
+
+  <h3>9.1 Requirement Snapshots</h3>
+  <p>Every analyze API response returns a structured <code>snapshot</code> — an array of <code>RequirementNode</code> objects representing the current understanding of all project requirements. Each node has an <code>id</code> (e.g., REQ-1), a <code>text</code> description, and a <code>status</code> (CONFIRMED | PROPOSED).</p>
+
+  <h3>9.2 Delta Calculation (<code>calculateDelta</code>)</h3>
+  <p>When a new snapshot is received, the <code>calculateDelta(baseline, current)</code> function computes the structural diff:</p>
+  <ul>
+    <li><strong>Added:</strong> Requirements in <code>current</code> but not in <code>baseline</code></li>
+    <li><strong>Modified:</strong> Requirements where the text or status changed</li>
+    <li><strong>Removed:</strong> Requirements in <code>baseline</code> but absent from <code>current</code></li>
+    <li><strong>Impact Score:</strong> <code>min(10, ceil((changeCount / baselineLength) × 10))</code></li>
+    <li><strong>Architectural Conflict:</strong> Raised when the detected domain shifts mid-session</li>
+  </ul>
+
+  <h3>9.3 Scope History</h3>
+  <p>Each snapshot and its delta report are stored in the <code>scopeHistory</code> state array. The version number visible in the document toolbar ("Version 3.0 (Revised)") corresponds to the length of this array.</p>
+
+  <h3>9.4 Scope Evolution Timeline Modal</h3>
+  <p>Accessible from the "Requirement Timeline" button in the sidebar. Displays a vertical chronological timeline of all scope versions, each with:</p>
+  <ul>
+    <li>Version number and timestamp</li>
+    <li>Animated timeline dot (pulsing green for the latest version)</li>
+    <li>Full delta report: ADDED (green), MODIFIED (amber), REMOVED (red) requirement cards</li>
+    <li>Impact Score badge (green ≤4, amber 5–7, red &gt;7)</li>
+    <li>Architectural conflict warning if domain shifted</li>
+    <li>Semantic Graph traversal paths for the latest version</li>
+  </ul>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 10 — TRACEABILITY MATRIX                  -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s10">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M3 15h18M9 3v18"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 10</div>
+      <h2>Traceability Matrix</h2>
+    </div>
+  </div>
+
+  <p>The Traceability Matrix is a dedicated view in the sidebar workspace (accessible via the Network icon). It provides a tabular cross-reference of all project artifacts showing which requirements map to which documents, screens, APIs, and test cases.</p>
+
+  <h3>10.1 Data Source</h3>
+  <p>The Traceability Matrix is populated from the in-memory Semantic Graph (<code>graphNodes</code> and <code>graphEdges</code> state). Each row in the matrix represents a requirement node, with columns for related Screens, APIs, Test Cases, and Documents derived from the outgoing edges.</p>
+
+  <h3>10.2 Requirements</h3>
+  <ul>
+    <li>Must display all REQUIREMENT and FEATURE nodes in the graph</li>
+    <li>Each row shows: Requirement ID, Label, linked Screens, linked APIs, linked Test Cases, linked Documents</li>
+    <li>Empty cells displayed as "—" to clearly indicate unmapped artifacts</li>
+    <li>Table must be printable as part of the PDF export</li>
+  </ul>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 11 — EXPORT & SHARE                       -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s11">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 11</div>
+      <h2>Export &amp; Share Features</h2>
+    </div>
+  </div>
+
+  <h3>11.1 Single Document PDF Export</h3>
+  <p>The "PDF Export" button in the document toolbar opens a new browser window with a print-ready HTML document and triggers the native browser print dialog (<code>window.print()</code>). The user saves as PDF via the browser's PDF printer. Features:</p>
+  <ul>
+    <li>A4 page layout with 20mm margins</li>
+    <li>Professional header with document name, generation timestamp, and BABOK badge</li>
+    <li>AI Confidence badge with color coding in the header</li>
+    <li>Full markdown-to-HTML conversion supporting: headings, paragraphs, tables, lists, code blocks</li>
+    <li>Alternate row shading on tables for readability</li>
+    <li>Professional footer with branding and "Confidential &amp; Proprietary"</li>
+    <li>For UML Diagrams: the rendered SVG image is captured and embedded in the PDF</li>
+    <li>For Wireframes/Prototypes: raw HTML source is shown with a visual note explaining the interactive content</li>
+  </ul>
+
+  <h3>11.2 Export All to PDF (Bulk Export)</h3>
+  <p>The "Export All (PDF)" button in the main header generates a single comprehensive report containing all generated documents. The bulk report includes:</p>
+  <ul>
+    <li><strong>Cover Page:</strong> "Gaurav Nandhan BA Studio — Full Business Analysis Report" with date and BABOK badge</li>
+    <li><strong>Table of Contents:</strong> Numbered list of all included documents</li>
+    <li><strong>Document sections:</strong> Each generated document on a new page with its confidence badge</li>
+  </ul>
+
+  <h3>11.3 Download (Raw File Export)</h3>
+  <p>The "Export" button downloads the document as a raw file:</p>
+  <ul>
+    <li>Text documents (BRD, FRD, PRD, etc.): Downloaded as <code>.md</code> (Markdown)</li>
+    <li>Wireframes and Prototypes: Downloaded as <code>.html</code></li>
+  </ul>
+
+  <h3>11.4 Copy to Clipboard</h3>
+  <p>The "Copy" button copies the raw document content to the system clipboard using the Clipboard API. A checkmark animation confirms the copy action (2-second auto-reset).</p>
+
+  <h3>11.5 Public Share Links</h3>
+  <p>After saving a session, a shareable URL is generated in the format <code>/share/{projectId}</code>. Anyone with the link can view the project's chat history and generated documents without authentication. The share page is served from <code>/src/app/share/[id]</code> as a read-only view. The link is copied to clipboard via the "Share Link" button.</p>
+
+  <div class="callout callout-warn">
+    <div class="callout-icon">⚠️</div>
+    <div class="callout-body">
+      <div class="callout-title">Security Note</div>
+      Share links are public by URL — anyone with the link can view the project. Users should be aware of this before sharing sensitive requirement documents. Future v2 will support password-protected shares.
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 12 — JIRA INTEGRATION                     -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s12">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><circle cx="12" cy="12" r="10"/><path d="M8 12l4-4 4 4M12 8v8"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 12</div>
+      <h2>Jira Integration</h2>
+    </div>
+  </div>
+
+  <p>The Jira Sync feature allows BAs to push generated requirements from FRD documents directly into Jira as user stories or epics without leaving the BA Studio interface.</p>
+
+  <h3>12.1 JiraModal Component</h3>
+  <p>Triggered by the "Jira Sync" button in the document header. The modal is available from both the main header toolbar and the individual document toolbar. The <code>JiraModal</code> component (<code>src/components/JiraModal.tsx</code>) receives the document title and content as props.</p>
+
+  <h3>12.2 Configuration</h3>
+  <p>The modal requires the user to provide:</p>
+  <ul>
+    <li>Jira instance base URL (e.g., <code>https://company.atlassian.net</code>)</li>
+    <li>Jira API Token (user-provided; not stored server-side)</li>
+    <li>Jira Project Key (e.g., <code>PROJ</code>)</li>
+    <li>Issue type (Story / Epic / Task)</li>
+  </ul>
+
+  <h3>12.3 Sync Behavior</h3>
+  <p>The system parses the FRD document content to extract individual requirements, formats them as Jira issue descriptions, and creates issues via the Jira REST API (routed through <code>/api/integrate</code> to avoid CORS). A success/failure summary is displayed after sync.</p>
+
+  <div class="callout callout-info">
+    <div class="callout-icon">🔗</div>
+    <div class="callout-body">
+      <div class="callout-title">Integration Note</div>
+      The Jira Sync button is prominently featured in both the document toolbar (when FRD tab is active) and as a universal action in the top header toolbar for any document.
+    </div>
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 13 — PLAYWRIGHT TEST GENERATOR            -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s13">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 13</div>
+      <h2>E2E Test Automation — Playwright Script Generator</h2>
+    </div>
+  </div>
+
+  <p>When the Test Cases tab is active and contains generated content, a dedicated "E2E Automation Suite" section appears below the test cases. This section generates executable Playwright test scripts.</p>
+
+  <h3>13.1 "Generate Playwright Script" Button</h3>
+  <p>Triggers a POST to <code>/api/generate/tests</code> with:</p>
+  <ul>
+    <li><code>prototypeCode</code>: HTML source from the generated Prototype (or Wireframe as fallback). If neither is available, a "no UI code" message is sent to guide the AI toward generic locators.</li>
+    <li><code>testCases</code>: The full generated Test Cases document text</li>
+  </ul>
+
+  <h3>13.2 Validation Layer</h3>
+  <p>The API endpoint runs a DR-RUN validation pass on the generated Playwright code before returning it. The response is JSON (not a stream) containing a <code>code</code> field with the validated TypeScript Playwright script.</p>
+
+  <h3>13.3 Output Display</h3>
+  <p>The generated script is displayed in a scrollable, syntax-highlighted code block with a "Copy" button overlay that appears on hover. The script uses proper Playwright locator strategies (by test ID, by role, by text) derived from the prototype HTML structure.</p>
+
+  <h3>13.4 Requirements</h3>
+  <ul>
+    <li>Generated scripts must be valid TypeScript that can run with <code>npx playwright test</code></li>
+    <li>Must include <code>import { test, expect } from '@playwright/test'</code></li>
+    <li>Must cover all positive and negative test cases from the Test Cases document</li>
+    <li>Must handle async/await properly for all page interactions</li>
+  </ul>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 14 — IAC TERRAFORM GENERATOR              -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s14">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 14</div>
+      <h2>Infrastructure-as-Code (Terraform) Generator</h2>
+    </div>
+  </div>
+
+  <p>When the SRD tab is active, a "Infrastructure-as-Code (Terraform)" section appears below the SRD content. This feature generates a deployable Terraform configuration derived from the technical requirements in the SRD.</p>
+
+  <h3>14.1 "Generate IaC Manifest" Button</h3>
+  <p>Triggers a POST to <code>/api/generate/tests</code> with <code>prototypeCode: "GENERATE_IAC"</code> and <code>testCases</code> set to the SRD content. The <code>GENERATE_IAC</code> sentinel value instructs the server to generate Terraform HCL instead of Playwright code.</p>
+
+  <h3>14.2 Output</h3>
+  <p>The generated Terraform plan is displayed in a monospace code block with a "Copy" button. The plan includes resource definitions for the infrastructure described in the SRD (e.g., cloud providers, databases, compute instances, networking, IAM roles).</p>
+
+  <h3>14.3 Requirements</h3>
+  <ul>
+    <li>Generated HCL must be syntactically valid Terraform 1.x</li>
+    <li>Must use appropriate providers (AWS, GCP, Azure) based on technology stack mentioned in SRD</li>
+    <li>Must include variable blocks for sensitive values (passwords, API keys)</li>
+    <li>Must include a <code>terraform required_providers</code> block</li>
+  </ul>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 15 — COLLABORATION & EDITING              -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s15">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 15</div>
+      <h2>Collaboration &amp; Real-time Editing</h2>
+    </div>
+  </div>
+
+  <h3>15.1 CollaborativeEditor Component</h3>
+  <p>Text-based documents (BRD, FRD, PRD, SRD, Test Cases, Executive Pitch, Regulatory Advisor) are rendered in the <code>CollaborativeEditor</code> component (<code>src/components/CollaborativeEditor.tsx</code>) when the document has finished generating and is not in streaming mode.</p>
+
+  <p>The editor provides rich markdown editing capabilities and emits <code>onUpdate(newMd)</code> callbacks that immediately update the in-memory document state without requiring a re-generate. Changes persist in the database when the user uses "Save Session".</p>
+
+  <h3>15.2 Edit Mode (Textarea Fallback)</h3>
+  <p>For all document types, an "Edit" button in the toolbar toggles between view mode and a raw textarea editor. Clicking "Save" in edit mode replaces the document content with the edited version. This works for all document types including HTML Wireframes and Prototypes.</p>
+
+  <h3>15.3 Version Tracking in Document Toolbar</h3>
+  <p>The document toolbar displays the current version: "Baseline Version 1.0" for the initial generation, and "Version N.0 (Revised)" when requirements have evolved. The version number is derived from the length of the <code>scopeHistory</code> array.</p>
+
+  <h3>15.4 Document Staleness Workflow</h3>
+  <ol>
+    <li>Requirements change → Analyze API returns updated graph + delta</li>
+    <li>BFS traversal identifies downstream stale document types</li>
+    <li>Stale documents receive a visual warning indicator in the sidebar</li>
+    <li>Cascading Impact panel shows affected documents + "Regenerate Stale Artifacts" button</li>
+    <li>Clicking regenerate calls <code>handleDocumentClick(docName, force=true)</code></li>
+  </ol>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 16 — AUTHENTICATION                       -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s16">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 16</div>
+      <h2>Authentication &amp; Session Management</h2>
+    </div>
+  </div>
+
+  <h3>16.1 Authentication Provider</h3>
+  <p>NextAuth.js v4 with <strong>Credentials provider</strong> (email + bcrypt-hashed password). JWT strategy is used — sessions are stored in HTTP-only cookies.</p>
+
+  <h3>16.2 AuthModal Component</h3>
+  <p>A modal-based sign-in/sign-up form (<code>src/components/AuthModal.tsx</code>) that appears when unauthenticated users click "Sign In to Save Work". The modal supports both sign-in and account creation flows without navigating away from the main workspace.</p>
+
+  <h3>16.3 JWT Token Enrichment</h3>
+  <p>On sign-in, the JWT callback enriches the token with organization context:</p>
+  <ul>
+    <li><code>organizationId</code> — the user's primary organization</li>
+    <li><code>orgName</code> — display name shown in the sidebar</li>
+    <li><code>role</code> — ADMIN | BA_LEAD | BA_ANALYST | VIEWER</li>
+    <li><code>plan</code> — STARTER | PROFESSIONAL | ENTERPRISE</li>
+    <li><code>maxUsers</code> — seat limit from the organization record</li>
+    <li><code>isOrgActive</code> — whether the organization is active</li>
+  </ul>
+
+  <h3>16.4 Session Events</h3>
+  <p>A <code>signIn</code> event logs a <code>LOGIN</code> audit entry to the organization's audit log via <code>logAudit()</code>.</p>
+
+  <h3>16.5 Rate Limiting</h3>
+  <p>API routes are protected by a sliding-window rate limiter (<code>src/lib/rate-limit.ts</code>). PII detection (<code>src/lib/pii.ts</code>) scans inputs for sensitive data before passing to the AI. Permission checks (<code>src/lib/permissions.ts</code>) enforce role-based access control on all write operations.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 17 — ENTERPRISE & ORGANIZATION            -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s17">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 17</div>
+      <h2>Enterprise &amp; Organization Features</h2>
+    </div>
+  </div>
+
+  <h3>17.1 Multi-Tenant Architecture</h3>
+  <p>Each client company is represented by an <code>Organization</code> record in the database. All data (projects, messages, documents, graph nodes, audit logs) is scoped to an organization. Users can only access data within their organization.</p>
+
+  <h3>17.2 Organization Plans</h3>
+  <table>
+    <thead><tr><th>Plan</th><th>Max Users</th><th>Features</th></tr></thead>
+    <tbody>
+      <tr><td><span class="badge badge-blue">STARTER</span></td><td>10</td><td>Core BA workflow, standard document generation</td></tr>
+      <tr><td><span class="badge badge-green">PROFESSIONAL</span></td><td>25</td><td>All Starter features + priority support</td></tr>
+      <tr><td><span class="badge badge-purple">ENTERPRISE</span></td><td>Custom</td><td>All features + SSO, dedicated support, custom branding</td></tr>
+    </tbody>
+  </table>
+
+  <h3>17.3 Project Workspace</h3>
+  <p>Projects (BA sessions) are linked to both a user (owner) and an organization. The <code>organizationId</code> field is nullable for legacy solo users, ensuring backward compatibility. Projects are isolated from each other — chat context, documents, and graph are per-project.</p>
+
+  <h3>17.4 Project Management</h3>
+  <ul>
+    <li><strong>Project Selection Modal:</strong> Appears on login, listing recent projects with date and message count. User can resume an existing project or create a new named project.</li>
+    <li><strong>New Project:</strong> Clears all state and creates a blank workspace. Warns if unsaved work exists.</li>
+    <li><strong>Recent Sessions:</strong> Shown in the sidebar with delete button (hover to reveal)</li>
+    <li><strong>Delete Project:</strong> Hard-deletes the project and all related data (Cascade in Prisma)</li>
+  </ul>
+
+  <h3>17.5 Organization Slug</h3>
+  <p>Each organization has a unique <code>slug</code> used for routing. This enables future white-label deployments where different organizations can have branded entry points.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 18 — ADMIN PANEL                          -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s18">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 18</div>
+      <h2>Admin Panel</h2>
+    </div>
+  </div>
+
+  <p>The Admin Panel (<code>/admin</code>) is a dedicated management interface accessible only to users with the <code>ADMIN</code> role. It is accessible from the sidebar when logged in as an admin.</p>
+
+  <h3>18.1 Overview Tab</h3>
+  <p>Displays 4 summary stat cards:</p>
+  <ul>
+    <li><strong>Active Users:</strong> Current / Max seats (e.g., "7 / 10")</li>
+    <li><strong>Docs Generated:</strong> Count of documents generated this month (from audit log)</li>
+    <li><strong>Sessions Saved:</strong> Count of session save events this month</li>
+    <li><strong>Total Projects:</strong> All-time project count</li>
+  </ul>
+  <p>A <strong>License Usage progress bar</strong> shows % of seat capacity used. Color shifts amber at 80% and red at 100%. An org details grid shows organization name, plan, account status, and seat limit.</p>
+
+  <h3>18.2 User Management Tab</h3>
+  <h4>Invite Team Member</h4>
+  <p>A form to add a new user with fields: Full Name, Email (required), Role selector (BA Analyst / BA Lead / Viewer / Admin). The "Add Member" button is disabled when at the plan seat limit. On success, a green confirmation banner shows.</p>
+
+  <h4>Members Table</h4>
+  <p>Displays all organization members with columns: Member (name + avatar), Email, Role (color-coded badge), Status (ACTIVE / SUSPENDED), Joined date, Actions. Actions per member (non-self):</p>
+  <ul>
+    <li><strong>Edit (✏️):</strong> Opens edit modal to update name, email, role, or reset password</li>
+    <li><strong>Suspend/Activate (👤±):</strong> Toggles <code>isActive</code> flag — suspended users cannot log in</li>
+    <li><strong>Remove (🗑️):</strong> Permanently removes the user from the organization (with confirmation dialog)</li>
+  </ul>
+
+  <h4>Edit Member Modal</h4>
+  <p>Fields: Full Name, Email Address, Role selector, Reset Password (optional plain-text input — server hashes). All changes are sent via <code>PATCH /api/admin/users</code>. Audit log entries are created for each field changed.</p>
+
+  <h3>18.3 Audit Log Tab</h3>
+  <p>A sortable table showing all audit events for the organization (last 100). Columns: Timestamp, User Email, Action (color-coded), Resource Type, Metadata details. Action types logged:</p>
+  <table>
+    <thead><tr><th>Action</th><th>Color</th><th>Trigger</th></tr></thead>
+    <tbody>
+      <tr><td>DOCUMENT_GENERATED</td><td class="badge badge-blue">Blue</td><td>AI document generation</td></tr>
+      <tr><td>SESSION_SAVED</td><td class="badge badge-green">Green</td><td>Explicit save action</td></tr>
+      <tr><td>PDF_EXPORTED</td><td class="badge badge-amber">Amber</td><td>PDF export or print</td></tr>
+      <tr><td>USER_INVITED</td><td class="badge badge-purple">Purple</td><td>Admin invites new member</td></tr>
+      <tr><td>USER_REMOVED</td><td class="badge badge-red">Red</td><td>Admin removes member</td></tr>
+      <tr><td>ROLE_CHANGED</td><td>Cyan</td><td>Admin changes role</td></tr>
+      <tr><td>PASSWORD_RESET</td><td>Amber</td><td>Admin resets password</td></tr>
+      <tr><td>USER_SUSPENDED</td><td class="badge badge-red">Red</td><td>Admin suspends account</td></tr>
+      <tr><td>USER_ACTIVATED</td><td class="badge badge-green">Green</td><td>Admin re-activates account</td></tr>
+      <tr><td>LOGIN</td><td>Slate</td><td>Successful user sign-in</td></tr>
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 19 — AUDIT LOGGING                        -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s19">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 19</div>
+      <h2>Audit Logging</h2>
+    </div>
+  </div>
+
+  <p>All significant user actions are written to an immutable <code>AuditLog</code> table in PostgreSQL. Audit logs cannot be deleted via the application (no DELETE endpoint for audit records).</p>
+
+  <h3>19.1 Audit Log Record Structure</h3>
+  <table>
+    <thead><tr><th>Field</th><th>Type</th><th>Description</th></tr></thead>
+    <tbody>
+      <tr><td><code>id</code></td><td>String (cuid)</td><td>Unique record ID</td></tr>
+      <tr><td><code>organizationId</code></td><td>String</td><td>Scoped to organization</td></tr>
+      <tr><td><code>userId</code></td><td>String</td><td>Acting user ID</td></tr>
+      <tr><td><code>userEmail</code></td><td>String</td><td>Denormalized for display (immutable)</td></tr>
+      <tr><td><code>action</code></td><td>String (enum)</td><td>Action type (see Section 18.3)</td></tr>
+      <tr><td><code>resourceType</code></td><td>String?</td><td>BRD | FRD | UML Diagrams | etc.</td></tr>
+      <tr><td><code>resourceId</code></td><td>String?</td><td>Project ID or document ID</td></tr>
+      <tr><td><code>metadata</code></td><td>JSON String?</td><td>Additional context (e.g., old/new role, timestamp)</td></tr>
+      <tr><td><code>createdAt</code></td><td>DateTime</td><td>Immutable creation timestamp</td></tr>
+    </tbody>
+  </table>
+
+  <h3>19.2 <code>logAudit()</code> Function</h3>
+  <p>The <code>src/lib/audit.ts</code> module exports a single <code>logAudit()</code> function that is called server-side. It is fire-and-forget by design — audit failures never block the primary operation. The function inserts a record into the <code>AuditLog</code> table using Prisma.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 20 — DATA MODEL                           -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s20">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 20</div>
+      <h2>Data Model</h2>
+    </div>
+  </div>
+
+  <h3>20.1 Entity Relationship Summary</h3>
+  <table>
+    <thead><tr><th>Entity</th><th>Key Fields</th><th>Relationships</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Organization</strong></td><td>id, name, slug, plan, maxUsers, isActive</td><td>has-many Members, Projects, AuditLogs</td></tr>
+      <tr><td><strong>OrganizationMember</strong></td><td>userId, organizationId, role, isActive, joinedAt</td><td>belongs-to User, Organization; unique(userId+orgId)</td></tr>
+      <tr><td><strong>User</strong></td><td>id, name, email, password (hashed), image</td><td>has-many Projects, Memberships</td></tr>
+      <tr><td><strong>Project</strong></td><td>id, title, userId, organizationId?, createdAt, updatedAt</td><td>has-many Messages, Documents, GraphNodes, GraphEdges</td></tr>
+      <tr><td><strong>Message</strong></td><td>id, projectId, role (user/assistant), content, createdAt</td><td>belongs-to Project</td></tr>
+      <tr><td><strong>Document</strong></td><td>id, projectId, type (BRD/FRD/etc.), content, createdAt, updatedAt</td><td>belongs-to Project; has-many Versions, Suggestions</td></tr>
+      <tr><td><strong>DocumentVersion</strong></td><td>id, documentId, content, createdAt, createdBy</td><td>belongs-to Document</td></tr>
+      <tr><td><strong>DocumentSuggestion</strong></td><td>id, documentId, originalText, suggestedText, status</td><td>belongs-to Document</td></tr>
+      <tr><td><strong>GraphNode</strong></td><td>id, projectId, nodeId, nodeType, label</td><td>belongs-to Project; unique(projectId+nodeId)</td></tr>
+      <tr><td><strong>GraphEdge</strong></td><td>id, projectId, fromNodeId, toNodeId, relationship</td><td>belongs-to Project, GraphNode×2</td></tr>
+      <tr><td><strong>AuditLog</strong></td><td>id, organizationId, userId, userEmail, action, resourceType, metadata, createdAt</td><td>belongs-to Organization</td></tr>
+    </tbody>
+  </table>
+
+  <h3>20.2 Document Storage</h3>
+  <p>Generated documents are stored as raw text (Markdown, PlantUML code, HTML, or JSON schema) in the <code>Document.content</code> field. There is no file system storage — all content is database-resident. This simplifies backup and migration.</p>
+
+  <h3>20.3 Message Storage</h3>
+  <p>Each chat message is stored as a separate <code>Message</code> record with <code>role: "user" | "assistant"</code> and the full text content. Session restoration loads all messages ordered by <code>createdAt</code>.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 21 — API REFERENCE                        -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s21">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 21</div>
+      <h2>API Reference</h2>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Endpoint</th><th>Method</th><th>Description</th><th>Auth Required</th></tr></thead>
+    <tbody>
+      <tr><td><code>/api/chat</code></td><td>POST</td><td>Main AI chat + document generation. Streams response. Accepts <code>documentRequested</code>, <code>audioData</code>, <code>functionalContext</code>.</td><td>Optional</td></tr>
+      <tr><td><code>/api/analyze</code></td><td>POST</td><td>Feasibility analysis, domain detection, graph extraction, readiness scoring. Returns JSON with full intelligence panel data.</td><td>Optional</td></tr>
+      <tr><td><code>/api/projects</code></td><td>GET</td><td>List all projects for the authenticated user</td><td>Required</td></tr>
+      <tr><td><code>/api/projects</code></td><td>POST</td><td>Create a new project with title, messages, documents</td><td>Required</td></tr>
+      <tr><td><code>/api/projects/[id]</code></td><td>GET</td><td>Get a single project by ID</td><td>Required</td></tr>
+      <tr><td><code>/api/projects/[id]</code></td><td>PUT</td><td>Update project messages and documents</td><td>Required</td></tr>
+      <tr><td><code>/api/projects/[id]</code></td><td>DELETE</td><td>Delete a project and all related data</td><td>Required</td></tr>
+      <tr><td><code>/api/document</code></td><td>GET/POST/PUT</td><td>Document-level CRUD (versioning, suggestions)</td><td>Required</td></tr>
+      <tr><td><code>/api/share/[id]</code></td><td>GET</td><td>Public project data for share page (no auth)</td><td>None</td></tr>
+      <tr><td><code>/api/generate/tests</code></td><td>POST</td><td>Playwright script + Terraform IaC generation. Returns JSON <code>{code}</code>.</td><td>Optional</td></tr>
+      <tr><td><code>/api/graph</code></td><td>GET/POST</td><td>Graph node and edge persistence endpoints</td><td>Required</td></tr>
+      <tr><td><code>/api/impact</code></td><td>POST</td><td>Impact analysis endpoint (delta reporting)</td><td>Optional</td></tr>
+      <tr><td><code>/api/rewrite</code></td><td>POST</td><td>Document rewrite / improvement endpoint</td><td>Optional</td></tr>
+      <tr><td><code>/api/integrate</code></td><td>POST</td><td>Jira integration proxy (avoids browser CORS)</td><td>Required</td></tr>
+      <tr><td><code>/api/auth/[...nextauth]</code></td><td>GET/POST</td><td>NextAuth.js handler (sign-in, session, CSRF)</td><td>N/A</td></tr>
+      <tr><td><code>/api/admin/users</code></td><td>GET/POST/PATCH/DELETE</td><td>User management CRUD — ADMIN role only</td><td>Required (Admin)</td></tr>
+      <tr><td><code>/api/admin/audit</code></td><td>GET</td><td>Fetch audit log entries — ADMIN role only</td><td>Required (Admin)</td></tr>
+      <tr><td><code>/api/admin/usage</code></td><td>GET</td><td>Organization usage stats — ADMIN role only</td><td>Required (Admin)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 22 — SECURITY & COMPLIANCE                -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s22">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 22</div>
+      <h2>Security &amp; Compliance</h2>
+    </div>
+  </div>
+
+  <h3>22.1 Authentication Security</h3>
+  <ul>
+    <li>Passwords hashed with <strong>bcrypt</strong> (salt rounds: 10+)</li>
+    <li>JWT tokens stored in HTTP-only, Secure, SameSite=Lax cookies</li>
+    <li>CSRF protection via NextAuth.js CSRF token on all state-mutating requests</li>
+    <li>No plaintext password storage in any log or response</li>
+  </ul>
+
+  <h3>22.2 Rate Limiting</h3>
+  <p>A sliding-window rate limiter (<code>src/lib/rate-limit.ts</code>) limits AI API calls per IP per window. This prevents abuse of the Gemini API and protects against cost overruns.</p>
+
+  <h3>22.3 PII Detection</h3>
+  <p>The <code>src/lib/pii.ts</code> module scans user inputs for Personally Identifiable Information (names, emails, phone numbers, Aadhaar numbers, PAN numbers) before forwarding to the AI. Detected PII is either masked or the request is flagged for review depending on configuration.</p>
+
+  <h3>22.4 Authorization</h3>
+  <p>Role-based access control is enforced server-side via <code>src/lib/permissions.ts</code>. All API routes check the user's role from the JWT token before performing any write operation. Admin endpoints return 403 for non-admin roles.</p>
+
+  <h3>22.5 Data Isolation</h3>
+  <p>All database queries are scoped by <code>userId</code> and/or <code>organizationId</code> — there is no cross-tenant data leakage possible through the ORM layer. Prisma's type system ensures all queries include required scope filters.</p>
+
+  <h3>22.6 Iframe Sandbox</h3>
+  <p>The Prototype preview iframe runs with a restricted sandbox that prevents cookie access, top-level navigation, and access to the parent frame's DOM. External links within the prototype are intercepted by a load event handler.</p>
+
+  <h3>22.7 Vercelignore &amp; Environment Variables</h3>
+  <p>Sensitive configuration (<code>DATABASE_URL</code>, <code>NEXTAUTH_SECRET</code>, <code>GOOGLE_GENERATIVE_AI_API_KEY</code>) is stored exclusively in Vercel environment variables and the <code>.env.local</code> file (gitignored). The <code>.vercelignore</code> file prevents unnecessary files from being deployed.</p>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 23 — NON-FUNCTIONAL REQUIREMENTS          -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s23">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 23</div>
+      <h2>Non-Functional Requirements</h2>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Category</th><th>Requirement</th><th>Target</th></tr></thead>
+    <tbody>
+      <tr><td>Performance</td><td>First document token visible to user</td><td>&lt; 2 seconds from button click</td></tr>
+      <tr><td>Performance</td><td>UI frame rate during streaming</td><td>60fps (100ms render throttle)</td></tr>
+      <tr><td>Performance</td><td>BFS traversal for graph &lt;500 nodes</td><td>&lt; 5ms (pure JS, no I/O)</td></tr>
+      <tr><td>Scalability</td><td>Concurrent users per Vercel deployment</td><td>Auto-scaled by Vercel (serverless)</td></tr>
+      <tr><td>Availability</td><td>Uptime SLA</td><td>99.9% (Vercel Platform SLA)</td></tr>
+      <tr><td>Reliability</td><td>Graph persistence failure mode</td><td>Silent — never blocks main flow</td></tr>
+      <tr><td>Usability</td><td>Time to first document generation</td><td>&lt; 30 minutes from blank input</td></tr>
+      <tr><td>Accessibility</td><td>WCAG 2.1 Level AA</td><td>Semantic HTML, keyboard navigation, focus management</td></tr>
+      <tr><td>Browser Support</td><td>Target browsers</td><td>Chrome 120+, Firefox 120+, Safari 17+, Edge 120+</td></tr>
+      <tr><td>Responsiveness</td><td>Layout breakpoints</td><td>Desktop-first (1280px+); tablet partial support</td></tr>
+      <tr><td>Data Retention</td><td>Soft-delete policy</td><td>Projects cascade-deleted; audit logs immutable</td></tr>
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 24 — DEPLOYMENT ARCHITECTURE              -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s24">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 24</div>
+      <h2>Deployment Architecture</h2>
+    </div>
+  </div>
+
+  <h3>24.1 Production Deployment (Vercel)</h3>
+  <ul>
+    <li><strong>Framework:</strong> Next.js 15 with App Router (serverless functions + edge runtime)</li>
+    <li><strong>Region:</strong> Auto-routed by Vercel global CDN</li>
+    <li><strong>Build Command:</strong> <code>next build</code></li>
+    <li><strong>Output:</strong> Static assets + serverless API functions</li>
+    <li><strong>Database:</strong> PostgreSQL (Neon Serverless / Supabase) with connection pooling via Prisma Accelerate (recommended)</li>
+  </ul>
+
+  <h3>24.2 Local Development</h3>
+  <ul>
+    <li><strong>Start Command:</strong> <code>npm run dev</code> or <code>Start_BA_Studio.bat</code> (Windows)</li>
+    <li><strong>Database:</strong> Local SQLite (<code>prisma/dev.db</code>) or PostgreSQL via <code>.env.local</code></li>
+    <li><strong>Port:</strong> 3000 (default Next.js)</li>
+    <li><strong>Environment Variables:</strong> <code>.env.local</code> — contains DB URL, auth secret, Gemini API key</li>
+  </ul>
+
+  <h3>24.3 CI/CD Pipeline</h3>
+  <ul>
+    <li>Vercel GitHub integration auto-deploys on push to <code>main</code> branch</li>
+    <li>Preview deployments created for every pull request</li>
+    <li>Playwright E2E tests run in <code>/tests</code> directory (Playwright config in <code>playwright.config.ts</code>)</li>
+    <li>ESLint configured via <code>eslint.config.mjs</code></li>
+    <li>TypeScript strict mode (no implicit any)</li>
+  </ul>
+
+  <h3>24.4 Infrastructure Dependencies</h3>
+  <table>
+    <thead><tr><th>Service</th><th>Purpose</th><th>External?</th></tr></thead>
+    <tbody>
+      <tr><td>Google Gemini 2.0 Flash</td><td>AI document generation &amp; analysis</td><td>Yes (paid)</td></tr>
+      <tr><td>PlantUML.com</td><td>UML diagram rendering</td><td>Yes (free public API)</td></tr>
+      <tr><td>PostgreSQL (Neon)</td><td>Primary data store</td><td>Yes (managed)</td></tr>
+      <tr><td>Vercel</td><td>Hosting &amp; serverless functions</td><td>Yes (managed)</td></tr>
+      <tr><td>Jira REST API</td><td>Issue creation &amp; sync</td><td>Yes (customer-provided)</td></tr>
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 25 — RISKS & MITIGATIONS                  -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s25">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 25</div>
+      <h2>Risks &amp; Mitigations</h2>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Risk</th><th>Probability</th><th>Impact</th><th>Mitigation</th></tr></thead>
+    <tbody>
+      <tr><td>Gemini API rate limit or outage</td><td>Low</td><td>High</td><td>Rate limiter, graceful error messages, future model fallback</td></tr>
+      <tr><td>PlantUML.com API unavailable</td><td>Medium</td><td>Medium</td><td>Graceful fallback showing raw PlantUML source with "Open in Editor" link</td></tr>
+      <tr><td>Mermaid render failure (complex AI output)</td><td>Medium</td><td>Low</td><td>Multi-pass scrubber + "Visual Engine Fallback" panel showing raw logic</td></tr>
+      <tr><td>AI-generated invalid Playwright code</td><td>Medium</td><td>Medium</td><td>DR-RUN validation layer re-validates before returning to client</td></tr>
+      <tr><td>Database connection exhaustion (serverless)</td><td>Low</td><td>High</td><td>Prisma Accelerate connection pooling; Neon autoscale</td></tr>
+      <tr><td>PII leakage to AI via MOM input</td><td>Medium</td><td>High</td><td>PII detection module scans inputs before AI forwarding</td></tr>
+      <tr><td>User data cross-contamination</td><td>Very Low</td><td>Critical</td><td>All queries scoped by userId/organizationId; Prisma type-safety</td></tr>
+      <tr><td>Excessive Gemini API cost (abuse)</td><td>Low</td><td>High</td><td>Rate limiter per IP; org-level usage monitoring</td></tr>
+      <tr><td>Stale document detection false positives</td><td>Low</td><td>Low</td><td>BFS traversal is precise; falls back to broad staling only if graph is empty</td></tr>
+      <tr><td>Browser popup blocker preventing PDF</td><td>Medium</td><td>Low</td><td>Alert message instructs user to allow popups for the domain</td></tr>
+    </tbody>
+  </table>
+</div>
+
+
+<!-- ══════════════════════════════════════════════════ -->
+<!-- SECTION 26 — GLOSSARY                             -->
+<!-- ══════════════════════════════════════════════════ -->
+<div class="section" id="s26">
+  <div class="section-header">
+    <div class="section-icon">
+      <svg viewBox="0 0 24 24" fill="white"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+    </div>
+    <div>
+      <div class="section-num">Section 26</div>
+      <h2>Glossary</h2>
+    </div>
+  </div>
+
+  <table>
+    <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+    <tbody>
+      <tr><td><strong>BA</strong></td><td>Business Analyst — the primary user of this platform</td></tr>
+      <tr><td><strong>BABOK</strong></td><td>Business Analysis Body of Knowledge — international standard for BA practice (v3)</td></tr>
+      <tr><td><strong>BRD</strong></td><td>Business Requirements Document — captures stakeholder needs and business objectives</td></tr>
+      <tr><td><strong>FRD</strong></td><td>Functional Requirements Document — describes system behavior and functional specifications</td></tr>
+      <tr><td><strong>PRD</strong></td><td>Product Requirements Document — features, user stories, and acceptance criteria</td></tr>
+      <tr><td><strong>SRD</strong></td><td>System Requirements Document — technical architecture and infrastructure requirements</td></tr>
+      <tr><td><strong>MOM</strong></td><td>Minutes of Meeting — unstructured meeting notes that serve as primary BA Studio input</td></tr>
+      <tr><td><strong>BFS</strong></td><td>Breadth-First Search — graph traversal algorithm used for downstream impact analysis</td></tr>
+      <tr><td><strong>SME</strong></td><td>Subject Matter Expert — domain expert whose insights the Intelligence Panel simulates</td></tr>
+      <tr><td><strong>PlantUML</strong></td><td>Open-source tool for generating UML diagrams from text descriptions</td></tr>
+      <tr><td><strong>Mermaid</strong></td><td>JavaScript-based diagramming library for flowcharts and sequence diagrams</td></tr>
+      <tr><td><strong>IaC</strong></td><td>Infrastructure-as-Code — declarative infrastructure definition (Terraform HCL)</td></tr>
+      <tr><td><strong>JWT</strong></td><td>JSON Web Token — stateless authentication token format used by NextAuth.js</td></tr>
+      <tr><td><strong>Gemini 2.0 Flash</strong></td><td>Google's AI model used for all document generation and analysis in BA Studio</td></tr>
+      <tr><td><strong>Stale Document</strong></td><td>A previously generated artifact that has been invalidated by a subsequent requirement change</td></tr>
+      <tr><td><strong>Snapshot</strong></td><td>A point-in-time capture of all structured requirements at a given session state</td></tr>
+      <tr><td><strong>Delta</strong></td><td>The structural difference between two consecutive requirement snapshots</td></tr>
+      <tr><td><strong>Cascading Impact</strong></td><td>The downstream effect on artifacts when an upstream requirement changes</td></tr>
+      <tr><td><strong>Traceability Matrix</strong></td><td>A table cross-referencing requirements to their downstream test cases, screens, and documents</td></tr>
+      <tr><td><strong>DynamicUIBuilder</strong></td><td>BA Studio's proprietary JSON-schema-to-UI component renderer for wireframes</td></tr>
+      <tr><td><strong>GDPR</strong></td><td>General Data Protection Regulation — EU privacy regulation detected by Regulatory Advisor</td></tr>
+      <tr><td><strong>HIPAA</strong></td><td>Health Insurance Portability and Accountability Act — US healthcare regulation</td></tr>
+    </tbody>
+  </table>
+
+  <div class="page-footer">
+    <span>Gaurav Nandhan BA Studio — Enterprise Edition — PRD v1.0</span>
+    <span>Confidential &amp; Proprietary · May 2026</span>
+  </div>
+</div>
+
+</body>
+</html>

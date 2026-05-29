@@ -11,13 +11,19 @@ export async function GET(
     const params = await props.params;
     const id = params.id;
 
-    const project = await prisma.project.findUnique({
-      where: { id },
-      include: {
-        documents: true,
-        messages: true
-      }
-    });
+    let project;
+    try {
+      project = await prisma.project.findUnique({
+        where: { id },
+        include: {
+          documents: true,
+          messages: true
+        }
+      });
+    } catch (e: any) {
+      // Catch Prisma format errors (e.g., malformed cuid) gracefully
+      return NextResponse.json({ error: 'Shared session not found' }, { status: 404 });
+    }
 
     if (!project) {
       return NextResponse.json({ error: 'Shared session not found' }, { status: 404 });

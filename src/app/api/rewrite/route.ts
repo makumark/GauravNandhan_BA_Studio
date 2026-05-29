@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     const userId = (session?.user as any)?.id;
     const userEmail = session?.user?.email || 'anonymous';
 
-    const limiter = rateLimit(userId || userEmail, 10, 60000);
+    const limiter = await rateLimit(userId || userEmail, 10, 60000);
     if (!limiter.success) {
       return NextResponse.json(
         { error: 'Too many requests. Please try again later.' },

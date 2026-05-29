@@ -8,27 +8,8 @@ import remarkGfm from 'remark-gfm';
 import pako from 'pako';
 import { motion } from 'framer-motion';
 
-const MermaidRenderer = ({ chart }: { chart: string }) => {
-  const [svg, setSvg] = useState<string>("");
-
-  useEffect(() => {
-    const render = async () => {
-      try {
-        const mermaid = (await import('mermaid')).default;
-        mermaid.initialize({ startOnLoad: false, theme: 'dark' });
-        const { svg } = await mermaid.render(`mermaid-${Math.random().toString(36).substr(2, 9)}`, chart);
-        setSvg(svg);
-      } catch (err) {
-        console.error("Mermaid error", err);
-      }
-    };
-    render();
-  }, [chart]);
-
-  return (
-    <div className="bg-white p-6 rounded-xl flex justify-center overflow-x-auto shadow-inner border border-slate-700/30" dangerouslySetInnerHTML={{ __html: svg }} />
-  );
-};
+import { MermaidRenderer } from '@/components/features/editors/MermaidRenderer';
+import { LivePreviewIframe } from '@/components/features/editors/LivePreviewIframe';
 
 export default function SharePage() {
   const { id } = useParams();
@@ -121,7 +102,7 @@ export default function SharePage() {
         <div className="flex-1 overflow-y-auto p-10">
           <div className="max-w-4xl mx-auto bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 p-10 rounded-3xl shadow-2xl">
             {activeTab === "Prototypes" || activeTab === "Wireframes" ? (
-               <iframe srcDoc={currentDoc} className="w-full h-[600px] bg-white rounded-xl border border-slate-700/50 shadow-2xl" />
+               <div className="h-[600px]"><LivePreviewIframe htmlContent={currentDoc} summary="" /></div>
             ) : (
               <div className="prose prose-invert prose-slate max-w-none">
                 <ReactMarkdown 
