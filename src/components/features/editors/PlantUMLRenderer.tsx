@@ -77,8 +77,8 @@ export function PlantUMLRenderer({ code, isProcessing }: { code: string, isProce
   }
 
   const encoded = encodePlantUML(debouncedCode);
-  const plantUMLImgUrl = encoded ? \`https://www.plantuml.com/plantuml/svg/~1\${encoded}\` : '';
-  const plantUMLEditUrl = encoded ? \`https://www.plantuml.com/plantuml/uml/~1\${encoded}\` : '';
+  const plantUMLImgUrl = encoded ? `https://www.plantuml.com/plantuml/svg/~1${encoded}` : '';
+  const plantUMLEditUrl = encoded ? `https://www.plantuml.com/plantuml/uml/~1${encoded}` : '';
 
   if (!encoded) {
     return (

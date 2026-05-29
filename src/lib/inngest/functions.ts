@@ -1,6 +1,6 @@
 import { inngest } from "./client";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import prisma from "@/lib/prisma";
+import { prisma } from "@/lib/prisma";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 

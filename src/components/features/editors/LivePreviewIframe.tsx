@@ -21,7 +21,7 @@ export function LivePreviewIframe({ htmlContent, isProcessing, summary }: { html
     const scriptRegex = /(function\s+\w+\(\)[\s\S]*?\n\s*\}\s*\n?)/g;
     const scripts = fullHtml.match(scriptRegex);
     if (scripts) {
-      const scriptBlock = \`<script>\n\${scripts.join('\n')}\n</script>\`;
+      const scriptBlock = `<script>\n${scripts.join('\n')}\n</script>`;
       fullHtml = fullHtml.replace(scriptRegex, '') + '\n' + scriptBlock;
     }
   }
@@ -43,9 +43,9 @@ export function LivePreviewIframe({ htmlContent, isProcessing, summary }: { html
         </style>
       </head>
       <body class="custom-scrollbar">
-        \${fullHtml}
+        ${fullHtml}
       </body>
-      </html>\`.trim();
+      </html>`.trim();
   } else {
     // Inject tailwind and alpine if missing
     if (!fullHtml.includes('tailwindcss.com')) {
