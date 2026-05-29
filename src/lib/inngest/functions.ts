@@ -5,8 +5,7 @@ import { prisma } from "@/lib/prisma";
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
 
 export const generateVisualArtifacts = inngest.createFunction(
-  { id: "generate-visual-artifacts" },
-  { event: "app/document.generate" },
+  { id: "generate-visual-artifacts", event: "app/document.generate" },
   async ({ event, step }) => {
     const { projectId, documentType, prompt, systemInstruction } = event.data;
 

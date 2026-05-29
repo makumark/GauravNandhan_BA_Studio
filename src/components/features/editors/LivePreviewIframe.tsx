@@ -27,7 +27,7 @@ export function LivePreviewIframe({ htmlContent, isProcessing, summary }: { html
   }
 
   if (!fullHtml.toLowerCase().includes('<html')) {
-    fullHtml = \`
+    fullHtml = `
       <!DOCTYPE html>
       <html>
       <head>
@@ -49,10 +49,10 @@ export function LivePreviewIframe({ htmlContent, isProcessing, summary }: { html
   } else {
     // Inject tailwind and alpine if missing
     if (!fullHtml.includes('tailwindcss.com')) {
-      fullHtml = fullHtml.replace(/<\\/head>/i, '<script src="https://cdn.tailwindcss.com"></script>\n</head>');
+      fullHtml = fullHtml.replace(/<\/head>/i, '<script src="https://cdn.tailwindcss.com"></script>\n</head>');
     }
     if (!fullHtml.includes('alpinejs')) {
-      fullHtml = fullHtml.replace(/<\\/head>/i, '<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>\n</head>');
+      fullHtml = fullHtml.replace(/<\/head>/i, '<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>\n</head>');
     }
     if (!fullHtml.includes('tailwindcss.com')) {
       fullHtml = fullHtml.replace(/<body[^>]*>/i, '$&\n<script src="https://cdn.tailwindcss.com"></script>\n<script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>');
