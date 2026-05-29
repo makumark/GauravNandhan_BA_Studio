@@ -2335,15 +2335,15 @@ export default function Home() {
             
             <div className="p-4 space-y-4">
               {/* ROI & Impact Gauge */}
-              {impactScore && (
-                <div className="p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl shadow-xl overflow-hidden relative group">
-                   <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
-                    <Zap className="w-8 h-8 text-yellow-400" />
-                  </div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
-                    <Zap className="w-3 h-3 text-yellow-400" /> Executive Impact Score
-                  </h4>
-                  <div className="space-y-4">
+              <div className="p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl shadow-xl overflow-hidden relative group">
+                 <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
+                  <Zap className="w-8 h-8 text-yellow-400" />
+                </div>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
+                  <Zap className="w-3 h-3 text-yellow-400" /> Executive Impact Score
+                </h4>
+                {impactScore ? (
+                <div className="space-y-4">
                     {[
                       { label: "Business Value", val: impactScore.businessValue, color: "bg-green-500" },
                       { label: "Feasibility", val: impactScore.technicalFeasibility, color: "bg-blue-500" },
@@ -2365,19 +2365,21 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-[10px] text-slate-600 italic">Awaiting analysis data.</p>
+                )}
+              </div>
 
               {/* Strategic Moat Audit */}
-              {strategicMoats.length > 0 && (
-                <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
-                    <Shield className="w-8 h-8 text-blue-400" />
-                  </div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-3 flex items-center gap-2">
-                    <Shield className="w-3 h-3" /> Strategic Moat Audit
-                  </h4>
-                  <div className="space-y-3">
+              <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
+                  <Shield className="w-8 h-8 text-blue-400" />
+                </div>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-3 flex items-center gap-2">
+                  <Shield className="w-3 h-3" /> Strategic Moat Audit
+                </h4>
+                {strategicMoats.length > 0 ? (
+                <div className="space-y-3">
                     {strategicMoats.map((moat, i) => (
                       <div key={i} className="space-y-1">
                         <div className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
@@ -2390,15 +2392,17 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-[10px] text-slate-600 italic">No strategic moats identified yet.</p>
+                )}
+              </div>
 
               {/* Stakeholder Conflicts */}
-              {conflicts.length > 0 && (
-                <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-2xl relative overflow-hidden group">
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-3 flex items-center gap-2">
-                    <AlertCircle className="w-3 h-3" /> Conflict Detector
-                  </h4>
+              <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-2xl relative overflow-hidden group">
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-3 h-3" /> Conflict Detector
+                </h4>
+                {conflicts.length > 0 ? (
                   <div className="space-y-4">
                     {conflicts.map((conflict, i) => (
                       <div key={i} className="space-y-2">
@@ -2416,16 +2420,19 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-[10px] text-slate-600 italic">No conflicts detected.</p>
+                )}
+              </div>
 
               {/* Regulatory Advisor */}
-              {regulatoryFlags.length > 0 && (
-                <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3">
-                    <ShieldAlert className="w-4 h-4 text-amber-400" />
-                    <h4 className="text-xs font-bold text-amber-400 uppercase">Regulatory</h4>
-                  </div>
+              <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
+                <div className="flex items-center gap-2 mb-3">
+                  <ShieldAlert className="w-4 h-4 text-amber-400" />
+                  <h4 className="text-xs font-bold text-amber-400 uppercase">Regulatory</h4>
+                </div>
+                {regulatoryFlags.length > 0 ? (
+                <>
                   <ul className="space-y-2 mb-3">
                     {regulatoryFlags.map((flag, i) => (
                       <li key={i} className="text-[11px] text-amber-200/70 leading-relaxed flex items-start gap-2">
@@ -2437,18 +2444,21 @@ export default function Home() {
                   <button onClick={() => setMomInput(prev => prev + "\n\nPlease ensure the project follows all identified regulatory standards.")} className="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/20 transition-all font-bold uppercase tracking-tighter text-[9px]">
                     Add to Scope
                   </button>
-                </div>
-              )}
+                </>
+                ) : (
+                  <p className="text-[10px] text-slate-600 italic">No regulatory flags detected.</p>
+                )}
+              </div>
 
               {/* Logic Debugger */}
-              {logicAlerts.length > 0 && (
-                <div className="p-4 bg-orange-500/5 border border-orange-500/20 rounded-2xl relative overflow-hidden group">
-                   <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
-                    <ZapOff className="w-8 h-8 text-orange-400" />
-                  </div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-3 flex items-center gap-2">
-                    <ZapOff className="w-3 h-3" /> Logic Debugger
-                  </h4>
+              <div className="p-4 bg-orange-500/5 border border-orange-500/20 rounded-2xl relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
+                  <ZapOff className="w-8 h-8 text-orange-400" />
+                </div>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-3 flex items-center gap-2">
+                  <ZapOff className="w-3 h-3" /> Logic Debugger
+                </h4>
+                {logicAlerts.length > 0 ? (
                   <div className="space-y-3">
                     {logicAlerts.map((alert, i) => (
                       <div key={i} className="space-y-1">
@@ -2465,18 +2475,21 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-[10px] text-slate-600 italic">No logic issues detected.</p>
+                )}
+              </div>
 
               {/* Requirement Gap Analysis */}
-              {requirementGaps.length > 0 && (
-                <div className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-2xl relative overflow-hidden group">
-                   <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
-                    <FileQuestion className="w-8 h-8 text-purple-400" />
-                  </div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-purple-400 mb-3 flex items-center gap-2">
-                    <FileQuestion className="w-3 h-3" /> Gap Analysis
-                  </h4>
+              <div className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-2xl relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
+                  <FileQuestion className="w-8 h-8 text-purple-400" />
+                </div>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-purple-400 mb-3 flex items-center gap-2">
+                  <FileQuestion className="w-3 h-3" /> Gap Analysis
+                </h4>
+                {requirementGaps.length > 0 ? (
+                <>
                   <div className="space-y-3">
                     {requirementGaps.map((gap, i) => (
                       <div key={i} className="space-y-1">
@@ -2493,16 +2506,19 @@ export default function Home() {
                   <button onClick={() => setMomInput(prev => prev + "\n\nPlease address the following gaps:\n" + requirementGaps.map(g => `- ${g.gap}`).join('\n'))} className="mt-4 w-full py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-lg border border-purple-500/20 transition-all font-bold uppercase tracking-tighter text-[9px]">
                     Auto-Fill Gap Prompts
                   </button>
-                </div>
-              )}
+                </>
+                ) : (
+                  <p className="text-[10px] text-slate-600 italic">No requirement gaps identified.</p>
+                )}
+              </div>
 
               {/* Billion Dollar Disruptions */}
-              {billionDollarDisruptions.length > 0 && (
-                <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/5 border border-yellow-500/20 p-4 rounded-xl">
-                  <div className="flex items-center gap-2 mb-3 text-amber-400">
-                    <Sparkles className="w-5 h-5" />
-                    <h3 className="font-bold tracking-tight uppercase text-xs">Billion Dollar Opportunities</h3>
-                  </div>
+              <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/5 border border-yellow-500/20 p-4 rounded-xl">
+                <div className="flex items-center gap-2 mb-3 text-amber-400">
+                  <Sparkles className="w-5 h-5" />
+                  <h3 className="font-bold tracking-tight uppercase text-xs">Billion Dollar Opportunities</h3>
+                </div>
+                {billionDollarDisruptions.length > 0 ? (
                   <div className="space-y-4">
                     {billionDollarDisruptions.map((disruption, idx) => (
                       <div key={idx} className="group">
@@ -2520,32 +2536,39 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
-                </div>
-              )}
+                ) : (
+                  <p className="text-[10px] text-slate-600 italic">No opportunities identified yet.</p>
+                )}
+              </div>
 
               {/* SME Insights */}
-              {smeInsight && (
-                <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <Sparkles className="w-4 h-4 text-blue-400" />
-                    <h4 className="text-xs font-bold text-blue-400 uppercase">SME Insight</h4>
-                  </div>
+              <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles className="w-4 h-4 text-blue-400" />
+                  <h4 className="text-xs font-bold text-blue-400 uppercase">SME Insight</h4>
+                </div>
+                {smeInsight ? (
+                <>
                   <p className="text-[11px] text-blue-200/70 leading-relaxed mb-3">{smeInsight}</p>
                   <button onClick={() => setMomInput(prev => prev + `\n\nRegarding the SME insight: ${smeInsight}`)} className="text-[9px] font-bold text-blue-400 uppercase hover:underline">
                     Explore deeper
                   </button>
-                </div>
-              )}
+                </>
+                ) : (
+                  <p className="text-[10px] text-slate-600 italic">No SME insights yet.</p>
+                )}
+              </div>
 
               {/* Cascading Impact Audit */}
-              {staleDocs.size > 0 && (
-                <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl relative overflow-hidden group shadow-lg shadow-red-500/10">
-                  <div className="absolute top-0 right-0 p-3 opacity-20">
-                    <Activity className="w-8 h-8 text-red-500 animate-pulse" />
-                  </div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-3 flex items-center gap-2">
-                    <ShieldAlert className="w-4 h-4" /> Cascading Impact Alert
-                  </h4>
+              <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl relative overflow-hidden group shadow-lg shadow-red-500/10">
+                <div className="absolute top-0 right-0 p-3 opacity-20">
+                  <Activity className="w-8 h-8 text-red-500 animate-pulse" />
+                </div>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-3 flex items-center gap-2">
+                  <ShieldAlert className="w-4 h-4" /> Cascading Impact Alert
+                </h4>
+                {staleDocs.size > 0 ? (
+                <>
                   <p className="text-[11px] text-red-200/70 mb-3 leading-relaxed">
                     Requirement changes have invalidated the following downstream artifacts. Audit required.
                   </p>
@@ -2566,34 +2589,42 @@ export default function Home() {
                   >
                     Regenerate Stale Artifacts
                   </button>
-                </div>
-              )}
+                </>
+                ) : (
+                  <p className="text-[10px] text-slate-600 italic">No cascading impacts detected.</p>
+                )}
+              </div>
 
               {/* Impact Analysis */}
-              {scopeHistory.length > 1 && scopeHistory[scopeHistory.length - 1].impact && (
-                <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
-                  <div className="flex items-center gap-2 mb-2">
-                    <GitBranch className="w-4 h-4 text-emerald-400" />
-                    <h4 className="text-xs font-bold text-emerald-400 uppercase">Impact Analysis</h4>
-                  </div>
+              <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
+                <div className="flex items-center gap-2 mb-2">
+                  <GitBranch className="w-4 h-4 text-emerald-400" />
+                  <h4 className="text-xs font-bold text-emerald-400 uppercase">Impact Analysis</h4>
+                </div>
+                {scopeHistory.length > 1 && scopeHistory[scopeHistory.length - 1].impact ? (
+                <>
                   <p className="text-[11px] text-emerald-300/80 leading-relaxed mb-3">
                     {scopeHistory[scopeHistory.length - 1].impact.summary}
                   </p>
                   <button onClick={() => setShowTimeline(true)} className="w-full py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/20 transition-all font-bold uppercase tracking-tighter text-[9px]">
                     View History
                   </button>
-                </div>
-              )}
+                </>
+                ) : (
+                  <p className="text-[10px] text-slate-600 italic">No scope changes tracked yet.</p>
+                )}
+              </div>
 
               {/* Knowledge Graph Panel — Semantic Graph Engine */}
-              {graphNodes.length > 0 && (
-                <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-2xl relative overflow-hidden group">
-                  <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
-                    <Network className="w-8 h-8 text-cyan-400" />
-                  </div>
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-cyan-400 mb-3 flex items-center gap-2">
-                    <Network className="w-3 h-3" /> Knowledge Graph
-                  </h4>
+              <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-2xl relative overflow-hidden group">
+                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
+                  <Network className="w-8 h-8 text-cyan-400" />
+                </div>
+                <h4 className="text-[10px] font-bold uppercase tracking-widest text-cyan-400 mb-3 flex items-center gap-2">
+                  <Network className="w-3 h-3" /> Knowledge Graph
+                </h4>
+                {graphNodes.length > 0 ? (
+                <>
                   <div className="space-y-1.5 mb-3">
                     {(['REQUIREMENT','EPIC','FEATURE','SCREEN','API','TEST_CASE'] as const).map(type => {
                       const count = graphNodes.filter(n => n.nodeType === type).length;
@@ -2670,33 +2701,17 @@ export default function Home() {
                       )}
                     </div>
                   )}
-                </div>
-              )}
+                </>
+                ) : (
+                  <p className="text-[10px] text-slate-600 italic">No graph nodes mapped yet.</p>
+                )}
+              </div>
 
-              {/* Session Summary Placeholder if empty */}
-              {conflicts.length === 0 && regulatoryFlags.length === 0 && !smeInsight && scopeHistory.length <= 1 && (
-                <div className="flex flex-col items-center justify-center py-12 text-center">
-                  {isAnalyzing ? (
-                    <div className="flex flex-col items-center opacity-70">
-                      <Loader2 className="w-10 h-10 text-blue-500 animate-spin mb-4" />
-                      <p className="text-xs text-blue-400 uppercase font-bold tracking-widest animate-pulse">Analyzing...</p>
-                      <p className="text-[10px] text-slate-500 mt-2 px-6">Scanning for conflicts, moats, and risks.</p>
-                    </div>
-                  ) : chatMessages.length > 1 ? (
-                    <div className="flex flex-col items-center opacity-80">
-                      <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center mb-4 border border-emerald-500/20">
-                        <Check className="w-6 h-6 text-emerald-400" />
-                      </div>
-                      <p className="text-xs text-emerald-400 uppercase font-bold tracking-widest text-center">All Systems Nominal</p>
-                      <p className="text-[10px] text-slate-500 mt-2 px-6 text-center">No critical conflicts, regulatory gaps, or scope creep detected in current requirements.</p>
-                    </div>
-                  ) : (
-                    <div className="flex flex-col items-center opacity-30">
-                      <Bot className="w-12 h-12 text-slate-600 mb-4" />
-                      <p className="text-xs text-slate-500 uppercase font-bold tracking-widest">No Intelligence Flags</p>
-                      <p className="text-[10px] text-slate-600 mt-2 px-6">Input more requirements to activate monitoring.</p>
-                    </div>
-                  )}
+              {/* Analysis Status */}
+              {isAnalyzing && (
+                <div className="flex items-center gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
+                  <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
+                  <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest animate-pulse">Analyzing requirements...</p>
                 </div>
               )}
             </div>

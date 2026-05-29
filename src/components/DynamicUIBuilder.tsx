@@ -38,13 +38,22 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
     return <div className="p-4 text-white">Awaiting UI Schema...</div>;
   }
 
+  const safeText = (val: any): string => {
+    if (val === null || val === undefined) return '';
+    if (typeof val === 'object') {
+      try { return JSON.stringify(val); } catch(e) { return '[Object]'; }
+    }
+    return String(val);
+  };
+
   const renderComponent = (comp: any, cIdx: string | number) => {
+    if (!comp) return null;
     if (comp.type === 'progress-bar') {
       const percent = comp.totalSteps ? Math.round((comp.currentStep / comp.totalSteps) * 100) : 50;
       return (
         <div key={cIdx} className="w-full">
           <div className="flex justify-between text-xs text-slate-400 mb-1">
-            <span>{comp.label || `Step ${comp.currentStep}`}</span>
+            <span>{safeText(comp.label) || `Step ${comp.currentStep}`}</span>
             <span>{percent}%</span>
           </div>
           <div className="w-full bg-slate-700 rounded-full h-2">
@@ -54,24 +63,24 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
       );
     }
     if (comp.type === 'heading') {
-      return React.createElement(`h${comp.level || 2}`, { key: cIdx, className: "text-lg font-bold text-slate-100 mt-2" }, comp.text);
+      return React.createElement(`h${comp.level || 2}`, { key: cIdx, className: "text-lg font-bold text-slate-100 mt-2" }, safeText(comp.text || comp.title || comp.label || comp.content || ""));
     }
     if (comp.type === 'text' || comp.type === 'paragraph') {
-      return <p key={cIdx} className="text-sm text-slate-300 leading-relaxed">{comp.content || comp.text}</p>;
+      return <p key={cIdx} className="text-sm text-slate-300 leading-relaxed">{safeText(comp.content || comp.text)}</p>;
     }
     if (comp.type === 'input' || comp.type === 'text-input' || comp.type === 'date-input' || comp.type === 'email-input' || comp.type === 'number-input' || comp.type === 'select' || comp.type === 'dropdown' || comp.type === 'textarea') {
       return (
         <div key={cIdx} className="flex flex-col gap-1">
-          {comp.label && <label className="text-xs font-semibold text-slate-400 uppercase">{comp.label} {(comp.mandatory || comp.required) && <span className="text-red-400">*</span>}</label>}
+          {comp.label && <label className="text-xs font-semibold text-slate-400 uppercase">{safeText(comp.label)} {(comp.mandatory || comp.required) && <span className="text-red-400">*</span>}</label>}
           {comp.type === 'textarea' ? (
-            <textarea placeholder={comp.placeholder} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200 min-h-[80px]" disabled={comp.disabled} />
+            <textarea placeholder={safeText(comp.placeholder)} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200 min-h-[80px]" disabled={comp.disabled} />
           ) : (comp.type === 'select' || comp.type === 'dropdown') ? (
             <select className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200" disabled={comp.disabled}>
-              <option value="">{comp.placeholder || "Select option..."}</option>
-              {Array.isArray(comp.options) && comp.options.map((opt: string, optIdx: number) => <option key={optIdx} value={opt}>{opt}</option>)}
+              <option value="">{safeText(comp.placeholder) || "Select option..."}</option>
+              {Array.isArray(comp.options) && comp.options.map((opt: any, optIdx: number) => <option key={optIdx} value={typeof opt === 'string' ? opt : JSON.stringify(opt)}>{safeText(opt)}</option>)}
             </select>
           ) : (
-            <input type={comp.type === 'tel' ? 'tel' : comp.type === 'date-input' ? 'date' : comp.type === 'email-input' ? 'email' : comp.type === 'number-input' ? 'number' : 'text'} placeholder={comp.placeholder} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200" disabled={comp.disabled} />
+            <input type={comp.type === 'tel' ? 'tel' : comp.type === 'date-input' ? 'date' : comp.type === 'email-input' ? 'email' : comp.type === 'number-input' ? 'number' : 'text'} placeholder={safeText(comp.placeholder)} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200" disabled={comp.disabled} />
           )}
         </div>
       );
@@ -79,7 +88,7 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
     if (comp.type === 'link') {
       return (
         <a key={cIdx} href="#" className="text-sm text-blue-400 hover:text-blue-300 underline mt-2 inline-block">
-          {comp.text || comp.label}
+          {safeText(comp.text || comp.label)}
         </a>
       );
     }
@@ -87,15 +96,15 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
       const isPrimary = comp.variant !== 'secondary';
       return (
         <button key={cIdx} className={`px-4 py-2 mt-2 rounded-lg text-sm font-bold transition-all ${isPrimary ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'} ${comp.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
-          {comp.text || comp.label}
+          {safeText(comp.text || comp.label)}
         </button>
       );
     }
     if (comp.type === 'nav') {
       return (
         <nav key={cIdx} className="flex gap-4 border-b border-slate-700 pb-4">
-          {Array.isArray(comp.links) && comp.links.map((link: string, lIdx: number) => (
-            <button key={lIdx} className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">{link}</button>
+          {Array.isArray(comp.links) && comp.links.map((link: any, lIdx: number) => (
+            <button key={lIdx} className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">{safeText(link.label || link.text || link)}</button>
           ))}
         </nav>
       );
@@ -103,8 +112,8 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
     if (comp.type === 'card') {
       return (
         <div key={cIdx} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 shadow-xl">
-          <h4 className="text-sm text-slate-400 uppercase tracking-wider">{comp.title}</h4>
-          <p className="text-4xl font-light text-white mt-2">{comp.value}</p>
+          <h4 className="text-sm text-slate-400 uppercase tracking-wider">{safeText(comp.title)}</h4>
+          <p className="text-4xl font-light text-white mt-2">{safeText(comp.value)}</p>
         </div>
       );
     }
@@ -114,8 +123,8 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
           <table className="w-full text-left text-sm">
             <thead className="bg-slate-800 text-slate-300">
               <tr>
-                {Array.isArray(comp.columns) && comp.columns.map((col: string, colIdx: number) => (
-                  <th key={colIdx} className="p-3 font-semibold">{col}</th>
+                {Array.isArray(comp.columns) && comp.columns.map((col: any, colIdx: number) => (
+                  <th key={colIdx} className="p-3 font-semibold">{safeText(col.label || col.title || col)}</th>
                 ))}
               </tr>
             </thead>
@@ -123,9 +132,9 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
               {Array.isArray(comp.rows) && comp.rows.map((row: any, rowIdx: number) => (
                 <tr key={rowIdx} className="hover:bg-slate-800/50 transition-colors">
                   {Array.isArray(row) ? row.map((cell: any, cellIdx: number) => (
-                    <td key={cellIdx} className="p-3 text-slate-300">{cell}</td>
+                    <td key={cellIdx} className="p-3 text-slate-300">{safeText(cell)}</td>
                   )) : (
-                    <td className="p-3 text-slate-300">{JSON.stringify(row)}</td>
+                    <td className="p-3 text-slate-300">{safeText(row)}</td>
                   )}
                 </tr>
               ))}
@@ -137,7 +146,7 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
     if (comp.type === 'section' || comp.type === 'conditional_group' || comp.components) {
       return (
         <div key={cIdx} className="flex flex-col gap-3 p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl">
-          {(comp.title || comp.label) && <h3 className="text-sm font-bold text-slate-200">{comp.title || comp.label}</h3>}
+          {(comp.title || comp.label) && <h3 className="text-sm font-bold text-slate-200">{safeText(comp.title || comp.label)}</h3>}
           {Array.isArray(comp.components) && comp.components.map((childComp: any, childIdx: number) => renderComponent(childComp, `${cIdx}-${childIdx}`))}
         </div>
       );
@@ -145,8 +154,8 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
     if (comp.type === 'text-display') {
       return (
         <div key={cIdx} className="flex flex-col gap-1 py-1">
-          {comp.label && <span className="text-xs font-semibold text-slate-400 uppercase">{comp.label}</span>}
-          {comp.value && <span className="text-sm text-slate-200">{comp.value}</span>}
+          {comp.label && <span className="text-xs font-semibold text-slate-400 uppercase">{safeText(comp.label)}</span>}
+          {comp.value && <span className="text-sm text-slate-200">{safeText(comp.value)}</span>}
         </div>
       );
     }
@@ -154,7 +163,7 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
     const fallbackText = comp.text || comp.label || comp.title || comp.value || comp.content || comp.type;
     return (
       <div key={cIdx} className="flex flex-col gap-1 py-1 opacity-70">
-        <span className="text-sm text-slate-300">{fallbackText}</span>
+        <span className="text-sm text-slate-300">{safeText(fallbackText)}</span>
       </div>
     );
   };
@@ -164,7 +173,7 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
       {parsedSchema.screens.map((screen: any, idx: number) => (
         <div key={idx} className="flex-none w-[400px] h-fit bg-slate-800/50 border border-slate-700 rounded-2xl flex flex-col p-6 shadow-lg">
           <h2 className="text-2xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
-            {screen.title || screen.id}
+            {safeText(screen.title || screen.id)}
           </h2>
           <div className="flex flex-col gap-4">
             {Array.isArray(screen.components) && screen.components.map((comp: any, cIdx: number) => renderComponent(comp, cIdx))}
