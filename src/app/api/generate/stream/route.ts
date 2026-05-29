@@ -30,7 +30,7 @@ export async function POST(req: Request) {
     }));
 
     const functionalContext = encodedFunctionalContext
-      ? sanitizeInput(decodeURIComponent(atob(encodedFunctionalContext)))
+      ? sanitizeInput(encodedFunctionalContext)
       : "";
 
     const agent = AGENT_CONFIGS[documentRequested as keyof typeof AGENT_CONFIGS] || AGENT_CONFIGS.DEFAULT;
