@@ -521,8 +521,6 @@ export default function Home() {
         let done = false;
         let generatedContent = '';
 
-        setIsProcessing(false); // Enable the UI again so the user can see it typing
-
         while (!done) {
           const { value, done: readerDone } = await reader.read();
           done = readerDone;
