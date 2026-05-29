@@ -501,8 +501,7 @@ export default function Home() {
           messages: chatMessages, 
           documentRequested: docName, 
           domainDetected,
-          functionalContext: combinedContext,
-          glossary
+          functionalContext: combinedContext
         })
       });
       
