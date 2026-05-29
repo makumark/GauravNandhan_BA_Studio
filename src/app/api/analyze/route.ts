@@ -142,7 +142,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'API key is missing' }, { status: 500 });
     }
 
-    if (!message || !message.trim()) {
+    if ((!message || !message.trim()) && history.length === 0) {
       return NextResponse.json({ error: 'No message provided' }, { status: 400 });
     }
 
