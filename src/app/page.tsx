@@ -154,7 +154,7 @@ export default function Home() {
   };
 
   // ── Brain 1: Feasibility & Completeness Analysis ─────────────────
-  const runAnalysis = async (userMessage: string) => {
+  const runAnalysis = async (userMessage: string, historyOverride?: {role: string, content: string}[]) => {
     setIsAnalyzing(true);
     const newRound = questionRoundCount + 1;
     setQuestionRoundCount(newRound);
@@ -164,7 +164,7 @@ export default function Home() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           message: userMessage, 
-          history: chatMessages, // Send full history for version tracking
+          history: historyOverride || chatMessages, // Send full history for version tracking
           round: newRound,
           projectId: currentProjectId ?? undefined,
         }),
@@ -1217,6 +1217,10 @@ export default function Home() {
                         setCurrentProjectId(p.id);
                         setDocsReady(true);
                         setActiveTab("Chat");
+                        
+                        // Trigger intelligence panel regeneration for the loaded project
+                        const fullText = p.messages.map((m: any) => m.content).join('\n');
+                        runAnalysis(fullText, p.messages);
                       }}
                       className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-all border border-transparent ${
                         currentProjectId === p.id 
