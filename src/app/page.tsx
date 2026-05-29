@@ -493,7 +493,7 @@ export default function Home() {
     const combinedContext = `${functionalContext}\n\n${designContext}`.trim();
 
     try {
-      const response = await fetch('/api/generate/document', {
+      const response = await fetch('/api/generate/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -515,70 +515,82 @@ export default function Home() {
         throw new Error(errorMsg);
       }
 
-      // Start Polling
-      const pollInterval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/documents/status?projectId=${currentProjectId}&type=${docName}`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.status === 'ready') {
-              clearInterval(pollInterval);
-              setIsProcessing(false);
-              
-              let docContent = data.content;
+      if (response.body) {
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder('utf-8');
+        let done = false;
+        let generatedContent = '';
 
-              // Final Meta-Parsing: Extract from [CONFIDENCE: XX% | REVIEW: ... | LINKS: ... | REASON: ...]
-              const metaMatch = docContent.match(/\[CONFIDENCE:\s*(\d+)%\s*\|\s*REVIEW:\s*(REQUIRED|OPTIONAL)\s*\|\s*LINKS:\s*([\s\S]*?)\s*\|\s*REASON:\s*([\s\S]*?)\]/i);
+        setIsProcessing(false); // Enable the UI again so the user can see it typing
 
-              if (metaMatch) {
-                const confidence = parseInt(metaMatch[1]);
-                const review = metaMatch[2].toUpperCase();
-                const links = metaMatch[3].split(',').map((l: string) => l.trim()).filter((l: string) => l && l !== 'ID1' && l !== 'ID2');
-                const reason = metaMatch[4].trim();
-                
-                // Clean the content (remove the metadata tag from the visible document)
-                const cleanContent = docContent.replace(/\[CONFIDENCE:[\s\S]*?\]/gi, '').trim();
-
-                setDocuments(prev => ({
-                  ...prev,
-                  [docName]: { 
-                    content: cleanContent, 
-                    confidence, 
-                    review, 
-                    reason,
-                    links
-                  }
-                }));
-              } else {
-                // Fallback: If AI used separate tags or non-standard format
-                const confMatch = docContent.match(/CONFIDENCE:\s*(\d+)%/i);
-                const reviewMatch = docContent.match(/REVIEW:\s*(REQUIRED|OPTIONAL)/i);
-                const linksMatch = docContent.match(/LINKS:\s*([^\]|]*)/i);
-                const reasonMatch = docContent.match(/REASON:\s*([^\]|]*)/i);
-
-                setDocuments(prev => ({
-                  ...prev,
-                  [docName]: { 
-                    ...prev[docName],
-                    content: docContent,
-                    confidence: confMatch ? parseInt(confMatch[1]) : 100, 
-                    review: reviewMatch ? reviewMatch[1].toUpperCase() : 'OPTIONAL', 
-                    links: linksMatch ? linksMatch[1].split(',').map((l: string) => l.trim()).filter((l: string) => l && l !== 'ID1' && l !== 'ID2') : [],
-                    reason: reasonMatch ? reasonMatch[1].trim() : 'Validated by Protocol'
-                  }
-                }));
-              }
-            }
+        while (!done) {
+          const { value, done: readerDone } = await reader.read();
+          done = readerDone;
+          if (value) {
+            const chunkText = decoder.decode(value, { stream: true });
+            generatedContent += chunkText;
+            setDocuments(prev => ({
+              ...prev,
+              [docName]: { ...prev[docName], content: generatedContent }
+            }));
           }
-        } catch (e) {
-          console.error("Polling error:", e);
         }
-      }, 3000);
+
+        // Stream completed! Now silently save to database
+        fetch('/api/documents/save', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId: currentProjectId,
+            documentType: docName,
+            content: generatedContent
+          })
+        }).catch(err => console.error("Failed to save document:", err));
+
+        // Final Meta-Parsing: Extract from [CONFIDENCE: XX% | REVIEW: ... | LINKS: ... | REASON: ...]
+        const metaMatch = generatedContent.match(/\[CONFIDENCE:\s*(\d+)%\s*\|\s*REVIEW:\s*(REQUIRED|OPTIONAL)\s*\|\s*LINKS:\s*([\s\S]*?)\s*\|\s*REASON:\s*([\s\S]*?)\]/i);
+
+        if (metaMatch) {
+          const confidence = parseInt(metaMatch[1]);
+          const review = metaMatch[2].toUpperCase();
+          const links = metaMatch[3].split(',').map((l: string) => l.trim()).filter((l: string) => l && l !== 'ID1' && l !== 'ID2');
+          const reason = metaMatch[4].trim();
+          
+          const cleanContent = generatedContent.replace(/\[CONFIDENCE:[\s\S]*?\]/gi, '').trim();
+
+          setDocuments(prev => ({
+            ...prev,
+            [docName]: { 
+              content: cleanContent, 
+              confidence, 
+              review, 
+              reason,
+              links
+            }
+          }));
+        } else {
+          const confMatch = generatedContent.match(/CONFIDENCE:\s*(\d+)%/i);
+          const reviewMatch = generatedContent.match(/REVIEW:\s*(REQUIRED|OPTIONAL)/i);
+          const linksMatch = generatedContent.match(/LINKS:\s*([^\]|]*)/i);
+          const reasonMatch = generatedContent.match(/REASON:\s*([^\]|]*)/i);
+
+          setDocuments(prev => ({
+            ...prev,
+            [docName]: { 
+              ...prev[docName],
+              content: generatedContent,
+              confidence: confMatch ? parseInt(confMatch[1]) : 100, 
+              review: reviewMatch ? reviewMatch[1].toUpperCase() : 'OPTIONAL', 
+              links: linksMatch ? linksMatch[1].split(',').map((l: string) => l.trim()).filter((l: string) => l && l !== 'ID1' && l !== 'ID2') : [],
+              reason: reasonMatch ? reasonMatch[1].trim() : 'Validated by Protocol'
+            }
+          }));
+        }
+      }
 
     } catch (error: any) {
       console.error("Error generating document:", error);
       alert(`Error generating document: ${error.message}`);
-    } finally {
       setIsProcessing(false);
     }
   };
