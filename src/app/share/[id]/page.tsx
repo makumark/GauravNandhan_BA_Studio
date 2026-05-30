@@ -11,6 +11,7 @@ import { motion } from 'framer-motion';
 import { MermaidRenderer } from '@/components/features/editors/MermaidRenderer';
 import { LivePreviewIframe } from '@/components/features/editors/LivePreviewIframe';
 import { PlantUMLRenderer } from '@/components/features/editors/PlantUMLRenderer';
+import { DynamicUIBuilder } from '@/components/DynamicUIBuilder';
 
 export default function SharePage() {
   const { id } = useParams();
@@ -64,7 +65,7 @@ export default function SharePage() {
     const jsonMatch = currentDoc.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      if (parsed.code) displayDoc = parsed.code;
+      if (parsed.code) displayDoc = typeof parsed.code === 'string' ? parsed.code : JSON.stringify(parsed.code);
     }
   } catch(e) {}
 
@@ -112,8 +113,10 @@ export default function SharePage() {
 
         <div className="flex-1 overflow-y-auto p-10">
           <div className="max-w-4xl mx-auto bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 p-10 rounded-3xl shadow-2xl">
-            {activeTab === "Prototypes" || activeTab === "Wireframes" ? (
+            {activeTab === "Prototypes" ? (
                <div className="h-[600px]"><LivePreviewIframe htmlContent={displayDoc} summary="" /></div>
+            ) : activeTab === "Wireframes" ? (
+               <div className="h-[600px]"><DynamicUIBuilder schema={displayDoc} isProcessing={false} /></div>
             ) : activeTab === "UML Diagrams" ? (
                <PlantUMLRenderer code={displayDoc} />
             ) : (
