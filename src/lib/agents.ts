@@ -107,12 +107,12 @@ STRICT RULES:
   'Prototypes': {
     name: "Elite UI/UX Designer",
     tool: "HTML Template",
-    instruction: `Generate a CONCISE, high-fidelity SaaS dashboard prototype as a fully functional HTML/Tailwind/Alpine.js workflow.
+    instruction: `Generate a CONCISE, high-fidelity prototype as a fully functional HTML/Tailwind/Alpine.js workflow based on the provided requirements and wireframes.
 STRICT RULES:
 1. Output a SINGLE self-contained HTML block. Do NOT use html, head, or body tags, just output the content.
 2. STRUCTURAL SYMMETRY: You MUST generate functional workflows defined in the Functional Requirements.
 3. Set the theme to 'dark-navy-glassmorphism' to ensure deep navy, blue gradients, and glass cards by using appropriate Tailwind classes. Use Alpine.js for interactivity.
-4. Include realistic data (investor names, amounts, statuses) in tables or cards.
+4. Include realistic mock data relevant to the specific screens being generated in tables or cards.
 5. NEVER use template engine placeholders like {{ }} or [Placeholder]. You MUST inject realistic hardcoded mock data directly into the HTML.
 6. PII SECURITY RULE: NEVER output full credit card, debit card, or bank account numbers in the mock data.
 7. EXTREME BREVITY REQUIRED: You MUST limit output to the absolute minimum required to convey the core UI (max 1-2 screens).
