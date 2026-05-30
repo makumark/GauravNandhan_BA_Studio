@@ -1706,6 +1706,8 @@ export default function Home() {
                             if (hasUml) {
                                  // Clean code: Remove themes and other non-standard PlantUML junk
                                  code = code
+                                   .replace(/```[a-zA-Z]*\n?/gi, '')
+                                   .replace(/```\n?/g, '')
                                    .replace(/!theme\s+\w+/g, '!theme plain') // Force plain theme for stability
                                    .replace(/\*\*/g, '')
                                    .replace(/\\_/g, '_');

@@ -118,7 +118,7 @@ export default function SharePage() {
             ) : activeTab === "Wireframes" ? (
                <div className="h-[600px]"><DynamicUIBuilder schema={displayDoc} isProcessing={false} /></div>
             ) : activeTab === "UML Diagrams" ? (
-               <PlantUMLRenderer code={displayDoc} />
+               <PlantUMLRenderer code={displayDoc.replace(/```[a-zA-Z]*\n?/gi, '').replace(/```\n?/g, '')} />
             ) : (
               <div className="prose prose-invert prose-slate max-w-none">
                 <ReactMarkdown 
