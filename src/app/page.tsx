@@ -460,11 +460,7 @@ export default function Home() {
 
   const handleDocumentClick = async (docName: string, force = false) => {
     if (!docsReady) return;
-    
-    if (!currentProjectId) {
-      alert("⚠️ Please 'Save Session' first to generate complex documents in the background.");
-      return;
-    }
+
 
     setActiveTab(docName);
     setIsEditing(false);
@@ -1047,7 +1043,7 @@ export default function Home() {
     }
     const url = `${window.location.origin}/share/${currentProjectId}`;
     navigator.clipboard.writeText(url).then(() => {
-      alert("✅ Public Share Link Copied! Anyone with this link can now view your work.");
+      alert(`✅ Public Share Link Copied!\n\n${url}\n\nAnyone with this link can now view your work.`);
     }).catch(() => {
       alert("Failed to copy link. Please copy the URL from your browser manually.");
     });
@@ -1380,6 +1376,11 @@ export default function Home() {
                <Save className="w-4 h-4 text-blue-400" />
                Save Session
              </button>
+
+             <button onClick={getShareLink} className="flex items-center gap-2 text-sm text-blue-400 hover:text-blue-300 px-3 py-1.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 transition-colors">
+               <LinkIcon className="w-4 h-4" />
+               Share Link
+             </button>
              
              <button onClick={exportAllToPDF} className="px-4 py-1.5 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-lg text-xs font-bold uppercase tracking-wider shadow-lg hover:shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2 no-print">
                <Download className="w-3.5 h-3.5" />
@@ -1407,13 +1408,6 @@ export default function Home() {
                   )}
                   
                   <div className="flex items-center gap-3 bg-slate-800/50 p-1.5 px-3 rounded-xl border border-slate-700/50">
-                    {(activeTab === "Wireframes" || activeTab === "Prototypes") && documents[activeTab] && (
-                      <button onClick={getShareLink} className="p-1.5 px-3 flex items-center gap-2 rounded-md text-blue-400 hover:text-blue-300 hover:bg-slate-700 transition-colors">
-                        <LinkIcon className="w-4 h-4" />
-                        <span className="text-xs font-medium">Share Link</span>
-                      </button>
-                    )}
-                    
                     <button 
                       disabled={!documents[activeTab]} 
                       onClick={toggleEdit} 
