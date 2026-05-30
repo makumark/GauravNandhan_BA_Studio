@@ -72,7 +72,7 @@ DO NOT output any markdown blocks outside the JSON.` : ''}
 
     const isPrototype = documentRequested === 'Prototypes';
     const model = genAI.getGenerativeModel({
-      model: isPrototype ? 'gemini-1.5-flash-8b' : 'gemini-2.5-flash',
+      model: isPrototype ? 'gemini-1.5-flash' : 'gemini-2.5-flash',
       safetySettings: [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
         { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },

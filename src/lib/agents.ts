@@ -115,7 +115,8 @@ STRICT RULES:
 4. Include realistic data (investor names, amounts, statuses) in tables or cards.
 5. NEVER use template engine placeholders like {{ }} or [Placeholder]. You MUST inject realistic hardcoded mock data directly into the HTML.
 6. PII SECURITY RULE: NEVER output full credit card, debit card, or bank account numbers in the mock data.
-7. Output ONLY inside triple-backtick html fences. No explanations.`
+7. EXTREME BREVITY REQUIRED: You MUST limit output to the absolute minimum required to convey the core UI (max 1-2 screens).
+8. Output ONLY inside triple-backtick html fences. No explanations.`
   },
   'Flowcharts': {
     name: "Elite Process Architect",
