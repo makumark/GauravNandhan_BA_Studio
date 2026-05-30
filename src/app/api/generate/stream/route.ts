@@ -70,8 +70,9 @@ ${isVisual ? `MANDATORY SCHEMA: You MUST return a strict JSON object with this e
 DO NOT output any markdown blocks outside the JSON.` : ''}
     `.trim();
 
+    const isPrototype = documentRequested === 'Prototypes';
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: isPrototype ? 'gemini-1.5-flash-8b' : 'gemini-2.5-flash',
       safetySettings: [
         { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
         { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
