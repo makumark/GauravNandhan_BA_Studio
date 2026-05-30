@@ -503,11 +503,13 @@ export default function Home() {
       
       if (!response.ok) {
         const rawText = await response.text();
-        let errorMsg = 'Failed to generate document';
+        let errorMsg = `Failed to generate document (HTTP ${response.status})`;
         try {
           const errorData = JSON.parse(rawText);
           errorMsg = errorData.error || errorMsg;
-        } catch(e) {}
+        } catch(e) {
+          errorMsg = `${errorMsg}: ${rawText.substring(0, 100)}`;
+        }
         throw new Error(errorMsg);
       }
 

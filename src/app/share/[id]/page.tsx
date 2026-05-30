@@ -10,6 +10,7 @@ import { motion } from 'framer-motion';
 
 import { MermaidRenderer } from '@/components/features/editors/MermaidRenderer';
 import { LivePreviewIframe } from '@/components/features/editors/LivePreviewIframe';
+import { PlantUMLRenderer } from '@/components/features/editors/PlantUMLRenderer';
 
 export default function SharePage() {
   const { id } = useParams();
@@ -57,6 +58,16 @@ export default function SharePage() {
 
   const currentDoc = docs[activeTab] || "";
 
+  // Safely extract code if it was saved as a JSON string due to parse fallback
+  let displayDoc = currentDoc;
+  try {
+    const jsonMatch = currentDoc.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.code) displayDoc = parsed.code;
+    }
+  } catch(e) {}
+
   return (
     <div className="flex h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
       <aside className="w-72 bg-[#1e293b]/80 border-r border-slate-700/50 backdrop-blur-xl flex flex-col shadow-2xl z-10">
@@ -102,7 +113,9 @@ export default function SharePage() {
         <div className="flex-1 overflow-y-auto p-10">
           <div className="max-w-4xl mx-auto bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 p-10 rounded-3xl shadow-2xl">
             {activeTab === "Prototypes" || activeTab === "Wireframes" ? (
-               <div className="h-[600px]"><LivePreviewIframe htmlContent={currentDoc} summary="" /></div>
+               <div className="h-[600px]"><LivePreviewIframe htmlContent={displayDoc} summary="" /></div>
+            ) : activeTab === "UML Diagrams" ? (
+               <PlantUMLRenderer code={displayDoc} />
             ) : (
               <div className="prose prose-invert prose-slate max-w-none">
                 <ReactMarkdown 
@@ -113,22 +126,11 @@ export default function SharePage() {
                       if (!inline && match && match[1] === 'mermaid') {
                         return <MermaidRenderer chart={String(children).replace(/\n$/, '')} />
                       }
-                      if (!inline && match && match[1] === 'plantuml') {
-                        const code = String(children).trim();
-                        const data = new TextEncoder().encode(code);
-                        const compressed = pako.deflate(data, { level: 9 });
-                        const base64 = btoa(String.fromCharCode.apply(null, Array.from(compressed))).replace(/\+/g, '-').replace(/\//g, '_');
-                        return (
-                          <div className="bg-white p-6 rounded-xl flex justify-center shadow-xl border border-slate-700/30">
-                            <img src={`https://kroki.io/plantuml/svg/${base64}`} alt="UML" className="max-w-full" />
-                          </div>
-                        );
-                      }
                       return <code {...props}>{children}</code>
                     }
                   }}
                 >
-                  {currentDoc}
+                  {displayDoc}
                 </ReactMarkdown>
               </div>
             )}
