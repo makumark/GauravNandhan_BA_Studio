@@ -1042,11 +1042,8 @@ export default function Home() {
       return;
     }
     const url = `${window.location.origin}/share/${currentProjectId}`;
-    navigator.clipboard.writeText(url).then(() => {
-      alert(`✅ Public Share Link Copied!\n\n${url}\n\nAnyone with this link can now view your work.`);
-    }).catch(() => {
-      alert("Failed to copy link. Please copy the URL from your browser manually.");
-    });
+    navigator.clipboard.writeText(url).catch(() => {});
+    prompt("Public Share Link generated! You can copy it directly from below:", url);
   };
 
   return (

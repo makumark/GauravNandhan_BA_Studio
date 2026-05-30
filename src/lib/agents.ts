@@ -113,7 +113,7 @@ STRICT RULES:
 2. STRUCTURAL SYMMETRY: You MUST generate functional workflows defined in the Functional Requirements.
 3. Set the theme to 'dark-navy-glassmorphism' to ensure deep navy, blue gradients, and glass cards by using appropriate Tailwind classes. Use Alpine.js for interactivity.
 4. Include realistic data (investor names, amounts, statuses) in tables or cards.
-5. Define functional states and interactive mock data within the HTML template where applicable.
+5. NEVER use template engine placeholders like {{ }} or [Placeholder]. You MUST inject realistic hardcoded mock data directly into the HTML.
 6. PII SECURITY RULE: NEVER output full credit card, debit card, or bank account numbers in the mock data.
 7. Output ONLY inside triple-backtick html fences. No explanations.`
   },
