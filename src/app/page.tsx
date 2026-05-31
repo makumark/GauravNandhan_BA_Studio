@@ -513,6 +513,22 @@ export default function Home() {
         }
       }
 
+      // Fetch user's saved templates to see if there is a match for this document
+      let templateContent = "";
+      try {
+        const tRes = await fetch('/api/templates');
+        if (tRes.ok) {
+          const templates = await tRes.json();
+          // Look for a template with a matching name (e.g. 'BRD', 'FRD')
+          const matched = templates.find((t: any) => t.name.toLowerCase() === docName.toLowerCase());
+          if (matched) {
+            templateContent = matched.content;
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch templates during generation", err);
+      }
+
       const promptRes = await fetch('/api/generate/prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -520,7 +536,8 @@ export default function Home() {
           messages: chatMessages, 
           documentRequested: docName, 
           domainDetected,
-          functionalContext: combinedContext
+          functionalContext: combinedContext,
+          templateContent
         })
       });
 

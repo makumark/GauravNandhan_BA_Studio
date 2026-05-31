@@ -12,7 +12,8 @@ export async function POST(req: Request) {
       documentRequested,
       domainDetected,
       functionalContext: encodedFunctionalContext,
-      glossary
+      glossary,
+      templateContent
     } = body;
 
     if (!documentRequested) {
@@ -50,6 +51,7 @@ INSTRUCTIONS: ${agent.instruction}
 DOMAIN: ${domainDetected || 'FinTech / Regulatory Technology'}
 ${functionalContext ? `FUNCTIONAL REQUIREMENTS (SOURCE OF TRUTH):\n"""\n${functionalContext}\n"""` : ''}
 ${glossary && glossary.length > 0 ? `ENTITY DICTIONARY (MANDATORY CONSISTENCY):\n"""\n${JSON.stringify(glossary, null, 2)}\n"""\nYou MUST adhere strictly to these terms and rules.` : ''}
+${templateContent ? `\nCORPORATE TEMPLATE STRUCTURE (MANDATORY FORMATTING):\n"""\n${templateContent}\n"""\nCRITICAL RULE: You MUST output your response strictly adhering to the exact headers, numbering, and structure provided in the CORPORATE TEMPLATE STRUCTURE above. Do NOT use your own default format.\n` : ''}
 CONVERSATION CONTEXT (INITIAL AND ADDITIONAL REQUIREMENTS):
 ${context}
 
