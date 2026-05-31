@@ -13,6 +13,7 @@ export default function TemplatesPage() {
   const [error, setError] = useState('');
   const [templates, setTemplates] = useState<any[]>([]);
   const [fetching, setFetching] = useState(true);
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   const fetchTemplates = async () => {
     try {
@@ -39,15 +40,20 @@ export default function TemplatesPage() {
     setError('');
 
     try {
-      const res = await fetch('/api/templates', {
-        method: 'POST',
+      const url = editingId ? `/api/templates/${editingId}` : '/api/templates';
+      const method = editingId ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, content })
       });
       if (res.ok) {
         setSuccess(true);
-        setName('');
-        setContent('');
+        if (!editingId) {
+           setName('');
+           setContent('');
+        }
         fetchTemplates(); // Refresh list after saving
       } else {
         const data = await res.json().catch(() => ({}));
@@ -58,6 +64,33 @@ export default function TemplatesPage() {
       setError(err.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleEdit = (t: any) => {
+    setEditingId(t.id);
+    setName(t.name);
+    setContent(t.content);
+    setSuccess(false);
+    setError('');
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this template?')) return;
+    try {
+      const res = await fetch(`/api/templates/${id}`, { method: 'DELETE' });
+      if (res.ok) {
+        if (editingId === id) {
+           setEditingId(null);
+           setName('');
+           setContent('');
+        }
+        fetchTemplates();
+      } else {
+        alert('Failed to delete template.');
+      }
+    } catch (err) {
+      console.error('Delete error', err);
     }
   };
 
@@ -77,8 +110,19 @@ export default function TemplatesPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <form onSubmit={handleSubmit} className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 space-y-6 h-fit">
-            <h2 className="text-xl font-semibold mb-4 border-b border-slate-700 pb-2">Upload New Template</h2>
+          <form onSubmit={handleSubmit} className="bg-slate-800/50 p-6 rounded-2xl border border-slate-700 space-y-6 h-fit relative">
+            {editingId && (
+              <button 
+                type="button" 
+                onClick={() => { setEditingId(null); setName(''); setContent(''); setSuccess(false); }}
+                className="absolute top-6 right-6 text-xs text-slate-400 hover:text-white flex items-center gap-1"
+              >
+                Cancel Edit
+              </button>
+            )}
+            <h2 className="text-xl font-semibold mb-4 border-b border-slate-700 pb-2">
+              {editingId ? "Edit Template" : "Upload New Template"}
+            </h2>
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">Template Name</label>
               <input 
@@ -114,7 +158,7 @@ export default function TemplatesPage() {
               disabled={loading}
               className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? <span className="animate-pulse">Saving...</span> : success ? <><Check className="w-5 h-5"/> Uploaded Successfully</> : <><Upload className="w-5 h-5"/> Save Template</>}
+              {loading ? <span className="animate-pulse">Saving...</span> : success ? <><Check className="w-5 h-5"/> {editingId ? "Updated Successfully" : "Uploaded Successfully"}</> : <><Upload className="w-5 h-5"/> {editingId ? "Update Template" : "Save Template"}</>}
             </button>
           </form>
 
@@ -128,9 +172,19 @@ export default function TemplatesPage() {
                 <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
                    {templates.map(t => (
                       <div key={t.id} className="bg-slate-900 p-4 rounded-xl border border-slate-700 hover:border-slate-600 transition-colors">
-                         <h3 className="font-bold text-blue-400 flex items-center justify-between">
-                            {t.name}
-                         </h3>
+                         <div className="flex items-start justify-between">
+                           <h3 className="font-bold text-blue-400">
+                              {t.name}
+                           </h3>
+                           <div className="flex items-center gap-2">
+                             <button onClick={() => handleEdit(t)} className="text-slate-400 hover:text-blue-400 p-1 transition-colors" title="Edit Template">
+                               <Edit className="w-4 h-4" />
+                             </button>
+                             <button onClick={() => handleDelete(t.id)} className="text-slate-400 hover:text-red-400 p-1 transition-colors" title="Delete Template">
+                               <Trash2 className="w-4 h-4" />
+                             </button>
+                           </div>
+                         </div>
                          <p className="text-xs text-slate-500 mt-1 mb-3">Saved on {new Date(t.createdAt).toLocaleDateString()}</p>
                          <pre className="text-[10px] text-slate-400 font-mono bg-slate-950 p-3 rounded-lg overflow-hidden max-h-32 text-ellipsis line-clamp-6">
                             {t.content}
