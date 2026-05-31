@@ -1,6 +1,7 @@
 "use client";
 
 import { DynamicUIBuilder } from '@/components/DynamicUIBuilder';
+import { LogicSandboxRenderer } from '@/components/LogicSandbox';
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { useState, useEffect, useRef } from "react";
@@ -23,7 +24,8 @@ import {
   Settings, 
   LogOut, 
   Loader2, 
-  ChevronRight, 
+  ChevronRight,
+  Cpu, 
   AlertCircle, 
   CheckCircle2, 
   Check,
@@ -502,7 +504,7 @@ export default function Home() {
       let generatedContent = '';
 
       let activeProjectId = currentProjectId;
-      if (docName === 'Prototypes' || docName === 'Wireframes' || docName === 'UML Diagrams') {
+      if (docName === 'Prototypes' || docName === 'Wireframes' || docName === 'UML Diagrams' || docName === 'Logic Sandbox') {
         if (!activeProjectId) {
           activeProjectId = await saveProject();
           if (!activeProjectId) {
@@ -683,6 +685,7 @@ export default function Home() {
     { icon: ShieldAlert, label: "Regulatory Advisor" },
     { icon: Rocket, label: "Executive Pitch" },
     { icon: Play, label: "Test Cases" },
+    { icon: Cpu, label: "Logic Sandbox" },
     { icon: Code, label: "UML Diagrams" },
     { icon: GitBranch, label: "Flowcharts" },
     { icon: AlignLeft, label: "Wireframes" },
@@ -722,7 +725,7 @@ export default function Home() {
 
     // For Wireframes and Prototypes, we export the raw HTML source as a PDF summary
     // because iframes cannot be captured by html2canvas due to browser security
-    const isVisual = activeTab === 'Wireframes' || activeTab === 'Prototypes';
+    const isVisual = activeTab === 'Wireframes' || activeTab === 'Prototypes' || activeTab === 'Logic Sandbox';
     const isUML = activeTab === 'UML Diagrams';
 
     // Build a clean, print-ready HTML document
@@ -1626,7 +1629,11 @@ export default function Home() {
                         <textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} className="w-full flex-1 bg-slate-900 border border-slate-700 rounded-xl p-4 text-slate-200 font-mono text-sm focus:outline-none resize-none" />
                       </div>
                     ) : (
-                      activeTab === "Wireframes" ? (
+                      activeTab === "Logic Sandbox" ? (
+                        <div className="p-4 h-full">
+                           <LogicSandboxRenderer jsonString={documents[activeTab]?.content || ""} isProcessing={isProcessing} />
+                        </div>
+                      ) : activeTab === "Wireframes" ? (
                                 <div className="p-4 h-full">
                                   {(() => {
                                       const rawContent = documents[activeTab]?.content || "";

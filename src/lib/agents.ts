@@ -19,6 +19,24 @@ Example: "Application Dashboard"
 }
 \`\`\`
 `,
+  'Logic Sandbox JSON': `
+### GOLD STANDARD: LOGIC SANDBOX JSON SCHEMA
+Example: "Discount Rule Logic"
+\`\`\`json
+{
+  "summary": "This sandbox executes the checkout discount business logic.",
+  "code": {
+    "title": "Checkout Discount Logic",
+    "inputs": [
+      { "name": "cartTotal", "label": "Cart Total ($)", "type": "number", "defaultValue": 100 },
+      { "name": "userTier", "label": "User Tier", "type": "select", "options": ["Silver", "Gold", "Platinum"], "defaultValue": "Silver" },
+      { "name": "hasPromoCode", "label": "Promo Code Applied", "type": "boolean", "defaultValue": false }
+    ],
+    "logic": "if (hasPromoCode) { return 'Outcome: 5% Discount Applied. Final Price: $' + (cartTotal * 0.95).toFixed(2); }\nif (cartTotal > 100 && (userTier === 'Gold' || userTier === 'Platinum')) { return 'Outcome: 15% Discount Applied. Final Price: $' + (cartTotal * 0.85).toFixed(2); }\nreturn 'Outcome: No Discount. Final Price: $' + cartTotal;"
+  }
+}
+\`\`\`
+`,
   'HTML Template': `
 ### GOLD STANDARD: HTML TEMPLATE
 Example: "Application Dashboard"
@@ -137,6 +155,17 @@ MANDATORY STABILITY RULES:
 7. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output Markdown summaries or explanations before or after the code block.
 8. ANTI-HALLUCINATION RULE: NEVER hallucinate processes or steps that are not explicitly requested. You MUST strictly model only the user requirements.
 ${DECISION_PARTNER_INSTRUCTION}`
+  },
+  'Logic Sandbox': {
+    name: "Business Logic Architect",
+    tool: "Logic Sandbox JSON",
+    instruction: `Generate a CONCISE Executable Logic Sandbox as a strict JSON UI Schema.
+STRICT RULES:
+1. Output a SINGLE self-contained JSON object matching the standard.
+2. STRUCTURAL SYMMETRY: You MUST extract the most complex business rule or calculation from the Functional Requirements.
+3. INLINE JAVASCRIPT: The \`logic\` field must contain a raw JavaScript string that takes the variables defined in \`inputs\` (by their exact \`name\`) and returns a string Outcome. The logic must use standard JS syntax (if/else, math, etc.).
+4. Do NOT output a markdown block inside the JSON string. The \`code\` field should be a nested JSON object containing \`title\`, \`inputs\`, and \`logic\`.
+5. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations before or after the code block.`
   },
   'UML Diagrams': {
     name: "System Architect Agent",
