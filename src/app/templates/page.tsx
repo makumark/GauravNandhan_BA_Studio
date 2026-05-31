@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Upload, FileText, Check } from 'lucide-react';
+import { Upload, FileText, Check, ArrowLeft } from 'lucide-react';
+import Link from 'next/link';
 
 export default function TemplatesPage() {
   const [name, setName] = useState('');
@@ -37,6 +38,10 @@ export default function TemplatesPage() {
     <div className="min-h-screen bg-[#0f172a] text-white p-8">
       <div className="max-w-3xl mx-auto space-y-8">
         <div>
+          <Link href="/" className="inline-flex items-center gap-2 text-slate-400 hover:text-white transition-colors mb-6 font-medium text-sm">
+            <ArrowLeft className="w-4 h-4" />
+            Back to Studio Dashboard
+          </Link>
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <FileText className="w-8 h-8 text-blue-500" />
             Corporate Templates
