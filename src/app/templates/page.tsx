@@ -10,11 +10,13 @@ export default function TemplatesPage() {
   const [content, setContent] = useState('');
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setSuccess(false);
+    setError('');
 
     try {
       const res = await fetch('/api/templates', {
@@ -26,9 +28,13 @@ export default function TemplatesPage() {
         setSuccess(true);
         setName('');
         setContent('');
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setError(data.error || 'Failed to save template. Please check database connection.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
+      setError(err.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
     }
@@ -73,12 +79,19 @@ export default function TemplatesPage() {
             />
           </div>
 
+          {error && (
+            <div className="p-4 bg-red-500/10 border border-red-500/50 rounded-lg text-red-400 text-sm">
+              <span className="font-bold flex items-center gap-2">⚠️ Error Saving Template</span>
+              <p className="mt-1">{error}</p>
+            </div>
+          )}
+
           <button 
             type="submit"
             disabled={loading}
-            className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold flex items-center justify-center gap-2 transition-all"
+            className="w-full py-4 bg-blue-600 hover:bg-blue-500 rounded-xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {success ? <><Check className="w-5 h-5"/> Uploaded Successfully</> : <><Upload className="w-5 h-5"/> Save Template</>}
+            {loading ? <span className="animate-pulse">Saving...</span> : success ? <><Check className="w-5 h-5"/> Uploaded Successfully</> : <><Upload className="w-5 h-5"/> Save Template</>}
           </button>
         </form>
       </div>
