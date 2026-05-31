@@ -1,6 +1,7 @@
 "use client";
 
 import { DynamicUIBuilder } from '@/components/DynamicUIBuilder';
+import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
@@ -262,8 +263,11 @@ export default function Home() {
       }
 
       if (data.sessionState === 'READY') setDocsReady(true);
-    } catch (e) {
+    } catch (e: any) {
       console.error('Brain 1 analysis error', e);
+      setSessionState("QUESTIONING");
+      setDomainDetected("Complex Application");
+      setSmeInsight("The requirement volume was too extreme for the AI to parse in 60 seconds (Server Timeout). Please break down requirements or refresh.");
     } finally {
       setIsAnalyzing(false);
     }
@@ -441,6 +445,12 @@ export default function Home() {
       
       if (newMessages.length >= 1) {
         setDocsReady(true);
+        // Automatically regenerate the currently active document based on new requirements
+        if (activeTab !== "Chat") {
+          setTimeout(() => {
+            handleDocumentClick(activeTab, true);
+          }, 500);
+        }
       }
       
       if (currentProjectId) {
@@ -489,59 +499,69 @@ export default function Home() {
     const combinedContext = `${functionalContext}\n\n${designContext}`.trim();
 
     try {
-      const response = await fetch('/api/generate/stream', {
+      let generatedContent = '';
+
+      let activeProjectId = currentProjectId;
+      if (docName === 'Prototypes' || docName === 'Wireframes' || docName === 'UML Diagrams') {
+        if (!activeProjectId) {
+          activeProjectId = await saveProject();
+          if (!activeProjectId) {
+             throw new Error("You must be logged in and save the project to generate visual artifacts.");
+          }
+        }
+      }
+
+      const promptRes = await fetch('/api/generate/prompt', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          projectId: currentProjectId,
           messages: chatMessages, 
           documentRequested: docName, 
           domainDetected,
           functionalContext: combinedContext
         })
       });
-      
-      if (!response.ok) {
-        const rawText = await response.text();
-        let errorMsg = `Failed to generate document (HTTP ${response.status})`;
-        try {
-          const errorData = JSON.parse(rawText);
-          errorMsg = errorData.error || errorMsg;
-        } catch(e) {
-          errorMsg = `${errorMsg}: ${rawText.substring(0, 100)}`;
-        }
-        throw new Error(errorMsg);
+
+      if (!promptRes.ok) {
+        throw new Error(`Failed to compile prompt (HTTP ${promptRes.status})`);
       }
 
-      if (response.body) {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder('utf-8');
-        let done = false;
-        let generatedContent = '';
-
-        while (!done) {
-          const { value, done: readerDone } = await reader.read();
-          done = readerDone;
-          if (value) {
-            const chunkText = decoder.decode(value, { stream: true });
-            generatedContent += chunkText;
-            setDocuments(prev => ({
-              ...prev,
-              [docName]: { ...prev[docName], content: generatedContent }
-            }));
-          }
+      const { prompt, modelName, apiKey } = await promptRes.json();
+      
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({
+        model: modelName,
+        generationConfig: {
+          temperature: 0.1,
+          topP: 0.8,
+          topK: 40,
+          maxOutputTokens: 8192,
         }
+      });
 
-        // Stream completed! Now silently save to database
+      const result = await model.generateContentStream(prompt);
+
+      for await (const chunk of result.stream) {
+        const chunkText = chunk.text();
+        generatedContent += chunkText;
+        setDocuments(prev => ({
+          ...prev,
+          [docName]: { ...prev[docName], content: generatedContent }
+        }));
+      }
+
+      // Stream completed! Now silently save to database
+      if (activeProjectId) {
         fetch('/api/documents/save', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            projectId: currentProjectId,
+            projectId: activeProjectId,
             documentType: docName,
             content: generatedContent
           })
         }).catch(err => console.error("Failed to save document:", err));
+      }
 
         // Final Meta-Parsing: Extract from [CONFIDENCE: XX% | REVIEW: ... | LINKS: ... | REASON: ...]
         const metaMatch = generatedContent.match(/\[CONFIDENCE:\s*(\d+)%\s*\|\s*REVIEW:\s*(REQUIRED|OPTIONAL)\s*\|\s*LINKS:\s*([\s\S]*?)\s*\|\s*REASON:\s*([\s\S]*?)\]/i);
@@ -582,11 +602,25 @@ export default function Home() {
             }
           }));
         }
-      }
-
     } catch (error: any) {
-      console.error("Error generating document:", error);
-      alert(`Error generating document: ${error.message}`);
+      const errorContent = docName === 'Prototypes'
+        ? `\`\`\`html\n<div class="flex flex-col items-center justify-center h-[90vh] text-center p-8 bg-slate-900 text-white font-sans">\n  <div class="bg-red-500/10 border border-red-500/50 p-6 rounded-xl max-w-lg">\n    <svg class="w-12 h-12 text-red-500 mx-auto mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">\n      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />\n    </svg>\n    <h2 class="text-xl font-bold text-red-400 mb-2">Generation Failed</h2>\n    <p class="text-slate-300 text-sm mb-4">${error.message}</p>\n    <p class="text-slate-400 text-xs">Please try regenerating. The AI service may be temporarily unavailable.</p>\n  </div>\n</div>\n\`\`\``
+        : docName === 'Wireframes'
+        ? JSON.stringify({ summary: "Generation Failed", code: `{"error": "${error.message}", "message": "Please try regenerating. The AI service may be temporarily unavailable."}` })
+        : docName === 'UML Diagrams'
+        ? `\`\`\`plantuml\n@startuml\nrectangle "Generation Failed\\n\\nError: ${error.message}\\n\\nPlease try regenerating." as fail #ffcccc\n@enduml\n\`\`\``
+        : `> [!WARNING]\n> **Generation Failed**\n> \n> \`\`\`\n> ${error.message}\n> \`\`\`\n> \n> Please try regenerating. The AI service may be temporarily unavailable.`;
+
+
+      setDocuments(prev => ({
+        ...prev,
+        [docName]: { 
+          ...prev[docName], 
+          content: errorContent,
+          confidence: 0,
+          review: 'REQUIRED'
+        }
+      }));
       setIsProcessing(false);
     }
   };
@@ -594,7 +628,7 @@ export default function Home() {
   const saveProject = async () => {
     if (!session) {
       setIsAuthModalOpen(true);
-      return;
+      return null;
     }
     setIsProcessing(true);
     try {
@@ -610,12 +644,14 @@ export default function Home() {
         setPastProjects(prev => [newProj, ...prev]);
         setCurrentProjectId(newProj.id);
         alert("Session saved securely to database! Share link is now active.");
+        return newProj.id;
       }
     } catch (err) {
       console.error("Save error", err);
     } finally {
       setIsProcessing(false);
     }
+    return null;
   };
 
   const deleteProject = async (id: string) => {
@@ -1141,7 +1177,7 @@ export default function Home() {
         </div>
       )}
 
-      <aside className="w-72 bg-[#1e293b]/80 border-r border-slate-700/50 backdrop-blur-xl flex flex-col shadow-2xl z-10 no-print">
+      <aside className="w-72 shrink-0 bg-[#1e293b]/80 border-r border-slate-700/50 backdrop-blur-xl flex flex-col shadow-2xl z-10 no-print">
         <div className="p-6 border-b border-slate-700/50 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
             <Brain className="w-6 h-6 text-white" />
@@ -1364,13 +1400,13 @@ export default function Home() {
         </div>
       </aside>
 
-      <main className="flex-1 flex flex-col bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1e293b] via-[#0f172a] to-[#0f172a] relative">
-        <header className="h-16 border-b border-slate-700/30 flex items-center justify-between px-8 bg-[#0f172a]/50 backdrop-blur-md z-10 no-print">
-          <h2 className="text-lg font-semibold text-slate-200 flex items-center gap-2">
+      <main className="flex-1 flex flex-col min-w-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-[#1e293b] via-[#0f172a] to-[#0f172a] relative">
+        <header className="h-16 border-b border-slate-700/30 flex items-center justify-between px-4 sm:px-8 bg-[#0f172a]/50 backdrop-blur-md z-10 no-print">
+          <h2 className="text-lg font-semibold text-slate-200 flex items-center gap-2 shrink-0 mr-4">
             {activeTab === "Chat" ? <Bot className="w-5 h-5 text-blue-400" /> : <FileText className="w-5 h-5 text-blue-400" />}
             {activeTab}
           </h2>
-          <div className="flex gap-3 items-center">
+          <div className="flex gap-3 items-center overflow-x-auto overflow-y-hidden custom-scrollbar pb-1">
              <button onClick={saveProject} className="flex items-center gap-2 text-sm text-slate-300 hover:text-white px-3 py-1.5 rounded-lg bg-slate-800/50 hover:bg-slate-700 border border-slate-700 transition-colors">
                <Save className="w-4 h-4 text-blue-400" />
                Save Session
@@ -1463,24 +1499,24 @@ export default function Home() {
           </div>
         </header>
 
-        <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 flex overflow-hidden min-w-0">
           <div className="flex-1 flex flex-col min-w-0">
             {activeTab === "Chat" ? (
               <>
                   <div className="flex-1 overflow-y-auto p-10 space-y-8 scroll-smooth custom-scrollbar">
                     <AnimatePresence mode="popLayout">
                       {chatMessages.map((msg, idx) => (
-                        <motion.div 
-                          initial={{ opacity: 0, y: 20, filter: "blur(10px)" }} 
-                          animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} 
-                          transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }} 
-                          key={idx} 
-                          className={`flex gap-6 max-w-4xl ${msg.role === "assistant" ? "" : "ml-auto flex-row-reverse"}`}
-                        >
+                          <motion.div 
+                            initial={{ opacity: 0, y: 20, filter: "blur(10px)" }} 
+                            animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} 
+                            transition={{ duration: 0.5, ease: [0.23, 1, 0.32, 1] }} 
+                            key={idx} 
+                            className={`flex gap-6 max-w-4xl w-full ${msg.role === "assistant" ? "" : "ml-auto flex-row-reverse"}`}
+                          >
                           <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center shadow-xl transition-transform hover:scale-110 ${msg.role === "assistant" ? "bg-gradient-to-br from-blue-600 to-blue-800 text-white shadow-blue-500/10" : "bg-slate-800 border border-slate-700 text-slate-200"}`}>
                             {msg.role === "assistant" ? <Brain className="w-6 h-6" /> : <User className="w-6 h-6" />}
                           </div>
-                          <div className={`p-6 rounded-3xl text-sm leading-relaxed whitespace-pre-wrap shadow-2xl relative ${msg.role === "assistant" ? "bg-[#1e293b]/90 backdrop-blur-xl border border-slate-700/50 text-slate-200 rounded-tl-sm" : "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm shadow-blue-600/20"}`}>
+                          <div className={`p-6 rounded-3xl text-sm leading-relaxed whitespace-pre-wrap shadow-2xl relative min-w-0 flex-1 overflow-x-auto ${msg.role === "assistant" ? "bg-[#1e293b]/90 backdrop-blur-xl border border-slate-700/50 text-slate-200 rounded-tl-sm" : "bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-tr-sm shadow-blue-600/20"}`}>
                             <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
                           </div>
                         </motion.div>
@@ -1566,16 +1602,7 @@ export default function Home() {
                             )}
                           </div>
                         )}
-                        {documents[activeTab] && (
-                          <button 
-                            onClick={() => handleDocumentClick(activeTab, true)}
-                            disabled={isProcessing}
-                            className="flex items-center gap-2 px-3 py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-xs font-bold transition-all border border-amber-500/30 shadow-lg shadow-amber-500/5 group"
-                          >
-                            <Zap className={`w-3.5 h-3.5 ${isProcessing ? 'animate-pulse' : 'group-hover:scale-110 transition-transform'}`} />
-                            {scopeHistory.length > 1 ? `Regenerate with v${scopeHistory.length} Updates` : 'Regenerate Document'}
-                          </button>
-                        )}
+
                       <button onClick={() => setIsEditing(!isEditing)} className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors border border-transparent hover:border-slate-700"><Edit3 className="w-4 h-4" /></button>
                       <button onClick={printDocument} className="p-2 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg transition-colors border border-transparent hover:border-slate-700"><Download className="w-4 h-4" /></button>
                     </div>
@@ -1650,13 +1677,41 @@ export default function Home() {
                                         htmlContent = typeof parsed.code === 'string' ? parsed.code : (parsed.code ? JSON.stringify(parsed.code) : "");
                                         summary = typeof parsed.summary === 'string' ? parsed.summary : (parsed.summary ? JSON.stringify(parsed.summary) : "");
                                       } catch (e) {
-                                        const htmlMatch = rawContent.match(/```html\s*([\s\S]*?)\s*```/i) || rawContent.match(/```\s*([\s\S]*?)\s*```/i);
+                                        let tempSummary = rawContent;
+                                        // 1. Extract HTML block (allow unclosed backticks)
+                                        const htmlMatch = tempSummary.match(/```(?:html|vue)\s*([\s\S]*?)(?:```|$)/i);
                                         if (htmlMatch) {
                                            htmlContent = htmlMatch[1].trim();
-                                           summary = rawContent.replace(htmlMatch[0], '').trim();
-                                        } else {
-                                           htmlContent = rawContent.trim();
+                                           tempSummary = tempSummary.replace(htmlMatch[0], '');
                                         }
+                                        
+                                        // 2. Extract JS block
+                                        const jsMatch = tempSummary.match(/```(?:javascript|js)\s*([\s\S]*?)(?:```|$)/i);
+                                        if (jsMatch) {
+                                           htmlContent += `\n<script>\n${jsMatch[1].trim()}\n</script>\n`;
+                                           tempSummary = tempSummary.replace(jsMatch[0], '');
+                                        }
+                                        
+                                        // 3. Extract CSS block
+                                        const cssMatch = tempSummary.match(/```css\s*([\s\S]*?)(?:```|$)/i);
+                                        if (cssMatch) {
+                                           htmlContent += `\n<style>\n${cssMatch[1].trim()}\n</style>\n`;
+                                           tempSummary = tempSummary.replace(cssMatch[0], '');
+                                        }
+                                        
+                                        // 4. Generic block fallback if nothing matched
+                                        if (!htmlMatch && !jsMatch && !cssMatch) {
+                                           const genericMatch = tempSummary.match(/```\s*([\s\S]*?)(?:```|$)/i);
+                                           if (genericMatch) {
+                                               htmlContent = genericMatch[1].trim();
+                                               tempSummary = tempSummary.replace(genericMatch[0], '');
+                                           } else {
+                                               htmlContent = tempSummary.trim();
+                                               tempSummary = "";
+                                           }
+                                        }
+                                        
+                                        summary = tempSummary.trim();
                                       }
                                       return <LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} />;
                                   })()}
@@ -1964,7 +2019,7 @@ export default function Home() {
           </div>
 
           {/* New Right Sidebar: Intelligence & Insights */}
-          <aside className="w-80 border-l border-slate-700/30 bg-[#0f172a]/50 backdrop-blur-md overflow-y-auto no-print flex flex-col">
+          <aside className="w-80 shrink-0 border-l border-slate-700/30 bg-[#0f172a]/50 backdrop-blur-md overflow-y-auto no-print flex flex-col custom-scrollbar">
             <div className="p-4 border-b border-slate-700/30">
               <h3 className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
                 <Brain className="w-3.5 h-3.5 text-blue-400" />
@@ -2219,15 +2274,7 @@ export default function Home() {
                       </div>
                     ))}
                   </div>
-                  <button 
-                    onClick={() => {
-                      const firstStale = Array.from(staleDocs)[0];
-                      handleDocumentClick(firstStale, true);
-                    }}
-                    className="w-full py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg font-bold uppercase tracking-widest text-[9px] transition-all shadow-lg shadow-red-600/20"
-                  >
-                    Regenerate Stale Artifacts
-                  </button>
+
                 </>
                 ) : (
                   <p className="text-[10px] text-slate-600 italic">No cascading impacts detected.</p>

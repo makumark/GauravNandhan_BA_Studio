@@ -1,13 +1,8 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 import { AGENT_CONFIGS, GOLD_STANDARD_EXAMPLES } from '@/lib/agents';
 import { sanitizeInput } from '@/lib/pii';
 
-export const runtime = 'edge'; // MUST BE EDGE for infinite streaming
-export const maxDuration = 60;
-
-const apiKey = process.env.GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey);
+export const runtime = 'edge';
 
 export async function POST(req: Request) {
   try {
@@ -62,49 +57,15 @@ CRITICAL RULE: You MUST combine and synthesize ALL requirements provided across 
 CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble, no "Here is...". NEVER truncate or use placeholders like "... (skipping lines) ...". ALWAYS generate the FULL complete code.
     `.trim();
 
-    const model = genAI.getGenerativeModel({
-      model: isVisual ? 'gemini-2.5-pro' : 'gemini-2.5-flash',
-      safetySettings: [
-        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-      ],
-      generationConfig: {
-        temperature: 0.1,
-        topP: 0.8,
-        topK: 40,
-      }
-    });
-
-    const result = await model.generateContentStream(prompt);
-    
-    // Convert Gemini stream to web standard stream
-    const stream = new ReadableStream({
-      async start(controller) {
-        try {
-          for await (const chunk of result.stream) {
-            const chunkText = chunk.text();
-            controller.enqueue(new TextEncoder().encode(chunkText));
-          }
-          controller.close();
-        } catch (error: any) {
-          console.error("Streaming error:", error);
-          controller.error(error);
-        }
-      }
-    });
-
-    return new Response(stream, {
-      headers: {
-        'Content-Type': 'text/plain; charset=utf-8',
-        'Transfer-Encoding': 'chunked',
-        'Cache-Control': 'no-cache, no-transform',
-      },
+    return NextResponse.json({ 
+      prompt, 
+      modelName: isVisual ? 'gemini-2.5-pro' : 'gemini-2.5-flash',
+      // Provide the key safely for client-side streaming of this specific request
+      apiKey: process.env.GEMINI_API_KEY || ''
     });
 
   } catch (error: any) {
-    console.error('Edge Stream Error:', error);
+    console.error('Prompt Compilation Error:', error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }

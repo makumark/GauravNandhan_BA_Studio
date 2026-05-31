@@ -187,11 +187,24 @@ Analyze this input now and respond with ONLY the JSON object.`;
       analysis = JSON.parse(rawText);
     } catch {
       // Attempt to extract JSON from response if model added extra text
-      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
+      const jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);
       if (jsonMatch) {
-        analysis = JSON.parse(jsonMatch[0]);
-      } else {
-        throw new Error('Model did not return valid JSON');
+        try {
+          analysis = JSON.parse(jsonMatch[0]);
+        } catch (e) {
+          analysis = null;
+        }
+      }
+      
+      if (!analysis) {
+        console.warn('Model did not return valid JSON. Falling back to default.');
+        analysis = {
+          sessionState: "QUESTIONING",
+          domainDetected: "Complex Domain (Parsing Incomplete)",
+          smeInsight: "The requirement volume was too large to fully parse in one pass.",
+          feasibilityIssues: ["Requirement volume exceeds single-pass analysis limits."],
+          clarifyingQuestions: ["Can we break this down into smaller chunks?"]
+        };
       }
     }
 

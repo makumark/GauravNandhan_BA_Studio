@@ -102,7 +102,8 @@ STRICT RULES:
 3. Use the exact same screen names and IDs from the Functional Requirements.
 4. TEXTUAL CLARITY: Use actual text labels, field names, and descriptive titles. NEVER use 'Lorem Ipsum'.
 5. Set the theme to 'grayscale' in the schema.
-6. Output ONLY inside triple-backtick json fences. No explanations outside the code block.`
+6. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations before or after the code block.
+7. ANTI-HALLUCINATION RULE: NEVER hallucinate features, screens, or components that are not explicitly requested. You MUST strictly follow the user requirements.`
   },
   'Prototypes': {
     name: "Elite UI/UX Designer",
@@ -110,13 +111,17 @@ STRICT RULES:
     instruction: `Generate a CONCISE, high-fidelity prototype as a fully functional HTML/Tailwind/Alpine.js workflow based on the provided requirements and wireframes.
 STRICT RULES:
 1. Output a SINGLE self-contained HTML block. Do NOT use html, head, or body tags, just output the content.
-2. STRUCTURAL SYMMETRY: You MUST generate functional workflows defined in the Functional Requirements.
-3. Set the theme to 'dark-navy-glassmorphism' to ensure deep navy, blue gradients, and glass cards by using appropriate Tailwind classes. Use Alpine.js for interactivity.
-4. Include realistic mock data relevant to the specific screens being generated in tables or cards.
-5. NEVER use template engine placeholders like {{ }} or [Placeholder]. You MUST inject realistic hardcoded mock data directly into the HTML.
-6. PII SECURITY RULE: NEVER output full credit card, debit card, or bank account numbers in the mock data.
-7. EXTREME BREVITY REQUIRED: You MUST limit output to the absolute minimum required to convey the core UI (max 1-2 screens).
-8. Output ONLY inside triple-backtick html fences. No explanations.`
+2. STRICT REQUIREMENT ADHERENCE: You MUST thoroughly read the provided "FUNCTIONAL REQUIREMENTS (SOURCE OF TRUTH)" section. Your UI MUST explicitly implement every specific field, input, button, and data structure mentioned in those requirements. DO NOT generate generic template filler.
+3. WIREFRAME SYNCHRONIZATION: If Wireframe JSON Schema is provided in the Functional Requirements or Context, you MUST EXACTLY mirror the layout, components, blocks, and structure of the wireframes. DO NOT hallucinate different screen designs (like "AetherCommerce") or random device mockups if the wireframes dictate otherwise. Your prototype MUST be a 1:1 high-fidelity CSS translation of the low-fidelity wireframes.
+4. FULLY FUNCTIONAL STATE & VALIDATION: You MUST use Alpine.js (via x-data) to create a fully working prototype. Form submissions must validate inputs (e.g., required fields, email format) and show error messages if invalid.
+5. MULTI-SCREEN NAVIGATION: The prototype MUST simulate moving between screens dynamically based on Alpine state. Hide/show sections using x-show. Data entered on one screen MUST flow into the next screen.
+6. Set the theme to 'dark-navy-glassmorphism' to ensure deep navy, blue gradients, and glass cards by using appropriate Tailwind classes. Use Alpine.js for interactivity.
+6. Include realistic mock data relevant to the specific screens being generated in tables or cards, mapped precisely to the data fields described in the requirements.
+7. NEVER use template engine placeholders like {{ }} or [Placeholder]. You MUST inject realistic hardcoded mock data directly into the HTML.
+8. PII SECURITY RULE: NEVER output full credit card, debit card, or bank account numbers in the mock data.
+9. EXTREME BREVITY REQUIRED: Limit the output strictly to the necessary screens to convey the core UI workflow.
+10. Output ONLY the raw HTML code wrapped in triple-backtick html fences (\`\`\`html). NEVER output Markdown summaries, JSON schemas, or "Here is the code..." before or after the code block.
+11. NEVER output JSON or Markdown INSIDE the HTML screens. Every screen MUST be pure HTML/Tailwind/Alpine.js.`
   },
   'Flowcharts': {
     name: "Elite Process Architect",
@@ -129,7 +134,8 @@ MANDATORY STABILITY RULES:
 4. Put all text INSIDE nodes: A["Action Text"] --> B["Next Step"]
 5. Every node MUST have a quoted label: ID["Text"]
 6. Maximum 12 nodes for absolute stability.
-7. Output ONLY the code block.
+7. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output Markdown summaries or explanations before or after the code block.
+8. ANTI-HALLUCINATION RULE: NEVER hallucinate processes or steps that are not explicitly requested. You MUST strictly model only the user requirements.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'UML Diagrams': {
@@ -142,6 +148,8 @@ MANDATORY STABILITY RULES:
 3. MUST include 'left to right direction' and 'hide empty members' at the top of the diagram to prevent visual overlapping.
 4. Maximum 8 classes for layout stability. Max 4 properties/methods per class. Keep the diagram sparse and easy to read.
 5. NEVER use the 'artifact' keyword. Use ONLY 'class', 'interface', or 'enum'.
+6. Output ONLY the raw PlantUML code wrapped in triple-backtick plantuml fences (\`\`\`plantuml). NEVER output Markdown summaries or explanations.
+7. ANTI-HALLUCINATION RULE: NEVER hallucinate classes, fields, or relationships that are not explicitly requested. You MUST strictly follow the user requirements.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Test Cases': {
@@ -155,6 +163,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
     tool: "Markdown",
     instruction: `Generate a Business Requirements Document (BRD) following BABOK v3. RULE: Use strictly numbered sections (1.0, 1.1). NO complex symbols or breaking syntax.
 CRITICAL RULE: NEVER include a Requirement Traceability Matrix (RTM) in this document. The RTM must only be generated in the FRD.
+ANTI-HALLUCINATION RULE: NEVER hallucinate business objectives, scope, or requirements that are not explicitly provided by the user. You MUST strictly base your document ONLY on the provided context.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'FRD': {
@@ -166,6 +175,7 @@ CRITICAL MANDATORY REQUIREMENT: You MUST include a '## Requirement Traceability 
 |---|---|---|---|
 | FR-001 | ... | ... | ... |
 Do not omit this section under any circumstances.
+ANTI-HALLUCINATION RULE: NEVER hallucinate functional requirements, UI elements, or acceptance criteria that are not explicitly provided by the user. You MUST strictly base your document ONLY on the provided context.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Executive Pitch': {
@@ -179,6 +189,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
     tool: "Markdown",
     instruction: `Generate a Product Requirements Document (PRD). RULE: Use MoSCoW prioritization and standard Markdown lists.
 CRITICAL RULE: NEVER include a Requirement Traceability Matrix (RTM) in this document. The RTM must only be generated in the FRD.
+ANTI-HALLUCINATION RULE: NEVER hallucinate features, user stories, or requirements that are not explicitly provided by the user. You MUST strictly base your document ONLY on the provided context.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'SRD': {
@@ -186,6 +197,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
     tool: "Markdown",
     instruction: `Generate a System Requirements Document (SRD). RULE: Focus on ISO/IEC 25010 standards using strictly stable Markdown.
 CRITICAL RULE: NEVER include a Requirement Traceability Matrix (RTM) in this document. The RTM must only be generated in the FRD.
+ANTI-HALLUCINATION RULE: NEVER hallucinate system architectures, APIs, or requirements that are not explicitly provided by the user. You MUST strictly base your document ONLY on the provided context.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Regulatory Advisor': {

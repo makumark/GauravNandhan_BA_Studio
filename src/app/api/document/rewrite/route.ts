@@ -4,6 +4,8 @@ import { GoogleGenerativeAI } from '@google/generative-ai';
 const apiKey = process.env.GEMINI_API_KEY || '';
 const genAI = new GoogleGenerativeAI(apiKey);
 
+export const maxDuration = 60;
+
 export async function POST(req: Request) {
   try {
     const { text, instruction } = await req.json();

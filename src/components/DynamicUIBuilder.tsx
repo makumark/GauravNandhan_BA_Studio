@@ -9,7 +9,18 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
   let parsedSchema;
   try {
     // We expect the LLM to output a JSON string, possibly wrapped in markdown backticks
-    const jsonStr = schema.replace(/```json/gi, '').replace(/```/g, '').trim();
+    let jsonStr = schema;
+    const jsonMatch = schema.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+    if (jsonMatch) {
+      jsonStr = jsonMatch[1].trim();
+    } else {
+      const startIdx = schema.indexOf('{');
+      const endIdx = schema.lastIndexOf('}');
+      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+        jsonStr = schema.substring(startIdx, endIdx + 1).trim();
+      }
+    }
+    
     try {
       parsedSchema = JSON.parse(jsonStr);
     } catch (e1) {
