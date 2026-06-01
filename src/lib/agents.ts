@@ -139,7 +139,8 @@ STRICT RULES:
 8. PII SECURITY RULE: NEVER output full credit card, debit card, or bank account numbers in the mock data.
 9. EXTREME BREVITY REQUIRED: Limit the output strictly to the necessary screens to convey the core UI workflow.
 10. Output ONLY the raw HTML code wrapped in triple-backtick html fences (\`\`\`html). NEVER output Markdown summaries, JSON schemas, or "Here is the code..." before or after the code block.
-11. NEVER output JSON or Markdown INSIDE the HTML screens. Every screen MUST be pure HTML/Tailwind/Alpine.js.`
+11. NEVER output JSON or Markdown INSIDE the HTML screens. Every screen MUST be pure HTML/Tailwind/Alpine.js.
+12. PROTOTYPE LOGIN RULE: For any login or authentication screens, you MUST NOT hardcode specific dummy credentials (e.g. 'admin/admin') that block the user. You MUST accept ANY credentials that pass basic format validation (e.g. valid email syntax) and allow the user to successfully log in and proceed to the next screen.`
   },
   'Flowcharts': {
     name: "Elite Process Architect",
