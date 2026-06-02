@@ -2,6 +2,7 @@
 
 import { DynamicUIBuilder } from '@/components/DynamicUIBuilder';
 import { LogicSandboxRenderer } from '@/components/LogicSandbox';
+import { DiagramErrorBoundary } from '@/components/DiagramErrorBoundary';
 
 import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
@@ -101,6 +102,7 @@ export default function Home() {
   const [isProjectSelectionModalOpen, setIsProjectSelectionModalOpen] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState("");
   const [staleDocs, setStaleDocs] = useState<Set<string>>(new Set());
+  const [cachedTemplates, setCachedTemplates] = useState<any[]>([]);
 
   // â”€â”€ Brain 1: Session State Machine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [sessionState, setSessionState] = useState<'INTAKE' | 'QUESTIONING' | 'READY'>('INTAKE');
@@ -303,18 +305,80 @@ export default function Home() {
     scrollToBottom();
   }, [chatMessages, isProcessing]);
 
+  // ── Session Persistence: Save to localStorage on every meaningful change ──
+  useEffect(() => {
+    // Only persist if the user has started a conversation and is NOT on a saved DB project
+    // (DB projects are already persisted — no need to double-save)
+    if (currentProjectId) return; // DB project — skip localStorage
+    if (chatMessages.length <= 1) return; // Only the welcome message — nothing to save
+    try {
+      const snapshot = {
+        chatMessages,
+        docsReady,
+        domainDetected,
+        readinessScore,
+        sessionState,
+        // Documents: cap each doc content to 50KB to stay within localStorage limits
+        documents: Object.fromEntries(
+          Object.entries(documents).map(([k, v]) => [k, { ...v, content: (v.content || '').substring(0, 50000) }])
+        )
+      };
+      localStorage.setItem('ba_studio_session', JSON.stringify(snapshot));
+    } catch (e) {
+      // localStorage full or unavailable — fail silently
+      console.warn('localStorage save failed', e);
+    }
+  }, [chatMessages, documents, docsReady, currentProjectId]);
+
+  // ── Session Recovery: Restore from localStorage on first load ──
+  useEffect(() => {
+    if (currentProjectId) return; // Already loading from DB
+    try {
+      const saved = localStorage.getItem('ba_studio_session');
+      if (!saved) return;
+      const snapshot = JSON.parse(saved);
+      // Only restore if there is meaningful saved data (more than the welcome message)
+      if (snapshot.chatMessages && snapshot.chatMessages.length > 1) {
+        const shouldRestore = window.confirm(
+          '🗂️ You have an unsaved session from your last visit. Would you like to restore it?\n\nClick OK to restore, or Cancel to start fresh.'
+        );
+        if (shouldRestore) {
+          setChatMessages(snapshot.chatMessages);
+          setDocuments(snapshot.documents || {});
+          setDocsReady(snapshot.docsReady ?? false);
+          setDomainDetected(snapshot.domainDetected || '');
+          setReadinessScore(snapshot.readinessScore || 0);
+          setSessionState(snapshot.sessionState || 'INTAKE');
+        } else {
+          localStorage.removeItem('ba_studio_session');
+        }
+      }
+    } catch (e) {
+      console.warn('Session restore failed', e);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
+
   useEffect(() => {
     if (session?.user) {
       fetch('/api/projects').then(res => res.json()).then(data => {
         if (Array.isArray(data)) {
           setPastProjects(data);
-          if (!currentProjectId && data.length >= 0) {
+          if (!currentProjectId && data.length > 0) {
             setIsProjectSelectionModalOpen(true);
           }
         }
       });
     }
   }, [session, currentProjectId]);
+
+  useEffect(() => {
+    if (!session?.user) return;
+    fetch('/api/templates')
+      .then(r => r.ok ? r.json() : [])
+      .then(data => { if (Array.isArray(data)) setCachedTemplates(data); })
+      .catch(() => {});
+  }, [session]);
 
   const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -339,34 +403,41 @@ export default function Home() {
     try {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        const base64Data = (event.target?.result as string).split(',')[1];
-        
-        const newMessages = [...chatMessages, { role: "user", content: `Analyzing audio file: ${file.name}` }];
-        setChatMessages(newMessages);
+        try {
+          const base64Data = (event.target?.result as string).split(',')[1];
+          
+          const newMessages = [...chatMessages, { role: "user", content: `Analyzing audio file: ${file.name}` }];
+          setChatMessages(newMessages);
 
-        runAnalysis(`Analyzing audio file: ${file.name}`);
+          const response = await fetch('/api/audio', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              audioData: base64Data,
+              mimeType: file.type
+            })
+          });
 
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ 
-            messages: newMessages, 
-            audioData: base64Data,
-            mimeType: file.type
-          })
-        });
+          const data = await response.json();
+          if (!response.ok) throw new Error(data.error || 'Failed to transcribe audio');
 
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error || 'Failed to process audio');
-
-        setChatMessages(prev => [...prev, { role: "assistant", content: data.content }]);
-        setDocsReady(true);
+          // Insert the transcribed text into the chat input for the user to review before sending
+          setMomInput(prev => prev + (prev ? '\n\n' : '') + `[Audio Transcript from ${file.name}]:\n${data.content}`);
+          setChatMessages(prev => prev.filter(m => m.content !== `Analyzing audio file: ${file.name}`));
+          alert(`✅ Audio transcribed successfully! The transcript has been added to your input box. Review it and click Send.`);
+        } catch (error: any) {
+          console.error("Audio processing error:", error);
+          alert(`Error processing audio: ${error.message}`);
+          setChatMessages(prev => prev.filter(m => m.content !== `Analyzing audio file: ${file.name}`));
+        } finally {
+          setIsProcessing(false);
+          if (audioInputRef.current) audioInputRef.current.value = "";
+        }
       };
       reader.readAsDataURL(file);
     } catch (error: any) {
-      console.error("Audio processing error:", error);
-      alert(`Error processing audio: ${error.message}`);
-    } finally {
+      console.error("Audio reader error:", error);
+      alert(`Error reading audio file: ${error.message}`);
       setIsProcessing(false);
       if (audioInputRef.current) audioInputRef.current.value = "";
     }
@@ -406,6 +477,7 @@ export default function Home() {
     setLogicAlerts([]);
     setRequirementGaps([]);
     setStaleDocs(new Set());
+    localStorage.removeItem('ba_studio_session');
     // Reset semantic graph state
     setGraphNodes([]);
     setGraphEdges([]);
@@ -415,6 +487,16 @@ export default function Home() {
 
   const handleSend = async () => {
     if (!momInput.trim()) return;
+    
+    // Input size guard — prevent token limit crashes
+    if (momInput.trim().length > 50000) {
+      alert('⚠️ Input is too large (over 50,000 characters). Please break your requirements into smaller sections and send them in multiple messages.');
+      return;
+    }
+    if (momInput.trim().length > 15000) {
+      const proceed = window.confirm('⚠️ Large input detected (' + Math.round(momInput.trim().length / 1000) + 'K characters). This may slow down the AI response. Continue?');
+      if (!proceed) return;
+    }
     
     const userText = momInput.trim();
     const newMessages = [...chatMessages, { role: "user", content: userText }];
@@ -535,21 +617,9 @@ export default function Home() {
         }
       }
 
-      // Fetch user's saved templates to see if there is a match for this document
-      let templateContent = "";
-      try {
-        const tRes = await fetch('/api/templates');
-        if (tRes.ok) {
-          const templates = await tRes.json();
-          // Look for a template with a matching name (e.g. 'BRD', 'FRD')
-          const matched = templates.find((t: any) => t.name.toLowerCase() === docName.toLowerCase());
-          if (matched) {
-            templateContent = matched.content;
-          }
-        }
-      } catch (err) {
-        console.error("Failed to fetch templates during generation", err);
-      }
+      // Use cached templates (loaded once on login) — no per-click DB call
+      const matched = cachedTemplates.find((t: any) => t.name.toLowerCase() === docName.toLowerCase());
+      const templateContent = matched?.content || "";
 
       const streamRes = await fetch('/api/generate/stream', {
         method: 'POST',
@@ -1671,7 +1741,7 @@ export default function Home() {
                     ) : (
                       activeTab === "Logic Sandbox" ? (
                         <div className="p-4 h-full">
-                           <LogicSandboxRenderer jsonString={documents[activeTab]?.content || ""} isProcessing={isProcessing} />
+                           <DiagramErrorBoundary><LogicSandboxRenderer jsonString={documents[activeTab]?.content || ""} isProcessing={isProcessing} /></DiagramErrorBoundary>
                         </div>
                       ) : activeTab === "Wireframes" ? (
                                 <div className="p-4 h-full">
@@ -1704,7 +1774,7 @@ export default function Home() {
                                         );
                                       }
 
-                                      return <DynamicUIBuilder schema={finalSchema} isProcessing={isProcessing} />;
+                                      return <DiagramErrorBoundary><DynamicUIBuilder schema={finalSchema} isProcessing={isProcessing} /></DiagramErrorBoundary>;
                                   })()}
                                 </div>
                       ) : activeTab === "Prototypes" ? (
@@ -1764,7 +1834,7 @@ export default function Home() {
                                         
                                         summary = tempSummary.trim();
                                       }
-                                      return <LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} />;
+                                      return <DiagramErrorBoundary><LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} /></DiagramErrorBoundary>;
                                   })()}
                                 </div>
                       ) : activeTab === "Flowcharts" ? (
@@ -1773,7 +1843,7 @@ export default function Home() {
                                       const rawContent = documents[activeTab]?.content || "";
                                       const match = rawContent.match(/```(?:mermaid)?\s*([\s\S]*?)\s*```/i);
                                       const chartCode = match ? match[1].trim() : rawContent.trim();
-                                      return <MermaidRenderer chart={chartCode} isProcessing={isProcessing} />;
+                                      return <DiagramErrorBoundary><MermaidRenderer chart={chartCode} isProcessing={isProcessing} /></DiagramErrorBoundary>;
                                   })()}
                                 </div>
                       ) : (
@@ -1820,7 +1890,7 @@ export default function Home() {
                                  
                                 return (
                                   <div className="flex flex-col gap-4">
-                                    <PlantUMLRenderer code={code} isProcessing={isProcessing} />
+                                    <DiagramErrorBoundary><PlantUMLRenderer code={code} isProcessing={isProcessing} /></DiagramErrorBoundary>
                                     <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 overflow-hidden">
                                       <div className="flex items-center justify-between mb-2 px-1">
                                         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">PlantUML Source</span>
@@ -2032,7 +2102,7 @@ export default function Home() {
                             if (documents['Prototypes'] && documents['Wireframes']) graphCode += "Wireframes --> Prototypes\n";
                             if (documents['Test Cases'] && documents['FRD']) graphCode += "FRD --> Test_Cases\n";
 
-                            return <MermaidRenderer chart={graphCode} />;
+                             return <DiagramErrorBoundary><MermaidRenderer chart={graphCode} /></DiagramErrorBoundary>;
                           })()}
                         </div>
 

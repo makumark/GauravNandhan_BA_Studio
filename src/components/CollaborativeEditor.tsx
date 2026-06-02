@@ -161,7 +161,7 @@ export function CollaborativeEditor({ initialContent, documentId, onUpdate, proj
             {isRewriting && <Loader2 size={14} className="animate-spin text-slate-400 ml-2" />}
           </form>
         </div>
-        <div className="text-xs text-slate-500">Highlight text to rewrite</div>
+        <div className="text-xs text-slate-500">AI Smart Editor — Highlight text to rewrite with AI</div>
       </div>
 
       {projectId && activeNodeId && (
