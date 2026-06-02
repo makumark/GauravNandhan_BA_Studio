@@ -82,12 +82,9 @@ export async function POST(req: Request) {
       safetySettings,
     });
 
-    // Build context: include first user message (MOM) + recent messages
-    const contextSize = documentRequested ? -15 : -5;
-    const momMessage = sanitizedMessages.find((m: any, i: number) => i === 0 || m.role === 'user');
-    const recentMessages = sanitizedMessages.slice(contextSize);
+    // Build context: include all messages
     const uniqueMessages = Array.from(new Map(
-      [momMessage, ...recentMessages].filter(Boolean).map((m: any) => [m.content, m])
+      sanitizedMessages.filter(Boolean).map((m: any) => [m.content, m])
     ).values());
     const context = (uniqueMessages as any[]).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
 
