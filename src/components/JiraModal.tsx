@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, Send, ExternalLink, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -15,6 +15,15 @@ export function JiraModal({ isOpen, onClose, docTitle, docContent }: JiraModalPr
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState<{ key: string, url: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset modal state when opened
+  useEffect(() => {
+    if (isOpen) {
+      setSuccess(null);
+      setError(null);
+      setLoading(false);
+    }
+  }, [isOpen]);
 
   const [formData, setFormData] = useState({
     siteUrl: '',
