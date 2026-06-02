@@ -147,9 +147,7 @@ export async function POST(req: Request) {
     }
 
     // ── Build Context-Aware Prompt ──────────────────────────────
-    const uniqueMessages = Array.from(new Map(
-      history.filter(Boolean).map((m: any) => [m.content, m])
-    ).values());
+    const uniqueMessages = history.filter(Boolean);
     const context = (uniqueMessages as any[]).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
 
     const prompt = `${ANALYSIS_PROMPT}

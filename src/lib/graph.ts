@@ -48,13 +48,13 @@ export interface InMemoryGraph {
 // ── Document Type Mapping ──────────────────────────────────────────────────────
 // Maps a graph nodeType to the BA Studio document tabs that are affected.
 export const DOC_TYPE_MAP: Record<GraphNodeType, string[]> = {
-  REQUIREMENT: ['BRD', 'FRD', 'PRD', 'SRD'],
+  REQUIREMENT: ['BRD', 'FRD', 'PRD', 'SRD', 'Flowcharts', 'Logic Sandbox'],
   SCREEN:      ['Wireframes', 'Prototypes'],
   API:         ['FRD', 'SRD', 'UML Diagrams'],
   TEST_CASE:   ['Test Cases'],
   DOCUMENT:    [], // document nodes don't trigger other documents
   EPIC:        ['BRD', 'PRD', 'Executive Pitch'],
-  FEATURE:     ['FRD', 'PRD'],
+  FEATURE:     ['FRD', 'PRD', 'Flowcharts', 'Logic Sandbox'],
 };
 
 // ── Build In-Memory Graph ──────────────────────────────────────────────────────
