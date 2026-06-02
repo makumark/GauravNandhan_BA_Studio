@@ -116,7 +116,7 @@ export const AGENT_CONFIGS: Record<string, any> = {
     instruction: `Generate a CONCISE, low-fidelity grayscale wireframe as a strict JSON UI Schema.
 STRICT RULES:
 1. Output a SINGLE self-contained JSON object matching the standard.
-2. STRUCTURAL SYMMETRY: You MUST generate ALL screens defined in the Functional Requirements.
+2. STRUCTURAL SYMMETRY: You MUST generate ALL screens defined in the Functional Requirements AND any additional screens or modifications mentioned in the Conversation Context. Do not drop existing screens when new ones are added.
 3. Use the exact same screen names and IDs from the Functional Requirements.
 4. TEXTUAL CLARITY: Use actual text labels, field names, and descriptive titles. NEVER use 'Lorem Ipsum'.
 5. Set the theme to 'grayscale' in the schema.
@@ -129,7 +129,7 @@ STRICT RULES:
     instruction: `Generate a CONCISE, high-fidelity prototype as a fully functional HTML/Tailwind/Alpine.js workflow based on the provided requirements and wireframes.
 STRICT RULES:
 1. Output a SINGLE self-contained HTML block. Do NOT use html, head, or body tags, just output the content.
-2. STRICT REQUIREMENT ADHERENCE: You MUST thoroughly read the provided "FUNCTIONAL REQUIREMENTS (SOURCE OF TRUTH)" section. Your UI MUST explicitly implement every specific field, input, button, and data structure mentioned in those requirements. DO NOT generate generic template filler.
+2. STRICT REQUIREMENT ADHERENCE: You MUST thoroughly read the provided "FUNCTIONAL REQUIREMENTS (SOURCE OF TRUTH)" section AND the "CONVERSATION CONTEXT". Your UI MUST explicitly implement every specific field, input, button, and data structure mentioned in those requirements, merging all existing and new requirements. DO NOT drop previously built features. DO NOT generate generic template filler.
 3. WIREFRAME SYNCHRONIZATION: If Wireframe JSON Schema is provided in the Functional Requirements or Context, you MUST EXACTLY mirror the layout, components, blocks, and structure of the wireframes. DO NOT hallucinate different screen designs (like "AetherCommerce") or random device mockups if the wireframes dictate otherwise. Your prototype MUST be a 1:1 high-fidelity CSS translation of the low-fidelity wireframes.
 4. FULLY FUNCTIONAL STATE & VALIDATION: You MUST use Alpine.js (via x-data) to create a fully working prototype. Form submissions must validate inputs (e.g., required fields, email format) and show error messages if invalid.
 5. MULTI-SCREEN NAVIGATION: The prototype MUST simulate moving between screens dynamically based on Alpine state. Hide/show sections using x-show. Data entered on one screen MUST flow into the next screen.
@@ -154,7 +154,8 @@ MANDATORY STABILITY RULES:
 5. Every node MUST have a quoted label: ID["Text"]
 6. Maximum 12 nodes for absolute stability.
 7. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output Markdown summaries or explanations before or after the code block.
-8. ANTI-HALLUCINATION RULE: NEVER hallucinate processes or steps that are not explicitly requested. You MUST strictly model only the user requirements.
+8. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps, both from the Functional Requirements and the Conversation Context. Do not drop old steps when new ones are added.
+9. ANTI-HALLUCINATION RULE: NEVER hallucinate processes or steps that are not explicitly requested. You MUST strictly model only the user requirements.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Logic Sandbox': {
@@ -163,7 +164,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
     instruction: `Generate a CONCISE Executable Logic Sandbox as a strict JSON UI Schema.
 STRICT RULES:
 1. Output a SINGLE self-contained JSON object matching the standard.
-2. STRUCTURAL SYMMETRY: You MUST extract the most complex business rule or calculation from the Functional Requirements.
+2. STRUCTURAL SYMMETRY: You MUST extract and combine ALL complex business rules and calculations from both the Functional Requirements and the Conversation Context into a single comprehensive logic code block. Do not drop existing rules when new ones are added.
 3. INLINE JAVASCRIPT: The \`logic\` field must contain a raw JavaScript string that takes the variables defined in \`inputs\` (by their exact \`name\`) and returns a string Outcome. The logic must use standard JS syntax (if/else, math, etc.).
 4. Do NOT output a markdown block inside the JSON string. The \`code\` field should be a nested JSON object containing \`title\`, \`inputs\`, and \`logic\`.
 5. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations before or after the code block.`
@@ -179,7 +180,8 @@ MANDATORY STABILITY RULES:
 4. Maximum 8 classes for layout stability. Max 4 properties/methods per class. Keep the diagram sparse and easy to read.
 5. NEVER use the 'artifact' keyword. Use ONLY 'class', 'interface', or 'enum'.
 6. Output ONLY the raw PlantUML code wrapped in triple-backtick plantuml fences (\`\`\`plantuml). NEVER output Markdown summaries or explanations.
-7. ANTI-HALLUCINATION RULE: NEVER hallucinate classes, fields, or relationships that are not explicitly requested. You MUST strictly follow the user requirements.
+7. COMPREHENSIVENESS RULE: You MUST combine ALL classes and relationships from both the Functional Requirements and the Conversation Context. Do not drop old classes when new ones are added.
+8. ANTI-HALLUCINATION RULE: NEVER hallucinate classes, fields, or relationships that are not explicitly requested. You MUST strictly follow the user requirements.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Test Cases': {
