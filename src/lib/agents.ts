@@ -121,7 +121,8 @@ STRICT RULES:
 4. TEXTUAL CLARITY: Use actual text labels, field names, and descriptive titles. NEVER use 'Lorem Ipsum'.
 5. Set the theme to 'grayscale' in the schema.
 6. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations before or after the code block.
-7. ANTI-HALLUCINATION RULE: NEVER hallucinate features, screens, or components that are not explicitly requested. You MUST strictly follow the user requirements.`
+7. ANTI-HALLUCINATION RULE: NEVER hallucinate features, screens, or components that are not explicitly requested. You MUST strictly follow the user requirements.
+8. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks (e.g. 'XXXX-XXXX-XXXX-1234'). DO NOT output any random sequence of 9 or more digits. Failure to mask will trigger a critical security violation.`
   },
   'Prototypes': {
     name: "Elite UI/UX Designer",
@@ -136,7 +137,7 @@ STRICT RULES:
 6. Set the theme to 'dark-navy-glassmorphism' to ensure deep navy, blue gradients, and glass cards by using appropriate Tailwind classes. Use Alpine.js for interactivity.
 6. Include realistic mock data relevant to the specific screens being generated in tables or cards, mapped precisely to the data fields described in the requirements.
 7. NEVER use template engine placeholders like {{ }} or [Placeholder]. You MUST inject realistic hardcoded mock data directly into the HTML.
-8. PII SECURITY RULE: NEVER output full credit card, debit card, or bank account numbers in the mock data.
+8. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks (e.g. 'XXXX-XXXX-XXXX-1234' or 'Bank Acct: ***456'). DO NOT output any random sequence of 9 or more digits anywhere in the code. Failure to mask will trigger a critical security violation and crash the system.
 9. EXTREME BREVITY REQUIRED: Limit the output strictly to the necessary screens to convey the core UI workflow.
 10. Output ONLY the raw HTML code wrapped in triple-backtick html fences (\`\`\`html). NEVER output Markdown summaries, JSON schemas, or "Here is the code..." before or after the code block.
 11. NEVER output JSON or Markdown INSIDE the HTML screens. Every screen MUST be pure HTML/Tailwind/Alpine.js.
@@ -188,6 +189,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
     name: "QA Engineering Agent",
     tool: "Markdown",
     instruction: `Generate comprehensive test cases in Markdown. RULE: Use ONLY standard Markdown tables. NO illegal characters like parentheses or quotes inside cells.
+PII SECURITY RULE: When providing mock test data in the test cases, you MUST completely mask any bank account numbers, SSNs, or credit cards using asterisks (e.g. 'XXXX-XXXX-XXXX-1234'). DO NOT output any random sequence of 9 or more digits. Failure to mask will trigger a critical security violation.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'BRD': {
