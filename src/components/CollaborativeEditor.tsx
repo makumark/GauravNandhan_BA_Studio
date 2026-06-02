@@ -5,14 +5,20 @@ import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Markdown } from 'tiptap-markdown';
 import { Wand2, Check, X, Loader2 } from 'lucide-react';
+import { TraceabilityAlerts } from './TraceabilityAlerts';
+import { GraphNodeData, GraphEdgeData } from '@/lib/graph';
 
 interface CollaborativeEditorProps {
   initialContent: string;
   documentId?: string; // Optional for now, useful if we save back to DB
   onUpdate?: (markdown: string) => void;
+  projectId?: string;
+  graphNodes?: GraphNodeData[];
+  graphEdges?: GraphEdgeData[];
 }
 
-export function CollaborativeEditor({ initialContent, documentId, onUpdate }: CollaborativeEditorProps) {
+export function CollaborativeEditor({ initialContent, documentId, onUpdate, projectId, graphNodes, graphEdges }: CollaborativeEditorProps) {
+  const [activeNodeId, setActiveNodeId] = useState<string | undefined>(undefined);
   const [rewriteInstruction, setRewriteInstruction] = useState('');
   const [isRewriting, setIsRewriting] = useState(false);
   const [hasSelection, setHasSelection] = useState(false);
@@ -37,6 +43,41 @@ export function CollaborativeEditor({ initialContent, documentId, onUpdate }: Co
     onSelectionUpdate: ({ editor }) => {
       const { from, to } = editor.state.selection;
       setHasSelection(from !== to);
+
+      // Detect Requirement IDs near cursor (e.g., REQ-1, FR-05, TC-12)
+      try {
+        const textOffset = editor.state.selection.$anchor.textOffset;
+        const node = editor.state.doc.nodeAt(editor.state.selection.$anchor.pos - textOffset);
+        
+        if (node && node.isText && node.text) {
+          const text = node.text;
+          const idRegex = /(?:REQ|FR|SCR|API|TC|EPIC)-\d+/g;
+          const matches = [...text.matchAll(idRegex)];
+          
+          let closestId = undefined;
+          
+          for (const match of matches) {
+            if (match.index !== undefined) {
+              const matchStart = match.index;
+              const matchEnd = match.index + match[0].length;
+              
+              // If cursor is within 15 chars of the ID, trigger the warning
+              if (textOffset >= matchStart - 15 && textOffset <= matchEnd + 15) {
+                closestId = match[0];
+                break;
+              }
+            }
+          }
+          
+          if (closestId !== activeNodeId) {
+            setActiveNodeId(closestId);
+          }
+        } else if (activeNodeId) {
+          setActiveNodeId(undefined);
+        }
+      } catch (e) {
+        // Silently ignore selection errors
+      }
     },
     editorProps: {
       attributes: {
@@ -122,6 +163,17 @@ export function CollaborativeEditor({ initialContent, documentId, onUpdate }: Co
         </div>
         <div className="text-xs text-slate-500">Highlight text to rewrite</div>
       </div>
+
+      {projectId && activeNodeId && (
+        <div className="px-6 -mb-4 z-10 sticky top-0">
+          <TraceabilityAlerts 
+            projectId={projectId} 
+            editedNodeId={activeNodeId} 
+            graphNodes={graphNodes} 
+            graphEdges={graphEdges} 
+          />
+        </div>
+      )}
 
       {pendingSuggestion && (
         <div className="absolute top-16 right-4 w-96 bg-slate-800 border border-blue-500/50 rounded-lg shadow-2xl p-4 z-50">

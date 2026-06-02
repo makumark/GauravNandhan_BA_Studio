@@ -1825,6 +1825,9 @@ export default function Home() {
                                 {isTextDoc && !isProcessing ? (
                                   <CollaborativeEditor 
                                     initialContent={content} 
+                                    projectId={currentProjectId || 'local'}
+                                    graphNodes={graphNodes}
+                                    graphEdges={graphEdges}
                                     onUpdate={(newMd) => {
                                       setDocuments(prev => ({
                                         ...prev, 
