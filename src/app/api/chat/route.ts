@@ -82,10 +82,9 @@ export async function POST(req: Request) {
       safetySettings,
     });
 
-    // Build context: include all messages
-    const uniqueMessages = Array.from(new Map(
-      sanitizedMessages.filter(Boolean).map((m: any) => [m.content, m])
-    ).values());
+    // Build context: include ALL messages in order. Do NOT deduplicate by content —
+    // that would silently drop messages with identical text (e.g. "Yes", "OK").
+    const uniqueMessages = sanitizedMessages.filter(Boolean);
     const context = (uniqueMessages as any[]).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
 
     // ── DOCUMENT GENERATION ──────────────────────────────────────────

@@ -34,10 +34,9 @@ export async function POST(req: Request) {
     const isVisual = documentRequested === 'Prototypes' || documentRequested === 'Wireframes' || documentRequested === 'UML Diagrams' || documentRequested === 'Logic Sandbox';
     const toolExample = GOLD_STANDARD_EXAMPLES[agent.tool as keyof typeof GOLD_STANDARD_EXAMPLES] || "";
 
-    // Provide the FULL conversation history to ensure no requirements are dropped
-    const uniqueMessages = Array.from(new Map(
-      sanitizedMessages.filter(Boolean).map((m: any) => [m.content, m])
-    ).values());
+    // Provide the FULL conversation history in order. Do NOT deduplicate by content —
+    // that would silently drop messages with identical text (e.g. "Yes", "OK").
+    const uniqueMessages = sanitizedMessages.filter(Boolean);
     const context = (uniqueMessages as any[]).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
 
     const prompt = `
@@ -61,9 +60,7 @@ CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble,
 
     return NextResponse.json({ 
       prompt, 
-      modelName: isVisual ? 'gemini-2.5-pro' : 'gemini-2.5-flash',
-      // Provide the key safely for client-side streaming of this specific request
-      apiKey: process.env.GEMINI_API_KEY || ''
+      modelName: isVisual ? 'gemini-2.5-pro' : 'gemini-2.5-flash'
     });
 
   } catch (error: any) {

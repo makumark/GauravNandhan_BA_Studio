@@ -23,13 +23,9 @@ export const generateVisualArtifacts = inngest.createFunction(
       const isVisual = documentRequested === 'Prototypes' || documentRequested === 'Wireframes' || documentRequested === 'UML Diagrams';
       const toolExample = GOLD_STANDARD_EXAMPLES[agent.tool] || "";
 
-      // Build context
-      const contextSize = documentRequested ? -15 : -5;
-      const momMessage = messages.find((m: any, i: number) => i === 0 || m.role === 'user');
-      const recentMessages = messages.slice(contextSize);
-      const uniqueMessages = Array.from(new Map(
-        [momMessage, ...recentMessages].filter(Boolean).map((m: any) => [m.content, m])
-      ).values());
+      // Build context: include ALL messages in order. Never slice — slicing drops earlier
+      // requirements and causes the background generator to forget context.
+      const uniqueMessages = messages.filter(Boolean);
       const context = (uniqueMessages as any[]).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
 
       const prompt = `

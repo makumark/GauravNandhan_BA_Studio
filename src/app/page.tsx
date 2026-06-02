@@ -2,7 +2,7 @@
 
 import { DynamicUIBuilder } from '@/components/DynamicUIBuilder';
 import { LogicSandboxRenderer } from '@/components/LogicSandbox';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from "@google/generative-ai";
+
 import { useState, useEffect, useRef } from "react";
 import { useSession, signOut } from "next-auth/react";
 import { useRouter } from "next/navigation";
@@ -102,7 +102,7 @@ export default function Home() {
   const [newProjectTitle, setNewProjectTitle] = useState("");
   const [staleDocs, setStaleDocs] = useState<Set<string>>(new Set());
 
-  // ── Brain 1: Session State Machine ──────────────────────────────
+  // â”€â”€ Brain 1: Session State Machine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const [sessionState, setSessionState] = useState<'INTAKE' | 'QUESTIONING' | 'READY'>('INTAKE');
   const [readinessScore, setReadinessScore] = useState(0);
   const [feasibilityIssues, setFeasibilityIssues] = useState<string[]>([]);
@@ -132,16 +132,41 @@ export default function Home() {
   const [terraformPlan, setTerraformPlan] = useState<string | null>(null);
   const [isGeneratingIaC, setIsGeneratingIaC] = useState(false);
 
-  // ── Semantic Graph State (in-memory, zero cost) ───────────────────────────────────────────────────────────────────────
+  // â”€â”€ Semantic Graph State (in-memory, zero cost) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   // Stores the current session's graph nodes and edges as plain JS objects.
   // buildInMemoryGraph() converts these into an adjacency map for BFS traversal.
-  // Works for ALL users (logged in or not) — no DB required for traversal.
+  // Works for ALL users (logged in or not) â€” no DB required for traversal.
   const [graphNodes, setGraphNodes] = useState<GraphNodeData[]>([]);
   const [graphEdges, setGraphEdges] = useState<GraphEdgeData[]>([]);
-  // Latest traversal result — populated after each requirement change
+  // Latest traversal result â€” populated after each requirement change
   const [lastTraversalPaths, setLastTraversalPaths] = useState<{from:string;to:string;relationship:string}[]>([]);
   const [lastAffectedNodes, setLastAffectedNodes] = useState<GraphNodeData[]>([]);
   const [showGraphImpactModal, setShowGraphImpactModal] = useState(false);
+
+  // â”€â”€ Human Brain Agent: Product Health State â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  const [healthCheckResult, setHealthCheckResult] = useState<any>(null);
+  const [isRunningHealthCheck, setIsRunningHealthCheck] = useState(false);
+  const [showHealthCheck, setShowHealthCheck] = useState(false);
+
+  const runHealthCheck = async () => {
+    setIsRunningHealthCheck(true);
+    setShowHealthCheck(true);
+    try {
+      const res = await fetch('/api/healthcheck', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: chatMessages, documents, domainDetected })
+      });
+      if (!res.ok) throw new Error(`Health check failed: ${res.status}`);
+      const data = await res.json();
+      setHealthCheckResult(data);
+    } catch (e: any) {
+      console.error('Health check error:', e);
+      setHealthCheckResult({ error: e.message });
+    } finally {
+      setIsRunningHealthCheck(false);
+    }
+  };
 
   const [chatMessages, setChatMessages] = useState<{role: string, content: string}[]>([
     {
@@ -155,7 +180,7 @@ export default function Home() {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   };
 
-  // ── Brain 1: Feasibility & Completeness Analysis ─────────────────
+  // â”€â”€ Brain 1: Feasibility & Completeness Analysis â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const runAnalysis = async (userMessage: string, historyOverride?: {role: string, content: string}[]) => {
     setIsAnalyzing(true);
     const newRound = questionRoundCount + 1;
@@ -210,13 +235,13 @@ export default function Home() {
           timestamp: new Date().toLocaleTimeString() 
         }]);
 
-        // ── SEMANTIC GRAPH: Update in-memory graph from latest analysis response ────────
+        // â”€â”€ SEMANTIC GRAPH: Update in-memory graph from latest analysis response â”€â”€â”€â”€â”€â”€â”€â”€
         const newNodes: GraphNodeData[] = data.graphNodes || [];
         const newEdges: GraphEdgeData[] = data.graphEdges || [];
         setGraphNodes(newNodes);
         setGraphEdges(newEdges);
 
-        // ── SEMANTIC GRAPH: Precise stale-doc detection via BFS traversal ─────────────
+        // â”€â”€ SEMANTIC GRAPH: Precise stale-doc detection via BFS traversal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         // Run BFS whenever ANY requirement changed (added, modified, or removed)
         if (
           impactReport &&
@@ -224,7 +249,7 @@ export default function Home() {
            (impactReport.modified?.length ?? 0) > 0 ||
            (impactReport.removed?.length ?? 0) > 0)
         ) {
-          const ir = impactReport; // narrowed local — not null from here
+          const ir = impactReport; // narrowed local â€” not null from here
           const changedIds = [
             ...(ir.added?.map((a: any) => a.id) ?? []),
             ...(ir.modified?.map((m: any) => m.updated.id) ?? []),
@@ -232,7 +257,7 @@ export default function Home() {
           ];
 
           if (newNodes.length > 0 && changedIds.length > 0) {
-            // Build adjacency map and run BFS — pure JS, zero cost
+            // Build adjacency map and run BFS â€” pure JS, zero cost
             const graph: InMemoryGraph = buildInMemoryGraph(newNodes, newEdges);
             const traversal = traverseDownstream(graph, changedIds);
             setLastTraversalPaths(traversal.traversalPaths);
@@ -246,7 +271,7 @@ export default function Home() {
               setStaleDocs(new Set(['BRD', 'FRD', 'PRD', 'SRD', 'UML Diagrams', 'Wireframes', 'Prototypes', 'Regulatory Advisor']));
             }
           } else {
-            // Legacy fallback: no graph data yet — use old link-based detection
+            // Legacy fallback: no graph data yet â€” use old link-based detection
             const changedSet = new Set(changedIds);
             const newlyStale = new Set<string>();
             Object.entries(documents).forEach(([name, doc]) => {
@@ -349,7 +374,7 @@ export default function Home() {
 
   const handleNewProject = () => {
     if (chatMessages.length > 1 && !currentProjectId) {
-      if (!confirm("⚠️ You have unsaved work. Starting a new project will clear current progress. Continue?")) return;
+      if (!confirm("âš ï¸ You have unsaved work. Starting a new project will clear current progress. Continue?")) return;
     }
     
     // Clear all states
@@ -446,12 +471,10 @@ export default function Home() {
       
       if (newMessages.length >= 1) {
         setDocsReady(true);
-        // Automatically regenerate the currently active document based on new requirements
-        if (activeTab !== "Chat") {
-          setTimeout(() => {
-            handleDocumentClick(activeTab, true);
-          }, 500);
-        }
+        // NOTE: Documents are NOT auto-regenerated on every chat message.
+        // The staleDocs system (Brain 1 analysis) is the ONLY source of truth for
+        // triggering regeneration. This prevents documents from changing unexpectedly
+        // when the user sends a clarifying question that doesn't alter requirements.
       }
       
       if (currentProjectId) {
@@ -528,51 +551,46 @@ export default function Home() {
         console.error("Failed to fetch templates during generation", err);
       }
 
-      const promptRes = await fetch('/api/generate/prompt', {
+      const streamRes = await fetch('/api/generate/stream', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: chatMessages, 
-          documentRequested: docName, 
+          messages: chatMessages,
+          documentRequested: docName,
           domainDetected,
           functionalContext: combinedContext,
           templateContent
         })
       });
 
-      if (!promptRes.ok) {
-        throw new Error(`Failed to compile prompt (HTTP ${promptRes.status})`);
+      if (!streamRes.ok) {
+        const errData = await streamRes.json().catch(() => ({}));
+        throw new Error(errData.error || `Generation failed (HTTP ${streamRes.status})`);
       }
 
-      const { prompt, modelName, apiKey } = await promptRes.json();
-      
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({
-        model: modelName,
-        generationConfig: {
-          temperature: 0.1,
-          topP: 0.8,
-          topK: 40,
-          maxOutputTokens: 8192,
-        },
-        safetySettings: [
-          { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-          { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-          { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-          { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        ]
-      });
+      const reader = streamRes.body?.getReader();
+      const decoder = new TextDecoder();
+      let lastRender = 0;
 
-      const result = await model.generateContentStream(prompt);
-
-      for await (const chunk of result.stream) {
-        const chunkText = chunk.text();
-        generatedContent += chunkText;
-        setDocuments(prev => ({
-          ...prev,
-          [docName]: { ...prev[docName], content: generatedContent }
-        }));
+      while (reader) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        generatedContent += decoder.decode(value);
+        const now = Date.now();
+        if (now - lastRender > 80) {
+          lastRender = now;
+          const snap = generatedContent;
+          setDocuments(prev => ({
+            ...prev,
+            [docName]: { ...prev[docName], content: snap }
+          }));
+        }
       }
+      // Final flush
+      setDocuments(prev => ({
+        ...prev,
+        [docName]: { ...prev[docName], content: generatedContent }
+      }));
 
       // Stream completed! Now silently save to database
       if (activeProjectId) {
@@ -846,7 +864,7 @@ export default function Home() {
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>${activeTab} — Gaurav Nandhan BA Studio</title>
+        <title>${activeTab} â€” Gaurav Nandhan BA Studio</title>
         <style>
           @page { margin: 20mm; size: A4; }
           * { box-sizing: border-box; }
@@ -889,14 +907,14 @@ export default function Home() {
 
         ${isVisual ? `
           <div class="visual-note">
-            ⚠️ This is the structured HTML/Tailwind source for the ${activeTab}. 
+            âš ï¸ This is the structured HTML/Tailwind source for the ${activeTab}. 
             Open the live application to view the interactive rendered preview.
           </div>
           <pre>${cleanText.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
         ` : mdToHtml(cleanText)}
 
         <div class="footer">
-          <span>Gaurav Nandhan BA Studio — Enterprise Edition</span>
+          <span>Gaurav Nandhan BA Studio â€” Enterprise Edition</span>
           <span>Confidential &amp; Proprietary</span>
         </div>
       </body>
@@ -914,7 +932,7 @@ export default function Home() {
     printWindow.focus();
     setTimeout(() => {
       printWindow.print();
-      // Don't auto-close — let user save as PDF from dialog
+      // Don't auto-close â€” let user save as PDF from dialog
     }, 800);
   };
 
@@ -1024,7 +1042,7 @@ export default function Home() {
       <html>
       <head>
         <meta charset="UTF-8">
-        <title>Full BA Report — Gaurav Nandhan BA Studio</title>
+        <title>Full BA Report â€” Gaurav Nandhan BA Studio</title>
         <style>
           @page { margin: 20mm; size: A4; }
           * { box-sizing: border-box; }
@@ -1054,8 +1072,8 @@ export default function Home() {
           <h1>Gaurav Nandhan BA Studio</h1>
           <h2>Full Business Analysis Report</h2>
           <div class="date">${new Date().toLocaleDateString('en-IN', { day: '2-digit', month: 'long', year: 'numeric' })}</div>
-          <div class="badge">BABOK v3 Compliant · Enterprise Edition</div>
-          <p style="color:#64748b;margin-top:30px;">Documents included: ${generated.join(' · ')}</p>
+          <div class="badge">BABOK v3 Compliant Â· Enterprise Edition</div>
+          <p style="color:#64748b;margin-top:30px;">Documents included: ${generated.join(' Â· ')}</p>
         </div>
 
         <div class="toc" style="page-break-before: always;">
@@ -1066,7 +1084,7 @@ export default function Home() {
         ${sectionsHtml}
 
         <div class="footer" style="page-break-before: avoid;">
-          <span>Gaurav Nandhan BA Studio — Enterprise Edition</span>
+          <span>Gaurav Nandhan BA Studio â€” Enterprise Edition</span>
           <span>Confidential &amp; Proprietary</span>
         </div>
       </body>
@@ -1101,7 +1119,7 @@ export default function Home() {
 
   const getShareLink = () => {
     if (!currentProjectId) {
-      alert("⚠️ Please 'Save Session' first to generate a shareable link.");
+      alert("âš ï¸ Please 'Save Session' first to generate a shareable link.");
       return;
     }
     const url = `${window.location.origin}/share/${currentProjectId}`;
@@ -1314,7 +1332,7 @@ export default function Home() {
             </div>
           )}
 
-          {/* Admin Panel link — ADMIN role only */}
+          {/* Admin Panel link â€” ADMIN role only */}
           {(session?.user as any)?.role === 'ADMIN' && (
             <div>
               <h2 className="text-xs uppercase tracking-wider text-slate-500 font-semibold mb-3 px-2">Administration</h2>
@@ -1464,9 +1482,9 @@ export default function Home() {
                       <Search className="w-3.5 h-3.5 text-slate-500" />
                       <select className="bg-transparent text-xs text-slate-300 focus:outline-none cursor-pointer">
                         <option value="en">English (US)</option>
-                        <option value="te">Telugu (తెలుగు)</option>
-                        <option value="hi">Hindi (హిन्दी)</option>
-                        <option value="ar">Arabic (العربية)</option>
+                        <option value="te">Telugu (à°¤à±†à°²à±à°—à±)</option>
+                        <option value="hi">Hindi (à°¹à°¿à¤¨à¥à¤¦à¥€)</option>
+                        <option value="ar">Arabic (Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©)</option>
                       </select>
                     </div>
                   )}
@@ -1866,7 +1884,7 @@ export default function Home() {
                                               const errData = await res.json().catch(() => ({}));
                                               throw new Error(errData.error || `Server error ${res.status}`);
                                             }
-                                            // ── DR-RUN Validation layer returns JSON now, not a stream ──
+                                            // â”€â”€ DR-RUN Validation layer returns JSON now, not a stream â”€â”€
                                             const data = await res.json();
                                             if (data.code) {
                                               setPlaywrightScript(data.code);
@@ -1924,7 +1942,7 @@ export default function Home() {
                                               const errData = await res.json().catch(() => ({}));
                                               throw new Error(errData.error || `Server error ${res.status}`);
                                             }
-                                            // ── DR-RUN Validation layer returns JSON now, not a stream ──
+                                            // â”€â”€ DR-RUN Validation layer returns JSON now, not a stream â”€â”€
                                             const data = await res.json();
                                             if (data.code) {
                                               setTerraformPlan(data.code);
@@ -2054,390 +2072,312 @@ export default function Home() {
             )}
           </div>
 
-          {/* New Right Sidebar: Intelligence & Insights */}
+          {/* Right Sidebar â€” Intelligence Panel (Restructured) */}
           <aside className="w-80 shrink-0 border-l border-slate-700/30 bg-[#0f172a]/50 backdrop-blur-md overflow-y-auto no-print flex flex-col custom-scrollbar">
-            <div className="p-4 border-b border-slate-700/30">
-              <h3 className="text-xs uppercase tracking-wider text-slate-500 font-bold flex items-center gap-2">
-                <Brain className="w-3.5 h-3.5 text-blue-400" />
-                Intelligence Panel
-              </h3>
+
+            {/* â”€â”€ SECTION 0: Human Brain Agent â€” pinned headline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
+            <div className="p-4 border-b border-violet-500/20 bg-gradient-to-br from-violet-500/10 to-fuchsia-500/5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-violet-400 flex items-center gap-2">
+                  <Brain className="w-3.5 h-3.5" /> Project Health
+                </h3>
+                {healthCheckResult && !healthCheckResult.error && (
+                  <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-tighter border ${
+                    healthCheckResult.verdict === 'STRONG' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' :
+                    healthCheckResult.verdict === 'FAIR'   ? 'bg-amber-500/20 text-amber-400 border-amber-500/30' :
+                    healthCheckResult.verdict === 'AT_RISK'? 'bg-orange-500/20 text-orange-400 border-orange-500/30' :
+                    'bg-red-500/20 text-red-400 border-red-500/30'
+                  }`}>
+                    {healthCheckResult.verdict?.replace('_', ' ')}
+                  </span>
+                )}
+              </div>
+
+              {/* Score Bar */}
+              {healthCheckResult && !healthCheckResult.error ? (
+                <div className="space-y-2">
+                  <div className="flex items-end gap-2">
+                    <span className={`text-3xl font-black leading-none ${
+                      healthCheckResult.overallHealthScore >= 75 ? 'text-emerald-400' :
+                      healthCheckResult.overallHealthScore >= 50 ? 'text-amber-400' : 'text-red-400'
+                    }`}>{healthCheckResult.overallHealthScore}</span>
+                    <span className="text-slate-500 text-sm pb-0.5">/100</span>
+                  </div>
+                  <div className="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+                    <div
+                      className={`h-full rounded-full transition-all duration-700 ${
+                        healthCheckResult.overallHealthScore >= 75 ? 'bg-emerald-500' :
+                        healthCheckResult.overallHealthScore >= 50 ? 'bg-amber-500' : 'bg-red-500'
+                      }`}
+                      style={{ width: `${healthCheckResult.overallHealthScore}%` }}
+                    />
+                  </div>
+                  {healthCheckResult.nextBestAction && (
+                    <p className="text-[10px] text-slate-400 leading-relaxed italic mt-1">
+                      ðŸ’¡ {healthCheckResult.nextBestAction}
+                    </p>
+                  )}
+                  <button onClick={() => setShowHealthCheck(s => !s)} className="text-[9px] text-violet-400 hover:text-violet-300 uppercase tracking-widest transition-colors">
+                    {showHealthCheck ? 'Hide Details â†‘' : 'Show Details â†“'}
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <p className="text-[10px] text-slate-500 leading-relaxed">
+                    Run a deep audit to get a full loophole report, health score, and expert verdict on your project.
+                  </p>
+                  <button
+                    onClick={runHealthCheck}
+                    disabled={isRunningHealthCheck || chatMessages.length < 2}
+                    className="w-full py-2 bg-violet-600 hover:bg-violet-500 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2"
+                  >
+                    {isRunningHealthCheck
+                      ? <><Loader2 className="w-3 h-3 animate-spin" /> Auditing...</>
+                      : <><Brain className="w-3 h-3" /> Run Health Check</>}
+                  </button>
+                </div>
+              )}
+
+              {/* Expanded loophole detail */}
+              {healthCheckResult && showHealthCheck && !healthCheckResult.error && healthCheckResult.loopholes?.length > 0 && (
+                <div className="mt-3 pt-3 border-t border-violet-500/20 space-y-2">
+                  <div className="text-[9px] font-bold text-violet-400 uppercase tracking-tighter">
+                    Loopholes ({healthCheckResult.loopholes.length})
+                  </div>
+                  {healthCheckResult.loopholes.slice(0, 4).map((l: any, i: number) => (
+                    <div key={i} className={`p-2 rounded-lg border text-[9px] space-y-0.5 ${
+                      l.severity === 'CRITICAL' ? 'bg-red-500/10 border-red-500/20' :
+                      l.severity === 'HIGH'     ? 'bg-orange-500/10 border-orange-500/20' :
+                                                  'bg-amber-500/10 border-amber-500/20'
+                    }`}>
+                      <div className="flex items-center justify-between gap-1">
+                        <span className="font-bold text-slate-200 text-[10px]">{l.title}</span>
+                        <span className={`shrink-0 px-1 py-0.5 rounded text-[8px] font-black uppercase ${
+                          l.severity === 'CRITICAL' ? 'bg-red-500/30 text-red-300' :
+                          l.severity === 'HIGH'     ? 'bg-orange-500/30 text-orange-300' :
+                                                      'bg-amber-500/30 text-amber-300'
+                        }`}>{l.severity}</span>
+                      </div>
+                      <p className="text-slate-400 leading-snug">{l.description}</p>
+                      {l.recommendation && <p className="text-violet-300/70 italic">ðŸ’¡ {l.recommendation}</p>}
+                    </div>
+                  ))}
+                  {healthCheckResult.humanBrainInsight && (
+                    <div className="p-2 bg-violet-500/10 border border-violet-500/20 rounded-lg">
+                      <p className="text-[9px] text-slate-300 italic">"{healthCheckResult.humanBrainInsight}"</p>
+                    </div>
+                  )}
+                  <button
+                    onClick={runHealthCheck}
+                    disabled={isRunningHealthCheck}
+                    className="w-full py-1.5 bg-violet-500/10 hover:bg-violet-500/20 border border-violet-500/20 text-violet-400 rounded-lg text-[9px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-1"
+                  >
+                    {isRunningHealthCheck ? <Loader2 className="w-2.5 h-2.5 animate-spin" /> : null}
+                    Re-run Audit
+                  </button>
+                </div>
+              )}
             </div>
-            
-            <div className="p-4 space-y-4">
-              {/* ROI & Impact Gauge */}
-              <div className="p-4 bg-slate-800/40 border border-slate-700/50 rounded-2xl shadow-xl overflow-hidden relative group">
-                 <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
-                  <Zap className="w-8 h-8 text-yellow-400" />
-                </div>
-                <h4 className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mb-4 flex items-center gap-2">
-                  <Zap className="w-3 h-3 text-yellow-400" /> Executive Impact Score
-                </h4>
-                {impactScore ? (
-                <div className="space-y-4">
-                    {[
-                      { label: "Business Value", val: impactScore.businessValue, color: "bg-green-500" },
-                      { label: "Feasibility", val: impactScore.technicalFeasibility, color: "bg-blue-500" },
-                      { label: "Alignment", val: impactScore.strategicAlignment, color: "bg-purple-500" }
-                    ].map((item, i) => (
-                      <div key={i} className="space-y-1.5">
-                        <div className="flex justify-between text-[10px] font-medium">
-                          <span className="text-slate-500">{item.label}</span>
-                          <span className="text-slate-300">{item.val}/10</span>
-                        </div>
-                        <div className="h-1 w-full bg-slate-700 rounded-full overflow-hidden">
-                          <motion.div 
-                            initial={{ width: 0 }}
-                            animate={{ width: `${item.val * 10}%` }}
-                            transition={{ duration: 1, ease: "easeOut", delay: i * 0.1 }}
-                            className={`h-full ${item.color} shadow-[0_0_8px_rgba(0,0,0,0.3)]`} 
-                          />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[10px] text-slate-600 italic">{isAnalyzing ? "Regenerating analysis..." : "Awaiting analysis data."}</p>
-                )}
-              </div>
 
-              {/* Strategic Moat Audit */}
-              <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-2xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
-                  <Shield className="w-8 h-8 text-blue-400" />
-                </div>
-                <h4 className="text-[10px] font-bold uppercase tracking-widest text-blue-400 mb-3 flex items-center gap-2">
-                  <Shield className="w-3 h-3" /> Strategic Moat Audit
-                </h4>
-                {strategicMoats.length > 0 ? (
-                <div className="space-y-3">
-                    {strategicMoats.map((moat, i) => (
-                      <div key={i} className="space-y-1">
-                        <div className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
-                          <div className="w-1 h-1 rounded-full bg-blue-400" />
-                          {moat.type}
-                        </div>
-                        <p className="text-[10px] text-slate-500 leading-relaxed italic pl-2.5">
-                          "{moat.observation}"
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[10px] text-slate-600 italic">{isAnalyzing ? "Regenerating analysis..." : "No strategic moats identified yet."}</p>
-                )}
-              </div>
+            <div className="p-4 space-y-4 flex-1">
 
-              {/* Stakeholder Conflicts */}
-              <div className="p-4 bg-red-500/5 border border-red-500/20 rounded-2xl relative overflow-hidden group">
-                <h4 className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-3 flex items-center gap-2">
-                  <AlertCircle className="w-3 h-3" /> Conflict Detector
-                </h4>
-                {conflicts.length > 0 ? (
-                  <div className="space-y-4">
-                    {conflicts.map((conflict, i) => (
-                      <div key={i} className="space-y-2">
-                        <p className="text-[11px] text-slate-300 leading-relaxed font-medium">
-                          {conflict.description}
-                        </p>
-                        {conflict.resolution && (
-                          <div className="p-2.5 bg-slate-900/50 rounded-lg border border-slate-700/30">
-                            <div className="text-[9px] font-bold text-slate-500 uppercase tracking-tighter mb-1">Proposed Resolution</div>
-                            <p className="text-[10px] text-slate-400 italic leading-snug">
-                              {conflict.resolution}
-                            </p>
+              {/* â”€â”€ SECTION 1: ISSUES â€” conflicts + regulatory + logic + gaps â”€ */}
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 text-red-400" /> Issues & Risks
+                </h3>
+
+                {(() => {
+                  // Merge all issue types into one flat list, each tagged by type
+                  const allIssues: { severity: string; label: string; text: string; fix?: string }[] = [];
+
+                  (conflicts || []).forEach((c: any) => allIssues.push({
+                    severity: 'HIGH', label: 'Conflict',
+                    text: c.description, fix: c.resolution
+                  }));
+                  (regulatoryFlags || []).forEach((f: string) => allIssues.push({
+                    severity: 'HIGH', label: 'Regulatory', text: f
+                  }));
+                  (logicAlerts || []).forEach((a: any) => allIssues.push({
+                    severity: a.risk === 'HIGH' ? 'HIGH' : 'MEDIUM', label: 'Logic',
+                    text: a.description
+                  }));
+                  (requirementGaps || []).forEach((g: any) => allIssues.push({
+                    severity: g.severity === 'HIGH' ? 'HIGH' : 'MEDIUM', label: 'Gap',
+                    text: g.gap
+                  }));
+
+                  if (isAnalyzing) {
+                    return <div className="flex items-center gap-2 text-[10px] text-blue-400"><Loader2 className="w-3 h-3 animate-spin" /> Analyzing...</div>;
+                  }
+
+                  if (allIssues.length === 0) {
+                    return <p className="text-[10px] text-slate-600 italic">No issues detected yet.</p>;
+                  }
+
+                  // Sort: CRITICAL â†’ HIGH â†’ MEDIUM â†’ LOW
+                  const order: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };
+                  allIssues.sort((a, b) => (order[a.severity] ?? 4) - (order[b.severity] ?? 4));
+
+                  return (
+                    <div className="space-y-2">
+                      {allIssues.slice(0, 6).map((issue, i) => (
+                        <div key={i} className={`p-2.5 rounded-xl border space-y-1 ${
+                          issue.severity === 'CRITICAL' ? 'bg-red-500/10 border-red-500/20' :
+                          issue.severity === 'HIGH'     ? 'bg-orange-500/10 border-orange-500/20' :
+                                                          'bg-amber-500/10 border-amber-500/20'
+                        }`}>
+                          <div className="flex items-center gap-2">
+                            <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase ${
+                              issue.severity === 'CRITICAL' ? 'bg-red-500/30 text-red-300' :
+                              issue.severity === 'HIGH'     ? 'bg-orange-500/30 text-orange-300' :
+                                                              'bg-amber-500/30 text-amber-300'
+                            }`}>{issue.label}</span>
                           </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[10px] text-slate-600 italic">No conflicts detected.</p>
-                )}
-              </div>
-
-              {/* Regulatory Advisor */}
-              <div className="p-4 bg-amber-500/5 border border-amber-500/20 rounded-xl">
-                <div className="flex items-center gap-2 mb-3">
-                  <ShieldAlert className="w-4 h-4 text-amber-400" />
-                  <h4 className="text-xs font-bold text-amber-400 uppercase">Regulatory</h4>
-                </div>
-                {regulatoryFlags.length > 0 ? (
-                <>
-                  <ul className="space-y-2 mb-3">
-                    {regulatoryFlags.map((flag, i) => (
-                      <li key={i} className="text-[11px] text-amber-200/70 leading-relaxed flex items-start gap-2">
-                        <div className="w-1 h-1 bg-amber-400 rounded-full mt-1.5 flex-shrink-0" />
-                        {flag}
-                      </li>
-                    ))}
-                  </ul>
-                  <button onClick={() => setMomInput(prev => prev + "\n\nPlease ensure the project follows all identified regulatory standards.")} className="w-full py-1.5 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg border border-amber-500/20 transition-all font-bold uppercase tracking-tighter text-[9px]">
-                    Add to Scope
-                  </button>
-                </>
-                ) : (
-                  <p className="text-[10px] text-slate-600 italic">No regulatory flags detected.</p>
-                )}
-              </div>
-
-              {/* Logic Debugger */}
-              <div className="p-4 bg-orange-500/5 border border-orange-500/20 rounded-2xl relative overflow-hidden group">
-                 <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
-                  <ZapOff className="w-8 h-8 text-orange-400" />
-                </div>
-                <h4 className="text-[10px] font-bold uppercase tracking-widest text-orange-400 mb-3 flex items-center gap-2">
-                  <ZapOff className="w-3 h-3" /> Logic Debugger
-                </h4>
-                {logicAlerts.length > 0 ? (
-                  <div className="space-y-3">
-                    {logicAlerts.map((alert, i) => (
-                      <div key={i} className="space-y-1">
-                        <div className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
-                          <Activity className="w-2.5 h-2.5 text-orange-500" />
-                          {alert.type}
+                          <p className="text-[10px] text-slate-300 leading-snug">{issue.text}</p>
+                          {issue.fix && <p className="text-[9px] text-slate-500 italic leading-snug">â†’ {issue.fix}</p>}
                         </div>
-                        <p className="text-[10px] text-slate-400 leading-relaxed pl-4">
-                          {alert.description}
-                        </p>
-                        <p className="text-[9px] text-orange-500/60 font-bold uppercase tracking-tighter pl-4">
-                          Risk: {alert.risk}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[10px] text-slate-600 italic">No logic issues detected.</p>
-                )}
+                      ))}
+                      {allIssues.length > 6 && (
+                        <p className="text-[9px] text-slate-600 italic pl-1">+{allIssues.length - 6} more issues â€” address the above first.</p>
+                      )}
+                      {(requirementGaps?.length > 0) && (
+                        <button
+                          onClick={() => setMomInput(prev => prev + '\n\nPlease address the following gaps:\n' + (requirementGaps || []).map((g: any) => `- ${g.gap}`).join('\n'))}
+                          className="w-full py-1.5 bg-slate-800/60 hover:bg-slate-800 text-slate-400 hover:text-white rounded-lg border border-slate-700/50 transition-all text-[9px] font-bold uppercase tracking-widest"
+                        >
+                          Auto-Fill Gap Prompts
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
-              {/* Requirement Gap Analysis */}
-              <div className="p-4 bg-purple-500/5 border border-purple-500/20 rounded-2xl relative overflow-hidden group">
-                 <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
-                  <FileQuestion className="w-8 h-8 text-purple-400" />
-                </div>
-                <h4 className="text-[10px] font-bold uppercase tracking-widest text-purple-400 mb-3 flex items-center gap-2">
-                  <FileQuestion className="w-3 h-3" /> Gap Analysis
-                </h4>
-                {requirementGaps.length > 0 ? (
-                <>
-                  <div className="space-y-3">
-                    {requirementGaps.map((gap, i) => (
-                      <div key={i} className="space-y-1">
-                        <div className="text-[11px] font-bold text-slate-300 flex items-center gap-1.5">
-                          <div className={`w-1.5 h-1.5 rounded-full ${gap.severity === 'HIGH' ? 'bg-red-500' : 'bg-purple-400'}`} />
-                          {gap.area} Gap
+              <div className="h-px bg-slate-800" />
+
+              {/* â”€â”€ SECTION 2: INSIGHTS â€” SME + moats + billion dollar â”€â”€â”€â”€â”€â”€â”€â”€ */}
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                  <Sparkles className="w-3.5 h-3.5 text-amber-400" /> Insights & Opportunities
+                </h3>
+
+                {(() => {
+                  const allInsights: { type: string; text: string; badge?: string }[] = [];
+
+                  if (smeInsight) allInsights.push({ type: 'SME', text: smeInsight });
+
+                  (strategicMoats || []).forEach((m: any) => allInsights.push({
+                    type: 'Moat', text: m.observation, badge: m.type
+                  }));
+
+                  (billionDollarDisruptions || []).forEach((d: any) => allInsights.push({
+                    type: 'Opportunity', text: d.impact, badge: `${d.title} Â· ${d.effort} effort`
+                  }));
+
+                  if (isAnalyzing) {
+                    return <div className="flex items-center gap-2 text-[10px] text-blue-400"><Loader2 className="w-3 h-3 animate-spin" /> Analyzing...</div>;
+                  }
+
+                  if (allInsights.length === 0) {
+                    return <p className="text-[10px] text-slate-600 italic">No insights identified yet.</p>;
+                  }
+
+                  return (
+                    <div className="space-y-2">
+                      {allInsights.slice(0, 5).map((ins, i) => (
+                        <div key={i} className="p-2.5 bg-amber-500/5 border border-amber-500/20 rounded-xl space-y-1">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-black uppercase">
+                              {ins.type}
+                            </span>
+                            {ins.badge && <span className="text-[8px] text-slate-500 truncate max-w-[120px]">{ins.badge}</span>}
+                          </div>
+                          <p className="text-[10px] text-amber-200/70 leading-snug italic">"{ins.text}"</p>
                         </div>
-                        <p className="text-[10px] text-slate-400 leading-relaxed pl-3 italic">
-                          "{gap.gap}"
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                  <button onClick={() => setMomInput(prev => prev + "\n\nPlease address the following gaps:\n" + requirementGaps.map(g => `- ${g.gap}`).join('\n'))} className="mt-4 w-full py-1.5 bg-purple-500/10 hover:bg-purple-500/20 text-purple-400 rounded-lg border border-purple-500/20 transition-all font-bold uppercase tracking-tighter text-[9px]">
-                    Auto-Fill Gap Prompts
-                  </button>
-                </>
-                ) : (
-                  <p className="text-[10px] text-slate-600 italic">No requirement gaps identified.</p>
-                )}
+                      ))}
+                      {allInsights.length > 5 && (
+                        <p className="text-[9px] text-slate-600 italic pl-1">+{allInsights.length - 5} more insights</p>
+                      )}
+                      {smeInsight && (
+                        <button
+                          onClick={() => setMomInput(prev => prev + `\n\nRegarding the SME insight: ${smeInsight}`)}
+                          className="text-[9px] font-bold text-amber-400 uppercase hover:underline"
+                        >
+                          Explore deeper â†’
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
               </div>
 
-              {/* Billion Dollar Disruptions */}
-              <div className="bg-gradient-to-br from-yellow-500/10 to-amber-500/5 border border-yellow-500/20 p-4 rounded-xl">
-                <div className="flex items-center gap-2 mb-3 text-amber-400">
-                  <Sparkles className="w-5 h-5" />
-                  <h3 className="font-bold tracking-tight uppercase text-xs">Billion Dollar Opportunities</h3>
-                </div>
-                {billionDollarDisruptions.length > 0 ? (
-                  <div className="space-y-4">
-                    {billionDollarDisruptions.map((disruption, idx) => (
-                      <div key={idx} className="group">
-                        <div className="flex justify-between items-start mb-1">
-                          <h4 className="text-sm font-semibold text-white group-hover:text-amber-300 transition-colors">{disruption.title}</h4>
-                          <span className={`text-[10px] px-1.5 py-0.5 rounded uppercase font-bold ${
-                            disruption.effort === 'low' ? 'bg-green-500/20 text-green-400' :
-                            disruption.effort === 'med' ? 'bg-blue-500/20 text-blue-400' :
-                            'bg-red-500/20 text-red-400'
-                          }`}>
-                            {disruption.effort} effort
-                          </span>
-                        </div>
-                        <p className="text-xs text-slate-400 leading-relaxed">{disruption.impact}</p>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[10px] text-slate-600 italic">No opportunities identified yet.</p>
-                )}
-              </div>
+              <div className="h-px bg-slate-800" />
 
-              {/* SME Insights */}
-              <div className="p-4 bg-blue-500/5 border border-blue-500/20 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-blue-400" />
-                  <h4 className="text-xs font-bold text-blue-400 uppercase">SME Insight</h4>
-                </div>
-                {smeInsight ? (
-                <>
-                  <p className="text-[11px] text-blue-200/70 leading-relaxed mb-3">{smeInsight}</p>
-                  <button onClick={() => setMomInput(prev => prev + `\n\nRegarding the SME insight: ${smeInsight}`)} className="text-[9px] font-bold text-blue-400 uppercase hover:underline">
-                    Explore deeper
-                  </button>
-                </>
-                ) : (
-                  <p className="text-[10px] text-slate-600 italic">No SME insights yet.</p>
-                )}
-              </div>
+              {/* â”€â”€ SECTION 3: CHANGE RADAR â€” stale docs + version history â”€â”€â”€â”€ */}
+              <div>
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
+                  <Activity className="w-3.5 h-3.5 text-emerald-400" /> Change Radar
+                </h3>
 
-              {/* Cascading Impact Audit */}
-              <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-2xl relative overflow-hidden group shadow-lg shadow-red-500/10">
-                <div className="absolute top-0 right-0 p-3 opacity-20">
-                  <Activity className="w-8 h-8 text-red-500 animate-pulse" />
-                </div>
-                <h4 className="text-[10px] font-bold uppercase tracking-widest text-red-400 mb-3 flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4" /> Cascading Impact Alert
-                </h4>
+                {/* Stale Documents */}
                 {staleDocs.size > 0 ? (
-                <>
-                  <p className="text-[11px] text-red-200/70 mb-3 leading-relaxed">
-                    Requirement changes have invalidated the following downstream artifacts. Audit required.
-                  </p>
-                  <div className="space-y-2 mb-4">
-                    {Array.from(staleDocs).map((doc, i) => (
-                      <div key={i} className="flex items-center gap-2 px-2 py-1 bg-red-500/10 rounded border border-red-500/20">
-                        <div className="w-1 h-1 rounded-full bg-red-500" />
-                        <span className="text-[10px] font-bold text-red-400 uppercase tracking-tighter">{doc}</span>
-                      </div>
-                    ))}
+                  <div className="mb-3 p-3 bg-red-500/10 border border-red-500/20 rounded-xl">
+                    <div className="text-[9px] font-bold text-red-400 uppercase tracking-tighter mb-2 flex items-center gap-1">
+                      <ShieldAlert className="w-3 h-3" /> Documents Need Refresh
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Array.from(staleDocs).map((doc, i) => (
+                        <button
+                          key={i}
+                          onClick={() => handleDocumentClick(doc, true)}
+                          className="px-2 py-0.5 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 rounded text-[9px] font-bold text-red-300 uppercase tracking-tighter transition-all"
+                          title={`Click to regenerate ${doc}`}
+                        >
+                          {doc}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[9px] text-slate-600 mt-2 italic">Click a document to regenerate it.</p>
                   </div>
-
-                </>
                 ) : (
-                  <p className="text-[10px] text-slate-600 italic">No cascading impacts detected.</p>
+                  <p className="text-[10px] text-slate-600 italic mb-3">All documents are up to date.</p>
                 )}
-              </div>
 
-              {/* Impact Analysis */}
-              <div className="p-4 bg-emerald-500/5 border border-emerald-500/20 rounded-xl">
-                <div className="flex items-center gap-2 mb-2">
-                  <GitBranch className="w-4 h-4 text-emerald-400" />
-                  <h4 className="text-xs font-bold text-emerald-400 uppercase">Impact Analysis</h4>
-                </div>
+                {/* Version history */}
                 {scopeHistory.length > 1 && scopeHistory[scopeHistory.length - 1].impact ? (
-                <>
-                  <p className="text-[11px] text-emerald-300/80 leading-relaxed mb-3">
-                    {scopeHistory[scopeHistory.length - 1].impact.summary}
-                  </p>
-                  <button onClick={() => setShowTimeline(true)} className="w-full py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/20 transition-all font-bold uppercase tracking-tighter text-[9px]">
-                    View History
-                  </button>
-                </>
+                  <div className="p-3 bg-emerald-500/5 border border-emerald-500/20 rounded-xl space-y-2">
+                    <div className="text-[9px] font-bold text-emerald-400 uppercase tracking-tighter">Latest Scope Change</div>
+                    <p className="text-[10px] text-emerald-300/80 leading-relaxed">
+                      {scopeHistory[scopeHistory.length - 1].impact.summary}
+                    </p>
+                    <div className="flex items-center justify-between text-[9px] text-slate-600">
+                      <span>Version {scopeHistory.length}</span>
+                      <span>{scopeHistory[scopeHistory.length - 1].timestamp}</span>
+                    </div>
+                    <button
+                      onClick={() => setShowTimeline(true)}
+                      className="w-full py-1 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 rounded-lg border border-emerald-500/20 transition-all text-[9px] font-bold uppercase tracking-widest"
+                    >
+                      View Full History
+                    </button>
+                  </div>
                 ) : (
                   <p className="text-[10px] text-slate-600 italic">No scope changes tracked yet.</p>
                 )}
               </div>
 
-              {/* Knowledge Graph Panel — Semantic Graph Engine */}
-              <div className="p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-2xl relative overflow-hidden group">
-                <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-30 transition-opacity">
-                  <Network className="w-8 h-8 text-cyan-400" />
-                </div>
-                <h4 className="text-[10px] font-bold uppercase tracking-widest text-cyan-400 mb-3 flex items-center gap-2">
-                  <Network className="w-3 h-3" /> Knowledge Graph
-                </h4>
-                {graphNodes.length > 0 ? (
-                <>
-                  <div className="space-y-1.5 mb-3">
-                    {(['REQUIREMENT','EPIC','FEATURE','SCREEN','API','TEST_CASE'] as const).map(type => {
-                      const count = graphNodes.filter(n => n.nodeType === type).length;
-                      if (count === 0) return null;
-                      const colors: Record<string,string> = {
-                        REQUIREMENT: 'bg-blue-500/20 text-blue-400',
-                        EPIC:        'bg-purple-500/20 text-purple-400',
-                        FEATURE:     'bg-indigo-500/20 text-indigo-400',
-                        SCREEN:      'bg-green-500/20 text-green-400',
-                        API:         'bg-orange-500/20 text-orange-400',
-                        TEST_CASE:   'bg-pink-500/20 text-pink-400',
-                      };
-                      return (
-                        <div key={type} className="flex items-center justify-between">
-                          <span className={`text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-tighter ${colors[type]}`}>{type.replace('_',' ')}</span>
-                          <span className="text-[10px] font-bold text-slate-300">{count} node{count !== 1 ? 's':''}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="text-[9px] text-slate-600 border-t border-slate-800 pt-2">
-                    {graphEdges.length} relationship{graphEdges.length !== 1 ? 's':''} mapped
-                  </div>
-                  {/* Impacted nodes & paths — shown whenever BFS traversal has run */}
-                  {(lastAffectedNodes.length > 0 || lastTraversalPaths.length > 0) && (
-                    <div className="mt-3 pt-3 border-t border-slate-700 space-y-2">
-
-                      {/* Impacted Nodes */}
-                      {lastAffectedNodes.length > 0 && (
-                        <div>
-                          <div className="text-[9px] font-bold text-amber-400 uppercase tracking-tighter mb-1.5 flex items-center gap-1">
-                            <span className="inline-block w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />
-                            Impacted by Last Change
-                          </div>
-                          <div className="space-y-1">
-                            {lastAffectedNodes.slice(0, 4).map((node, ni) => {
-                              const nodeColors: Record<string,string> = {
-                                REQUIREMENT: 'bg-blue-500/20 text-blue-300 border-blue-500/30',
-                                EPIC:        'bg-purple-500/20 text-purple-300 border-purple-500/30',
-                                FEATURE:     'bg-indigo-500/20 text-indigo-300 border-indigo-500/30',
-                                SCREEN:      'bg-green-500/20 text-green-300 border-green-500/30',
-                                API:         'bg-orange-500/20 text-orange-300 border-orange-500/30',
-                                TEST_CASE:   'bg-pink-500/20 text-pink-300 border-pink-500/30',
-                              };
-                              return (
-                                <div key={ni} className={`flex items-center gap-1.5 px-2 py-1 rounded-lg border text-[9px] font-mono ${nodeColors[node.nodeType] ?? 'bg-slate-700/40 text-slate-400 border-slate-700'}`}>
-                                  <span className="font-bold shrink-0">{node.nodeId}</span>
-                                  <span className="truncate opacity-70">{node.label}</span>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Last Impact Paths — first 3 inline, rest via modal */}
-                      {lastTraversalPaths.length > 0 && (
-                        <div>
-                          <div className="text-[9px] font-bold text-cyan-500 uppercase tracking-tighter mb-1">Last Impact Path</div>
-                          {lastTraversalPaths.slice(0, 3).map((p, i) => (
-                            <div key={i} className="text-[9px] text-slate-500 font-mono truncate">
-                              {p.from} <span className="text-cyan-600">→</span> {p.to}
-                            </div>
-                          ))}
-                          {(lastTraversalPaths.length > 3 || lastAffectedNodes.length > 4) && (
-                            <button
-                              onClick={() => setShowGraphImpactModal(true)}
-                              className="mt-1.5 w-full text-[9px] font-bold text-cyan-400 hover:text-cyan-200 bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/20 hover:border-cyan-500/40 rounded-lg py-1 px-2 transition-all uppercase tracking-tighter cursor-pointer"
-                            >
-                              {lastTraversalPaths.length > 3 ? `+${lastTraversalPaths.length - 3} more paths` : ''}{lastAffectedNodes.length > 4 ? ` · ${lastAffectedNodes.length - 4} more nodes` : ''} — View Full Impact ↗
-                            </button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </>
-                ) : (
-                  <p className="text-[10px] text-slate-600 italic">No graph nodes mapped yet.</p>
-                )}
-              </div>
-
-              {/* Analysis Status */}
+              {/* â”€â”€ Analysis spinner (kept, but subtle) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
               {isAnalyzing && (
-                <div className="flex items-center gap-2 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-                  <Loader2 className="w-4 h-4 text-blue-500 animate-spin" />
-                  <p className="text-[10px] text-blue-400 font-bold uppercase tracking-widest animate-pulse">Analyzing requirements...</p>
+                <div className="flex items-center gap-2 p-2 bg-blue-500/5 border border-blue-500/10 rounded-lg">
+                  <Loader2 className="w-3 h-3 text-blue-500 animate-spin" />
+                  <p className="text-[9px] text-blue-400 uppercase tracking-widest">Re-analyzing...</p>
                 </div>
               )}
+
             </div>
           </aside>
+
         </div>
 
 
@@ -2571,11 +2511,11 @@ export default function Home() {
                             </div>
                           )}
 
-                          {/* ── Semantic Graph Traversal Paths ────────────────────────────── */}
+                          {/* â”€â”€ Semantic Graph Traversal Paths â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
                           {i === scopeHistory.length - 1 && lastTraversalPaths.length > 0 && (
                             <div className="mt-4 p-4 bg-cyan-500/5 border border-cyan-500/20 rounded-xl">
                               <h4 className="text-[10px] font-bold uppercase tracking-widest text-cyan-400 mb-3 flex items-center gap-2">
-                                <Network className="w-3 h-3" /> Graph Traversal — Downstream Impact
+                                <Network className="w-3 h-3" /> Graph Traversal â€” Downstream Impact
                               </h4>
                               <div className="space-y-1.5">
                                 {lastTraversalPaths.map((path, pi) => (
@@ -2625,7 +2565,7 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* ── Graph Impact Full Detail Modal ─────────────────────────────────── */}
+      {/* â”€â”€ Graph Impact Full Detail Modal â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */}
       <AnimatePresence>
         {showGraphImpactModal && (
           <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
@@ -2661,7 +2601,7 @@ export default function Home() {
 
               <div className="flex-1 overflow-y-auto p-6 space-y-6 custom-scrollbar">
 
-                {/* Impacted Nodes — grouped by type */}
+                {/* Impacted Nodes â€” grouped by type */}
                 {lastAffectedNodes.length > 0 && (() => {
                   const grouped: Record<string, GraphNodeData[]> = {};
                   for (const n of lastAffectedNodes) {
@@ -2718,7 +2658,7 @@ export default function Home() {
                         <div key={pi} className="flex items-center gap-2 px-3 py-2 bg-slate-800/40 rounded-xl border border-slate-700/40 font-mono text-xs">
                           <span className="text-slate-300 bg-slate-700/60 px-2 py-0.5 rounded-md shrink-0">{path.from}</span>
                           <span className="text-[10px] text-cyan-500 uppercase tracking-tighter font-sans shrink-0 px-1">{path.relationship.toLowerCase().replace(/_/g,' ')}</span>
-                          <span className="text-cyan-300 shrink-0">→</span>
+                          <span className="text-cyan-300 shrink-0">â†’</span>
                           <span className="text-slate-200 bg-slate-700/40 px-2 py-0.5 rounded-md truncate">{path.to}</span>
                         </div>
                       ))}
