@@ -19,8 +19,14 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing Jira credentials' }, { status: 400 });
     }
 
-    // Clean up siteUrl if it ends with a slash
-    const baseUrl = siteUrl.replace(/\/$/, '');
+    // Clean up siteUrl. If user pastes a full browser navigation URL (e.g. including paths), extract the base domain.
+    let baseUrl = siteUrl.trim();
+    try {
+      const parsedUrl = new URL(baseUrl);
+      baseUrl = `${parsedUrl.protocol}//${parsedUrl.host}`;
+    } catch (e) {
+      baseUrl = baseUrl.replace(/\/$/, '');
+    }
     
     // Atlassian Basic Auth
     const authHeader = `Basic ${Buffer.from(`${email}:${apiToken}`).toString('base64')}`;
@@ -63,11 +69,21 @@ export async function POST(req: Request) {
       body: JSON.stringify(issueData)
     });
 
-    const data = await response.json();
+    const contentType = response.headers.get('content-type') || '';
+    let data: any = {};
+    if (contentType.includes('application/json')) {
+      data = await response.json();
+    } else {
+      const text = await response.text();
+      console.error("Jira API Non-JSON response:", text);
+      return NextResponse.json({ 
+        error: `Jira returned an unexpected HTML/text response (HTTP ${response.status}). Please verify that your JIRA SITE URL is correct and in the format 'https://your-domain.atlassian.net'.` 
+      }, { status: response.status });
+    }
 
     if (!response.ok) {
       console.error("Jira API Error:", data);
-      const errorMsg = data.errorMessages?.[0] || data.errors ? JSON.stringify(data.errors) : 'Failed to create Jira issue';
+      const errorMsg = data.errorMessages?.[0] || (data.errors ? JSON.stringify(data.errors) : 'Failed to create Jira issue');
       return NextResponse.json({ error: errorMsg }, { status: response.status });
     }
 
