@@ -79,10 +79,12 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
     if (comp.type === 'text' || comp.type === 'paragraph') {
       return <p key={cIdx} className="text-sm text-slate-300 leading-relaxed">{safeText(comp.content || comp.text)}</p>;
     }
-    if (comp.type === 'input' || comp.type === 'text-input' || comp.type === 'date-input' || comp.type === 'email-input' || comp.type === 'number-input' || comp.type === 'select' || comp.type === 'dropdown' || comp.type === 'textarea') {
+    const inputTypes = ['input', 'text-input', 'password-input', 'date-input', 'email-input', 'number-input', 'tel-input', 'select', 'dropdown', 'textarea', 'checkbox', 'radio'];
+    if (inputTypes.includes(comp.type)) {
+      const isCheckOrRadio = comp.type === 'checkbox' || comp.type === 'radio';
       return (
-        <div key={cIdx} className="flex flex-col gap-1">
-          {comp.label && <label className="text-xs font-semibold text-slate-400 uppercase">{safeText(comp.label)} {(comp.mandatory || comp.required) && <span className="text-red-400">*</span>}</label>}
+        <div key={cIdx} className={`flex ${isCheckOrRadio ? 'flex-row items-center gap-2' : 'flex-col gap-1'}`}>
+          {!isCheckOrRadio && comp.label && <label className="text-xs font-semibold text-slate-400 uppercase">{safeText(comp.label)} {(comp.mandatory || comp.required) && <span className="text-red-400">*</span>}</label>}
           {comp.type === 'textarea' ? (
             <textarea placeholder={safeText(comp.placeholder)} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200 min-h-[80px]" disabled={comp.disabled} />
           ) : (comp.type === 'select' || comp.type === 'dropdown') ? (
@@ -91,8 +93,14 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
               {Array.isArray(comp.options) && comp.options.map((opt: any, optIdx: number) => <option key={optIdx} value={typeof opt === 'string' ? opt : JSON.stringify(opt)}>{safeText(opt)}</option>)}
             </select>
           ) : (
-            <input type={comp.type === 'tel' ? 'tel' : comp.type === 'date-input' ? 'date' : comp.type === 'email-input' ? 'email' : comp.type === 'number-input' ? 'number' : 'text'} placeholder={safeText(comp.placeholder)} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200" disabled={comp.disabled} />
+            <input 
+              type={comp.type === 'tel-input' ? 'tel' : comp.type === 'password-input' ? 'password' : comp.type === 'date-input' ? 'date' : comp.type === 'email-input' ? 'email' : comp.type === 'number-input' ? 'number' : comp.type === 'checkbox' ? 'checkbox' : comp.type === 'radio' ? 'radio' : 'text'} 
+              placeholder={safeText(comp.placeholder)} 
+              className={isCheckOrRadio ? "w-4 h-4 text-blue-600 bg-slate-900 border-slate-600 rounded focus:ring-blue-500 focus:ring-2" : "bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200"} 
+              disabled={comp.disabled} 
+            />
           )}
+          {isCheckOrRadio && comp.label && <label className="text-sm font-medium text-slate-300">{safeText(comp.label)} {(comp.mandatory || comp.required) && <span className="text-red-400">*</span>}</label>}
         </div>
       );
     }
@@ -154,11 +162,12 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
         </div>
       );
     }
-    if (comp.type === 'section' || comp.type === 'conditional_group' || comp.components) {
+    if (comp.type === 'section' || comp.type === 'conditional_group' || comp.type === 'form' || comp.components || comp.fields || comp.children) {
+      const children = comp.components || comp.fields || comp.children;
       return (
-        <div key={cIdx} className="flex flex-col gap-3 p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl">
+        <div key={cIdx} className="flex flex-col gap-3 p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl w-full">
           {(comp.title || comp.label) && <h3 className="text-sm font-bold text-slate-200">{safeText(comp.title || comp.label)}</h3>}
-          {Array.isArray(comp.components) && comp.components.map((childComp: any, childIdx: number) => renderComponent(childComp, `${cIdx}-${childIdx}`))}
+          {Array.isArray(children) && children.map((childComp: any, childIdx: number) => renderComponent(childComp, `${cIdx}-${childIdx}`))}
         </div>
       );
     }
