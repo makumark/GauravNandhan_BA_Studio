@@ -8,6 +8,7 @@ import { canGenerateDocuments } from '@/lib/permissions';
 import { sanitizeInput } from '@/lib/pii';
 import { rateLimit } from '@/lib/rate-limit';
 import { inferEdgesFromSnapshot, upsertGraph, type GraphNodeData, type GraphEdgeData } from '@/lib/graph';
+import { prisma } from '@/lib/prisma';
 
 export const maxDuration = 60;
 
@@ -263,6 +264,18 @@ Analyze this input now and respond with ONLY the JSON object.`;
     // ── Server-side DB persistence: fire-and-forget, never blocks response ────────
     if (projectId && safeAnalysis.graphNodes.length > 0) {
       upsertGraph(projectId, safeAnalysis.graphNodes, safeAnalysis.graphEdges).catch(() => {});
+    }
+
+    // ── Scope Snapshot: persist requirement count for cross-session creep tracking ──
+    if (projectId && safeAnalysis.snapshot.length > 0) {
+      prisma.scopeSnapshot.create({
+        data: {
+          projectId,
+          round,
+          reqCount: safeAnalysis.snapshot.length,
+          snapshot: JSON.stringify(safeAnalysis.snapshot),
+        }
+      }).catch(() => {}); // fire-and-forget — never blocks the response
     }
 
     return NextResponse.json(safeAnalysis);

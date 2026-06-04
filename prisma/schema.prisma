@@ -84,6 +84,7 @@ model Project {
   documents   Document[]
   graphNodes  GraphNode[]
   graphEdges  GraphEdge[]
+  scopeSnapshots ScopeSnapshot[]
 }
 
 // ── Core: Message ──────────────────────────────────────────────────────────────
@@ -183,3 +184,20 @@ model Template {
 
   organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 }
+
+// ── Scope Tracking: Snapshot of requirements per chat round ─────────────────
+// Persists requirement counts across browser sessions so the Scope-Creep Index
+// can compare baseline (round 1) vs latest (round N) for any number of users.
+model ScopeSnapshot {
+  id        String   @id @default(cuid())
+  projectId String
+  round     Int      // Chat round number (1, 2, 3...)
+  reqCount  Int      // Number of confirmed requirements at this round
+  snapshot  String   // Full JSON array of { id, text, status } for detail view
+  createdAt DateTime @default(now())
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, round])
+}
+

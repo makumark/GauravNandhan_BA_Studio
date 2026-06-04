@@ -81,6 +81,9 @@ import {
 import { MermaidRenderer } from '@/components/features/editors/MermaidRenderer';
 import { PlantUMLRenderer } from '@/components/features/editors/PlantUMLRenderer';
 import { LivePreviewIframe } from '@/components/features/editors/LivePreviewIframe';
+import { ConflictResolveModal } from '@/components/ConflictResolveModal';
+import { ScopeCreepWidget } from '@/components/ScopeCreepWidget';
+import { TraceabilityCanvas } from '@/components/TraceabilityCanvas';
 
 
 export default function Home() {
@@ -117,6 +120,9 @@ export default function Home() {
   const [billionDollarDisruptions, setBillionDollarDisruptions] = useState<any[]>([]);
   const [questionRoundCount, setQuestionRoundCount] = useState(0);
   const [conflicts, setConflicts] = useState<any[]>([]);
+  const [activeConflict, setActiveConflict] = useState<any | null>(null);
+  const [isConflictModalOpen, setIsConflictModalOpen] = useState(false);
+  const [resolvedConflictIds, setResolvedConflictIds] = useState<Set<string>>(new Set());
   const [scopeHistory, setScopeHistory] = useState<{snapshot: any[], impact?: any, timestamp: string}[]>([]);
   const [showTimeline, setShowTimeline] = useState(false);
   const [currentDate, setCurrentDate] = useState("");
@@ -2082,84 +2088,30 @@ export default function Home() {
                       )
                     )
                   ) : activeTab === "Traceability Matrix" ? (
-                    <div className="p-8 h-full overflow-y-auto">
-                      <div className="max-w-4xl mx-auto space-y-8">
-                        <div className="flex items-center gap-4 mb-8">
+                    <div className="p-6 h-full overflow-y-auto">
+                      <div className="max-w-6xl mx-auto">
+                        <div className="flex items-center gap-4 mb-6">
                           <div className="p-3 bg-blue-500/10 rounded-2xl border border-blue-500/20">
                             <Network className="w-6 h-6 text-blue-400" />
                           </div>
                           <div>
-                            <h2 className="text-2xl font-bold text-white">End-to-End Traceability</h2>
-                            <p className="text-slate-400 text-sm">Visualizing cascading requirements, rules, and artifacts</p>
+                            <h2 className="text-xl font-bold text-white">Interactive Traceability Graph</h2>
+                            <p className="text-slate-400 text-sm">Click any node to see its full text, upstream dependencies &amp; downstream artifacts. Red nodes are out of sync.</p>
+                          </div>
+                          <div className="ml-auto flex items-center gap-3">
+                            <div className="px-3 py-1.5 rounded-xl bg-slate-800 border border-slate-700 text-xs text-slate-400">
+                              {graphNodes.length} nodes · {graphEdges.length} links · <span className={staleDocs.size > 0 ? 'text-red-400 font-bold' : 'text-emerald-400'}>{staleDocs.size} stale</span>
+                            </div>
                           </div>
                         </div>
 
-                        {/* Mermaid Traceability Graph */}
-                        <div className="bg-slate-900/40 border border-slate-700/50 rounded-3xl p-8 backdrop-blur-xl">
-                          {(() => {
-                            let graphCode = "graph LR\n";
-                            graphCode += "classDef req fill:#1e40af,stroke:#3b82f6,color:#fff,stroke-width:2px;\n";
-                            graphCode += "classDef doc fill:#1e293b,stroke:#475569,color:#cbd5e1,stroke-width:1px;\n";
-                            graphCode += "classDef visual fill:#312e81,stroke:#6366f1,color:#fff,stroke-width:2px;\n";
-                            graphCode += "classDef test fill:#064e3b,stroke:#10b981,color:#fff,stroke-width:2px;\n";
-
-                            // Baseline node
-                            graphCode += "MOM[Minutes of Meeting]:::req\n";
-
-                            Object.entries(documents).forEach(([name, doc]) => {
-                              const nodeId = name.replace(/\s+/g, '_');
-                              const cls = (name === 'Wireframes' || name === 'Prototypes') ? 'visual' : 
-                                          (name === 'Test Cases') ? 'test' : 'doc';
-                              
-                              graphCode += `${nodeId}[${name}]:::${cls}\n`;
-                              
-                              if (doc.links && doc.links.length > 0) {
-                                doc.links.forEach(link => {
-                                  graphCode += `MOM --> ${nodeId}\n`;
-                                });
-                              } else {
-                                if (['BRD', 'PRD', 'Regulatory Advisor'].includes(name)) {
-                                  graphCode += `MOM --> ${nodeId}\n`;
-                                }
-                              }
-                            });
-
-                            if (documents['FRD'] && documents['BRD']) graphCode += "BRD --> FRD\n";
-                            if (documents['UML Diagrams'] && documents['FRD']) graphCode += "FRD --> UML_Diagrams\n";
-                            if (documents['Wireframes'] && documents['FRD']) graphCode += "FRD --> Wireframes\n";
-                            if (documents['Prototypes'] && documents['Wireframes']) graphCode += "Wireframes --> Prototypes\n";
-                            if (documents['Test Cases'] && documents['FRD']) graphCode += "FRD --> Test_Cases\n";
-
-                             return <DiagramErrorBoundary><MermaidRenderer chart={graphCode} /></DiagramErrorBoundary>;
-                          })()}
-                        </div>
-
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                           <div className="p-6 bg-slate-800/40 border border-slate-700/50 rounded-2xl">
-                             <h4 className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Audit Summary</h4>
-                             <div className="space-y-4">
-                               <div className="flex justify-between items-center">
-                                 <span className="text-sm text-slate-400">Total Links Detected</span>
-                                 <span className="text-sm font-bold text-blue-400">{Object.values(documents).reduce((acc, d) => acc + (d.links?.length || 0), 0)}</span>
-                               </div>
-                               <div className="flex justify-between items-center">
-                                 <span className="text-sm text-slate-400">Orphaned Artifacts</span>
-                                 <span className="text-sm font-bold text-amber-400">{Object.values(documents).filter(d => !d.links || d.links.length === 0).length}</span>
-                               </div>
-                             </div>
-                           </div>
-                           <div className="p-6 bg-blue-500/5 border border-blue-500/20 rounded-2xl">
-                             <h4 className="text-xs font-bold uppercase tracking-widest text-blue-400 mb-4">Lifecycle Health</h4>
-                             <div className="flex items-center gap-4">
-                               <div className="text-3xl font-black text-white">
-                                 {Math.round((Object.keys(documents).length / 11) * 100)}%
-                               </div>
-                               <p className="text-[10px] text-slate-500 leading-relaxed uppercase tracking-tighter">
-                                 Coverage of the end-to-end BA lifecycle across all required BABOK v3 dimensions.
-                               </p>
-                             </div>
-                           </div>
-                        </div>
+                        <TraceabilityCanvas
+                          graphNodes={graphNodes}
+                          graphEdges={graphEdges}
+                          staleDocs={staleDocs}
+                          onRegenerateDoc={(docName) => handleDocumentClick(docName, true)}
+                          documents={documents}
+                        />
                       </div>
                     </div>
                   ) : (
@@ -2257,7 +2209,7 @@ export default function Home() {
                         }`}>{l.severity}</span>
                       </div>
                       <p className="text-slate-400 leading-snug">{l.description}</p>
-                      {l.recommendation && <p className="text-violet-300/70 italic">ðŸ’¡ {l.recommendation}</p>}
+                      {l.recommendation && <p className="text-violet-300/70 italic">💡 {l.recommendation}</p>}
                     </div>
                   ))}
                   {healthCheckResult.humanBrainInsight && (
@@ -2279,20 +2231,54 @@ export default function Home() {
 
             <div className="p-4 space-y-4 flex-1">
 
-              {/* â”€â”€ SECTION 1: ISSUES â€” conflicts + regulatory + logic + gaps â”€ */}
+              {/* ── SECTION 1: ISSUES ── conflicts + regulatory + logic + gaps ─ */}
               <div>
                 <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-3 flex items-center gap-2">
                   <AlertCircle className="w-3.5 h-3.5 text-red-400" /> Issues & Risks
                 </h3>
 
+                {/* ── Interactive Conflict Cards ── */}
+                {(conflicts || []).length > 0 && (
+                  <div className="mb-3 space-y-2">
+                    <div className="text-[9px] uppercase tracking-widest font-bold text-red-400 flex items-center gap-1.5 mb-1.5">
+                      <span className="w-1.5 h-1.5 rounded-full bg-red-400 animate-pulse inline-block" />
+                      Requirement Conflicts
+                    </div>
+                    {(conflicts || []).map((c: any) => (
+                      resolvedConflictIds.has(c.id) ? (
+                        <div key={c.id} className="p-2 rounded-xl border border-emerald-500/15 bg-emerald-500/5 flex items-center gap-2">
+                          <Check className="w-3 h-3 text-emerald-400 shrink-0" />
+                          <span className="text-[9px] text-emerald-400/70 italic">{c.id} resolved</span>
+                        </div>
+                      ) : (
+                        <div key={c.id} className={`p-2.5 rounded-xl border space-y-1.5 ${
+                          c.severity === 'HIGH' ? 'bg-red-500/8 border-red-500/20' : 'bg-amber-500/8 border-amber-500/20'
+                        }`}>
+                          <div className="flex items-center justify-between gap-1">
+                            <div className="flex items-center gap-1.5">
+                              <span className={`text-[8px] px-1.5 py-0.5 rounded font-black uppercase ${
+                                c.severity === 'HIGH' ? 'bg-red-500/25 text-red-300' : 'bg-amber-500/25 text-amber-300'
+                              }`}>{c.severity || 'CONFLICT'}</span>
+                              <span className="text-[9px] text-slate-500">{c.id}</span>
+                            </div>
+                            <button
+                              onClick={() => { setActiveConflict(c); setIsConflictModalOpen(true); }}
+                              className="text-[9px] font-bold text-violet-400 hover:text-violet-300 uppercase tracking-widest transition-colors border border-violet-500/30 hover:border-violet-400 px-2 py-0.5 rounded-lg"
+                            >
+                              Resolve →
+                            </button>
+                          </div>
+                          <p className="text-[10px] text-slate-300 leading-snug">{c.description}</p>
+                        </div>
+                      )
+                    ))}
+                  </div>
+                )}
+
                 {(() => {
-                  // Merge all issue types into one flat list, each tagged by type
+                  // Merge non-conflict issue types into one flat list
                   const allIssues: { severity: string; label: string; text: string; fix?: string }[] = [];
 
-                  (conflicts || []).forEach((c: any) => allIssues.push({
-                    severity: 'HIGH', label: 'Conflict',
-                    text: c.description, fix: c.resolution
-                  }));
                   (regulatoryFlags || []).forEach((f: string) => allIssues.push({
                     severity: 'HIGH', label: 'Regulatory', text: f
                   }));
@@ -2309,9 +2295,11 @@ export default function Home() {
                     return <div className="flex items-center gap-2 text-[10px] text-blue-400"><Loader2 className="w-3 h-3 animate-spin" /> Analyzing...</div>;
                   }
 
-                  if (allIssues.length === 0) {
+                  if (allIssues.length === 0 && (conflicts || []).length === 0) {
                     return <p className="text-[10px] text-slate-600 italic">No issues detected yet.</p>;
                   }
+
+                  if (allIssues.length === 0) return null;
 
                   // Sort: CRITICAL â†’ HIGH â†’ MEDIUM â†’ LOW
                   const order: Record<string, number> = { CRITICAL: 0, HIGH: 1, MEDIUM: 2, LOW: 3 };

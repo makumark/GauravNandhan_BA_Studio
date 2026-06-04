@@ -1,0 +1,799 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BA Studio — Feature Prototype</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    * { font-family: 'Inter', sans-serif; box-sizing: border-box; }
+    body { background: #020817; }
+
+    /* ─── Scrollbars ─── */
+    ::-webkit-scrollbar { width: 4px; height: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #334155; border-radius: 9999px; }
+
+    /* ─── Gradient text ─── */
+    .grad-text { background: linear-gradient(135deg, #818cf8, #c084fc, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+    .grad-blue  { background: linear-gradient(135deg, #60a5fa, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+
+    /* ─── Glow effects ─── */
+    .glow-violet { box-shadow: 0 0 28px -4px rgba(139,92,246,.35); }
+    .glow-amber  { box-shadow: 0 0 28px -4px rgba(245,158,11,.30); }
+    .glow-emerald{ box-shadow: 0 0 28px -4px rgba(16,185,129,.30); }
+    .glow-blue   { box-shadow: 0 0 28px -4px rgba(59,130,246,.30); }
+
+    /* ─── Tab active underline ─── */
+    .tab-active { border-bottom: 2px solid #818cf8; color: #818cf8 !important; }
+
+    /* ─── Graph SVG styles ─── */
+    .graph-canvas { overflow: visible; }
+    .node-req   { fill: #1e1b4b; stroke: #6366f1; stroke-width: 2; }
+    .node-screen{ fill: #0c2536; stroke: #3b82f6; stroke-width: 2; }
+    .node-rule  { fill: #1c1a08; stroke: #f59e0b; stroke-width: 2; }
+    .node-test  { fill: #062015; stroke: #10b981; stroke-width: 2; }
+    .node-doc   { fill: #1e293b; stroke: #475569; stroke-width: 1.5; }
+    .node-stale { stroke: #ef4444 !important; stroke-width: 2.5; animation: pulse-stroke 1.4s ease-in-out infinite; }
+
+    @keyframes pulse-stroke {
+      0%,100%{ opacity:1; stroke-width:2.5; }
+      50%    { opacity:.55; stroke-width:3.5; }
+    }
+
+    /* Edge paths */
+    .edge-line  { stroke: #334155; stroke-width:1.5; fill:none; }
+    .edge-stale { stroke: #ef4444; stroke-width:2;   fill:none; stroke-dasharray:5,3; animation: dash-flow 1.5s linear infinite; }
+    @keyframes dash-flow { to { stroke-dashoffset: -16; } }
+
+    /* ─── Scope gauge arc ─── */
+    .gauge-bg  { fill:none; stroke:#1e293b; stroke-width:14; }
+    .gauge-fill{ fill:none; stroke-width:14; stroke-linecap:round; transition: stroke-dashoffset 1.4s cubic-bezier(.4,0,.2,1); }
+
+    /* ─── Conflict card pulse ─── */
+    @keyframes conflict-in {
+      from { opacity:0; transform: translateY(8px); }
+      to   { opacity:1; transform: translateY(0); }
+    }
+    .conflict-card { animation: conflict-in .35s ease both; }
+
+    /* ─── Progress bar ─── */
+    .prog-bar { transition: width 1.2s cubic-bezier(.4,0,.2,1); }
+
+    /* ─── Tooltip ─── */
+    [data-tip] { position:relative; cursor:pointer; }
+    [data-tip]:hover::after {
+      content: attr(data-tip);
+      position:absolute; bottom:calc(100% + 6px); left:50%; transform:translateX(-50%);
+      background:#1e293b; border:1px solid #334155; color:#e2e8f0;
+      font-size:11px; white-space:nowrap; padding:4px 10px; border-radius:6px; z-index:50;
+      pointer-events:none;
+    }
+
+    /* ─── Node tooltip popup ─── */
+    .node-popup {
+      background: rgba(15,23,42,0.97);
+      border: 1px solid #334155;
+      backdrop-filter: blur(16px);
+      border-radius: 12px;
+      padding: 12px 14px;
+      min-width: 200px;
+      pointer-events: none;
+      transition: opacity .2s, transform .2s;
+    }
+
+    /* ─── Shimmer loading ─── */
+    .shimmer {
+      background: linear-gradient(90deg, #1e293b 25%, #334155 50%, #1e293b 75%);
+      background-size: 200% 100%;
+      animation: shimmer 1.4s infinite;
+      border-radius: 6px;
+    }
+    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+  </style>
+</head>
+
+<body class="text-slate-200 min-h-screen" x-data="prototype()">
+
+  <!-- ═══ TOP NAV ════════════════════════════════════════════════════════ -->
+  <header class="sticky top-0 z-50 flex items-center justify-between px-6 py-3 border-b border-slate-800 bg-[#020817]/90 backdrop-blur">
+    <div class="flex items-center gap-3">
+      <div class="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-600 to-fuchsia-600 flex items-center justify-center text-white font-black text-sm">G</div>
+      <span class="font-bold text-white text-sm tracking-tight">Gaurav Nandhan <span class="text-violet-400">BA Studio</span></span>
+      <span class="ml-2 px-2 py-0.5 rounded-full bg-violet-500/15 border border-violet-500/30 text-violet-400 text-[10px] font-bold uppercase tracking-widest">Feature Prototype</span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="text-[10px] text-slate-500 mr-1">Click tabs to explore</span>
+      <div class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></div>
+      <span class="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Live Demo</span>
+    </div>
+  </header>
+
+  <!-- ═══ TAB BAR ════════════════════════════════════════════════════════ -->
+  <div class="flex border-b border-slate-800 px-6 bg-[#020817] sticky top-14 z-40">
+    <template x-for="tab in tabs" :key="tab.id">
+      <button
+        @click="activeTab = tab.id"
+        :class="activeTab === tab.id ? 'tab-active' : 'text-slate-500 hover:text-slate-300'"
+        class="px-5 py-3.5 text-sm font-semibold transition-colors whitespace-nowrap"
+        x-text="tab.label"
+      ></button>
+    </template>
+  </div>
+
+  <!-- ═══ CONTENT ════════════════════════════════════════════════════════ -->
+  <main class="max-w-7xl mx-auto px-6 py-8">
+
+    <!-- ════════════════════════════════════════════════════
+         TAB 1 — INTERACTIVE CONFLICT RESOLUTION HUB
+    ═══════════════════════════════════════════════════════ -->
+    <div x-show="activeTab === 'conflict'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+      <!-- Header -->
+      <div class="flex items-start justify-between mb-6">
+        <div>
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-2xl bg-red-500/15 border border-red-500/25 flex items-center justify-center">
+              <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+            </div>
+            <div>
+              <h1 class="text-xl font-bold text-white">Interactive Conflict Resolution Hub</h1>
+              <p class="text-slate-400 text-sm">AI-detected contradictions — with one-click resolution</p>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="px-3 py-1.5 rounded-xl bg-red-500/10 border border-red-500/20">
+            <span class="text-red-400 font-bold text-sm" x-text="conflicts.filter(c=>c.status==='open').length"></span>
+            <span class="text-red-400/60 text-xs ml-1">open conflicts</span>
+          </div>
+          <div class="px-3 py-1.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+            <span class="text-emerald-400 font-bold text-sm" x-text="conflicts.filter(c=>c.status==='resolved').length"></span>
+            <span class="text-emerald-400/60 text-xs ml-1">resolved</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stats bar -->
+      <div class="grid grid-cols-4 gap-4 mb-6">
+        <template x-for="stat in conflictStats">
+          <div class="bg-slate-900/60 border border-slate-800 rounded-2xl p-4">
+            <div class="text-xs text-slate-500 uppercase tracking-wider mb-1" x-text="stat.label"></div>
+            <div class="text-2xl font-black" :class="stat.color" x-text="stat.value"></div>
+          </div>
+        </template>
+      </div>
+
+      <!-- Conflict Cards -->
+      <div class="space-y-4">
+        <template x-for="(c, idx) in conflicts" :key="c.id">
+          <div class="conflict-card border rounded-2xl overflow-hidden transition-all duration-300" 
+               :class="c.status === 'resolved' ? 'border-emerald-500/20 bg-emerald-500/3 opacity-70' : (c.severity === 'CRITICAL' ? 'border-red-500/30 bg-red-500/5 glow-amber' : 'border-amber-500/25 bg-amber-500/4')">
+            
+            <!-- Card Header -->
+            <div class="flex items-center justify-between px-5 py-4 border-b" :class="c.status === 'resolved' ? 'border-emerald-500/15' : 'border-slate-700/50'">
+              <div class="flex items-center gap-3">
+                <span class="text-[10px] font-black uppercase px-2 py-1 rounded-lg"
+                  :class="c.severity === 'CRITICAL' ? 'bg-red-500/20 text-red-300' : 'bg-amber-500/20 text-amber-300'"
+                  x-text="c.severity"></span>
+                <span class="text-xs font-bold text-slate-400" x-text="c.id"></span>
+                <span class="text-sm font-semibold text-white" x-text="c.title"></span>
+              </div>
+              <div class="flex items-center gap-2">
+                <span x-show="c.status === 'resolved'" class="flex items-center gap-1.5 text-emerald-400 text-xs font-bold">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+                  Resolved
+                </span>
+                <button @click="c.expanded = !c.expanded" x-show="c.status !== 'resolved'"
+                  class="text-xs text-slate-500 hover:text-slate-300 transition-colors">
+                  <span x-text="c.expanded ? '▲ Collapse' : '▼ Expand'"></span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Side-by-side comparison (expanded state) -->
+            <div x-show="c.expanded && c.status !== 'resolved'" x-transition class="p-5">
+              <div class="grid grid-cols-2 gap-4 mb-5">
+                <div class="space-y-2">
+                  <div class="text-[10px] uppercase tracking-widest font-bold text-red-400 flex items-center gap-1.5">
+                    <div class="w-1.5 h-1.5 rounded-full bg-red-400"></div>
+                    Statement A — <span class="text-slate-500 normal-case font-normal" x-text="c.sourceA"></span>
+                  </div>
+                  <div class="bg-red-500/8 border border-red-500/20 rounded-xl p-4 text-sm text-slate-300 leading-relaxed" x-text="c.textA"></div>
+                </div>
+                <div class="space-y-2">
+                  <div class="text-[10px] uppercase tracking-widest font-bold text-amber-400 flex items-center gap-1.5">
+                    <div class="w-1.5 h-1.5 rounded-full bg-amber-400"></div>
+                    Statement B — <span class="text-slate-500 normal-case font-normal" x-text="c.sourceB"></span>
+                  </div>
+                  <div class="bg-amber-500/8 border border-amber-500/20 rounded-xl p-4 text-sm text-slate-300 leading-relaxed" x-text="c.textB"></div>
+                </div>
+              </div>
+
+              <!-- AI Recommendation -->
+              <div class="bg-violet-500/8 border border-violet-500/20 rounded-xl p-4 mb-4">
+                <div class="text-[10px] uppercase tracking-widest font-bold text-violet-400 mb-2 flex items-center gap-2">
+                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.344.344a1 1 0 01-.707.293h-2.838a1 1 0 01-.707-.293l-.344-.344z"/></svg>
+                  AI Resolution Recommendation
+                </div>
+                <p class="text-sm text-slate-300 leading-relaxed" x-text="c.recommendation"></p>
+              </div>
+
+              <!-- Action Buttons -->
+              <div class="flex items-center gap-3">
+                <button @click="resolveConflict(idx, 'A')"
+                  class="flex-1 py-2.5 bg-blue-600/80 hover:bg-blue-600 text-white text-sm font-semibold rounded-xl transition-all border border-blue-500/30 hover:border-blue-400">
+                  ✓ Keep Statement A
+                </button>
+                <button @click="resolveConflict(idx, 'B')"
+                  class="flex-1 py-2.5 bg-amber-600/80 hover:bg-amber-600 text-white text-sm font-semibold rounded-xl transition-all border border-amber-500/30 hover:border-amber-400">
+                  ✓ Keep Statement B
+                </button>
+                <button @click="resolveConflict(idx, 'merge')"
+                  class="flex-1 py-2.5 bg-violet-600/80 hover:bg-violet-600 text-white text-sm font-semibold rounded-xl transition-all border border-violet-500/30 hover:border-violet-400 flex items-center justify-center gap-2">
+                  <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+                  AI Merge & Rewrite
+                </button>
+              </div>
+            </div>
+
+            <!-- Collapsed summary line -->
+            <div x-show="!c.expanded && c.status !== 'resolved'" class="px-5 py-3 text-xs text-slate-500" x-text="'↔ ' + c.textA.substring(0,80) + '...'"></div>
+
+            <!-- Resolved merge result -->
+            <div x-show="c.status === 'resolved'" class="px-5 py-4">
+              <div class="text-[10px] uppercase tracking-widest font-bold text-emerald-400 mb-2">✓ Merged Requirement</div>
+              <p class="text-sm text-slate-300 leading-relaxed italic" x-text="c.mergedText"></p>
+              <div class="mt-3 flex gap-2">
+                <span class="text-[10px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2 py-1 rounded-lg">FRD Updated</span>
+                <span class="text-[10px] bg-blue-500/10 border border-blue-500/20 text-blue-400 px-2 py-1 rounded-lg">BRD Updated</span>
+                <span class="text-[10px] bg-violet-500/10 border border-violet-500/20 text-violet-400 px-2 py-1 rounded-lg">Test Cases Flagged for Regen</span>
+              </div>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════
+         TAB 2 — INTERACTIVE TRACEABILITY GRAPH
+    ═══════════════════════════════════════════════════════ -->
+    <div x-show="activeTab === 'traceability'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+
+      <!-- Header + Legend -->
+      <div class="flex items-start justify-between mb-6">
+        <div>
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-2xl bg-blue-500/15 border border-blue-500/25 flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+            </div>
+            <div>
+              <h1 class="text-xl font-bold text-white">Bidirectional Traceability Graph</h1>
+              <p class="text-slate-400 text-sm">Click any node to inspect its downstream impact — red = outdated</p>
+            </div>
+          </div>
+          <div class="flex items-center gap-4 text-[10px] uppercase tracking-widest mt-1">
+            <span class="flex items-center gap-1.5"><div class="w-3 h-3 rounded border-2 border-indigo-400 bg-indigo-950"></div><span class="text-slate-500">Requirement</span></span>
+            <span class="flex items-center gap-1.5"><div class="w-3 h-3 rounded border-2 border-blue-400 bg-blue-950/50"></div><span class="text-slate-500">Screen</span></span>
+            <span class="flex items-center gap-1.5"><div class="w-3 h-3 rounded border-2 border-amber-400 bg-amber-950/50"></div><span class="text-slate-500">Business Rule</span></span>
+            <span class="flex items-center gap-1.5"><div class="w-3 h-3 rounded border-2 border-emerald-400 bg-emerald-950/50"></div><span class="text-slate-500">Test Case</span></span>
+            <span class="flex items-center gap-1.5"><div class="w-3 h-3 rounded border-2 border-red-400 bg-red-950/50 animate-pulse"></div><span class="text-red-400">Stale / Out of Sync</span></span>
+          </div>
+        </div>
+        <button @click="triggerStale()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-xs font-bold text-slate-300 hover:text-white transition-all">
+          ⚡ Simulate Requirement Change
+        </button>
+      </div>
+
+      <!-- Main graph + side panel -->
+      <div class="grid grid-cols-3 gap-5">
+        <!-- Graph Canvas -->
+        <div class="col-span-2 bg-slate-900/40 border border-slate-700/50 rounded-3xl p-6 backdrop-blur min-h-[520px] relative overflow-hidden glow-blue">
+          <div class="absolute inset-0 opacity-5" style="background-image: radial-gradient(circle, #334155 1px, transparent 1px); background-size: 28px 28px;"></div>
+          <svg class="w-full graph-canvas" height="480" viewBox="0 0 680 480">
+            <defs>
+              <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill="#475569"/>
+              </marker>
+              <marker id="arrow-stale" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+                <path d="M0,0 L0,6 L9,3 z" fill="#ef4444"/>
+              </marker>
+              <filter id="glow-v">
+                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+                <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+            </defs>
+
+            <!-- Edges (drawn first so nodes appear on top) -->
+            <template x-for="edge in graphEdges" :key="edge.id">
+              <g>
+                <path :d="computeEdgePath(edge)" 
+                  :class="edge.stale ? 'edge-stale' : 'edge-line'"
+                  :marker-end="edge.stale ? 'url(#arrow-stale)' : 'url(#arrow)'" />
+              </g>
+            </template>
+
+            <!-- Nodes -->
+            <template x-for="node in graphNodes" :key="node.id">
+              <g @click="selectNode(node)" style="cursor:pointer" :transform="`translate(${node.x}, ${node.y})`">
+                <rect :width="node.w" :height="node.h" rx="10" ry="10"
+                  :class="[getNodeClass(node.type), node.stale ? 'node-stale' : '', selectedNode?.id === node.id ? 'opacity-100' : 'opacity-90 hover:opacity-100']"
+                  :style="selectedNode?.id === node.id ? 'filter:url(#glow-v)' : ''"
+                  class="transition-all duration-200" />
+                <text :x="node.w/2" y="20" text-anchor="middle" class="fill-white font-bold pointer-events-none" style="font-size:10px;font-weight:700;font-family:Inter,sans-serif;" x-text="node.id"></text>
+                <foreignObject :x="6" y="25" :width="node.w - 12" :height="node.h - 30">
+                  <div xmlns="http://www.w3.org/1999/xhtml" style="font-size:9px;color:#94a3b8;line-height:1.35;font-family:Inter,sans-serif;overflow:hidden;" x-text="node.label"></div>
+                </foreignObject>
+                <!-- Stale badge -->
+                <g x-show="node.stale" :transform="`translate(${node.w - 10}, -6)`">
+                  <circle r="7" fill="#ef4444"/>
+                  <text x="0" y="4" text-anchor="middle" style="font-size:9px;fill:white;font-weight:900;font-family:Inter,sans-serif;">!</text>
+                </g>
+              </g>
+            </template>
+          </svg>
+        </div>
+
+        <!-- Node Detail Panel -->
+        <div class="space-y-4">
+          <!-- Selected node info -->
+          <div class="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-5 min-h-48">
+            <div x-show="!selectedNode" class="h-full flex flex-col items-center justify-center text-center py-8">
+              <div class="w-10 h-10 rounded-2xl bg-slate-800 flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 15l-2 5L9 9l11 4-5 2zm0 0l5 5"/></svg>
+              </div>
+              <p class="text-slate-500 text-xs">Click any node on the graph to inspect its details and dependencies</p>
+            </div>
+
+            <div x-show="selectedNode" x-transition>
+              <div class="flex items-start justify-between mb-4">
+                <div>
+                  <div class="text-[10px] uppercase tracking-widest font-bold mb-1" :class="getNodeTextColor(selectedNode?.type)" x-text="selectedNode?.type"></div>
+                  <div class="text-base font-bold text-white" x-text="selectedNode?.id"></div>
+                </div>
+                <span x-show="selectedNode?.stale" class="text-[10px] font-black uppercase bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-1 rounded-lg animate-pulse">⚠ Stale</span>
+                <span x-show="!selectedNode?.stale" class="text-[10px] font-black uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-2 py-1 rounded-lg">✓ Current</span>
+              </div>
+              <p class="text-sm text-slate-300 leading-relaxed mb-4" x-text="selectedNode?.label"></p>
+
+              <!-- Upstream -->
+              <div class="mb-3" x-show="getUpstream(selectedNode?.id).length > 0">
+                <div class="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-2">Upstream Dependencies</div>
+                <div class="space-y-1">
+                  <template x-for="u in getUpstream(selectedNode?.id)" :key="u.id">
+                    <div @click="selectNode(u)" class="flex items-center gap-2 px-3 py-2 bg-slate-800/50 rounded-xl cursor-pointer hover:bg-slate-700/50 transition-colors">
+                      <div class="w-1.5 h-1.5 rounded-full" :class="getNodeDot(u.type)"></div>
+                      <span class="text-xs text-slate-300" x-text="u.id"></span>
+                      <span class="text-[10px] text-slate-500 truncate" x-text="u.label.substring(0,30) + '...'"></span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+
+              <!-- Downstream -->
+              <div x-show="getDownstream(selectedNode?.id).length > 0">
+                <div class="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-2">Downstream Artifacts</div>
+                <div class="space-y-1">
+                  <template x-for="d in getDownstream(selectedNode?.id)" :key="d.id">
+                    <div @click="selectNode(d)" class="flex items-center gap-2 px-3 py-2 rounded-xl cursor-pointer transition-colors" :class="d.stale ? 'bg-red-500/10 hover:bg-red-500/15 border border-red-500/20' : 'bg-slate-800/50 hover:bg-slate-700/50'">
+                      <div class="w-1.5 h-1.5 rounded-full" :class="d.stale ? 'bg-red-400 animate-pulse' : getNodeDot(d.type)"></div>
+                      <span class="text-xs" :class="d.stale ? 'text-red-300' : 'text-slate-300'" x-text="d.id"></span>
+                      <span class="text-[10px] text-slate-500 truncate" x-text="d.label.substring(0,30) + '...'"></span>
+                      <span x-show="d.stale" class="ml-auto text-[9px] text-red-400 font-bold">STALE</span>
+                    </div>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Impact summary card -->
+          <div class="bg-slate-900/60 border border-slate-700/50 rounded-2xl p-5">
+            <div class="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-3">Graph Summary</div>
+            <div class="space-y-3">
+              <div class="flex justify-between items-center">
+                <span class="text-xs text-slate-400">Total Nodes</span>
+                <span class="text-sm font-bold text-white" x-text="graphNodes.length"></span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-xs text-slate-400">Traceability Links</span>
+                <span class="text-sm font-bold text-blue-400" x-text="graphEdges.length"></span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-xs text-slate-400">Stale Artifacts</span>
+                <span class="text-sm font-bold text-red-400" x-text="graphNodes.filter(n=>n.stale).length"></span>
+              </div>
+              <div class="flex justify-between items-center">
+                <span class="text-xs text-slate-400">Coverage Score</span>
+                <span class="text-sm font-bold text-emerald-400">87%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Stale action panel -->
+          <div x-show="graphNodes.filter(n=>n.stale).length > 0" x-transition class="bg-red-500/8 border border-red-500/25 rounded-2xl p-4">
+            <div class="text-xs font-bold text-red-400 mb-2">⚠ Outdated Artifacts Detected</div>
+            <p class="text-[10px] text-slate-400 mb-3 leading-relaxed">A requirement change has cascaded downstream. The following artifacts may now be out of sync and should be regenerated.</p>
+            <button @click="regenStale()" class="w-full py-2 bg-red-600/80 hover:bg-red-600 text-white rounded-xl text-xs font-bold uppercase tracking-widest transition-all">
+              Regenerate All Stale
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════════════════════════════════════════════════
+         TAB 3 — PREDICTIVE SCOPE-CREEP & RISK INDEX
+    ═══════════════════════════════════════════════════════ -->
+    <div x-show="activeTab === 'scope'" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-2" x-transition:enter-end="opacity-100 translate-y-0">
+
+      <!-- Header -->
+      <div class="flex items-start justify-between mb-6">
+        <div>
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-10 h-10 rounded-2xl bg-amber-500/15 border border-amber-500/25 flex items-center justify-center">
+              <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            </div>
+            <div>
+              <h1 class="text-xl font-bold text-white">Predictive Scope-Creep & Risk Index</h1>
+              <p class="text-slate-400 text-sm">Quantified project risk dashboard — beyond the SME's qualitative insights</p>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-bold">FinTech / Payments Domain</div>
+        </div>
+      </div>
+
+      <!-- Top metrics row -->
+      <div class="grid grid-cols-3 gap-5 mb-6">
+
+        <!-- Scope Volatility Gauge -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6 flex flex-col items-center glow-amber">
+          <div class="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-4">Scope Volatility Index</div>
+          <svg width="140" height="80" viewBox="0 0 140 80">
+            <path d="M 10,70 A 60,60 0 0,1 130,70" class="gauge-bg" />
+            <path d="M 10,70 A 60,60 0 0,1 130,70" class="gauge-fill"
+              :stroke="scopeRisk > 70 ? '#ef4444' : scopeRisk > 45 ? '#f59e0b' : '#10b981'"
+              :stroke-dasharray="`${(scopeRisk / 100) * 188} 188`"
+              stroke-dashoffset="0"
+              transform="rotate(0)" />
+            <text x="70" y="62" text-anchor="middle" style="font-size:22px;font-weight:900;font-family:Inter,sans-serif;" :fill="scopeRisk > 70 ? '#ef4444' : scopeRisk > 45 ? '#f59e0b' : '#10b981'" x-text="scopeRisk + '%'"></text>
+            <text x="70" y="77" text-anchor="middle" style="font-size:9px;fill:#64748b;font-family:Inter,sans-serif;">CREEP RISK</text>
+          </svg>
+          <div class="mt-2 text-center">
+            <div class="text-xs font-bold" :class="scopeRisk > 70 ? 'text-red-400' : scopeRisk > 45 ? 'text-amber-400' : 'text-emerald-400'"
+              x-text="scopeRisk > 70 ? 'High Risk' : scopeRisk > 45 ? 'Moderate Risk' : 'Low Risk'"></div>
+            <p class="text-[10px] text-slate-500 mt-1 leading-tight">Requirements have drifted <span class="text-amber-400 font-bold" x-text="scopeRisk + '%'"></span> from the original brief</p>
+          </div>
+        </div>
+
+        <!-- Effort Estimator -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
+          <div class="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-4">Effort & Complexity Estimator</div>
+          <div class="space-y-3 mb-4">
+            <template x-for="item in effortItems" :key="item.label">
+              <div>
+                <div class="flex justify-between items-center mb-1">
+                  <span class="text-[10px] text-slate-400" x-text="item.label"></span>
+                  <span class="text-[10px] font-bold px-2 py-0.5 rounded"
+                    :class="{
+                      'bg-emerald-500/15 text-emerald-400': item.size === 'S',
+                      'bg-blue-500/15 text-blue-400': item.size === 'M',
+                      'bg-amber-500/15 text-amber-400': item.size === 'L',
+                      'bg-red-500/15 text-red-400': item.size === 'XL'
+                    }" x-text="item.size + ' · ' + item.points + ' pts'"></span>
+                </div>
+                <div class="h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                  <div class="h-full rounded-full prog-bar"
+                    :class="{
+                      'bg-emerald-500': item.size === 'S',
+                      'bg-blue-500': item.size === 'M',
+                      'bg-amber-500': item.size === 'L',
+                      'bg-red-500': item.size === 'XL'
+                    }"
+                    :style="'width:' + item.pct + '%'"></div>
+                </div>
+              </div>
+            </template>
+          </div>
+          <div class="flex justify-between items-center pt-3 border-t border-slate-800">
+            <span class="text-[10px] text-slate-500 uppercase tracking-wider">Total Story Points</span>
+            <span class="text-lg font-black text-white">89 pts</span>
+          </div>
+          <p class="text-[10px] text-slate-500 mt-1">Est. <span class="text-violet-400 font-bold">3–4 sprints</span> (2-week sprint, 5-dev team)</p>
+        </div>
+
+        <!-- SME Comparison card -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
+          <div class="text-[10px] uppercase tracking-widest font-bold text-slate-500 mb-4">SME Insight vs. Risk Index</div>
+          <div class="space-y-3">
+            <div class="bg-slate-800/60 rounded-xl p-3 border border-slate-700/30">
+              <div class="text-[9px] uppercase tracking-widest font-bold text-slate-500 mb-1.5">SME Qualitative Insight</div>
+              <p class="text-[11px] text-slate-300 italic leading-snug">"In FinTech payments, real-time settlement architectures typically require strict PCI DSS compliance with certified payment gateways. Ensure tokenization is implemented before launch."</p>
+              <div class="mt-2 text-[9px] text-slate-600">→ Useful advisory, but no hard metrics</div>
+            </div>
+            <div class="flex items-center justify-center">
+              <span class="text-slate-700 text-lg">+</span>
+            </div>
+            <div class="bg-amber-500/8 rounded-xl p-3 border border-amber-500/20">
+              <div class="text-[9px] uppercase tracking-widest font-bold text-amber-400 mb-1.5">Risk Index Adds Quantification</div>
+              <div class="space-y-1.5">
+                <div class="flex justify-between items-center">
+                  <span class="text-[10px] text-slate-400">PCI-DSS Coverage</span>
+                  <span class="text-[10px] font-bold text-amber-400">42% ⚠</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-[10px] text-slate-400">Tokenization Requirement</span>
+                  <span class="text-[10px] font-bold text-red-400">Missing ✗</span>
+                </div>
+                <div class="flex justify-between items-center">
+                  <span class="text-[10px] text-slate-400">Scope Drift Since Sprint 1</span>
+                  <span class="text-[10px] font-bold text-amber-400">+38%</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Technical Risk Flags + Timeline Projection -->
+      <div class="grid grid-cols-2 gap-5">
+        <!-- Technical Risk Flags -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
+          <div class="flex items-center gap-2 mb-5">
+            <div class="w-1.5 h-5 rounded-full bg-red-500"></div>
+            <h3 class="text-sm font-bold text-white">Technical Feasibility Warnings</h3>
+          </div>
+          <div class="space-y-3">
+            <template x-for="risk in techRisks" :key="risk.id">
+              <div class="flex items-start gap-3 p-3 rounded-xl border"
+                :class="risk.level === 'CRITICAL' ? 'bg-red-500/8 border-red-500/20' : 'bg-amber-500/8 border-amber-500/20'">
+                <div class="shrink-0 mt-0.5">
+                  <span class="text-[9px] font-black uppercase px-1.5 py-0.5 rounded"
+                    :class="risk.level === 'CRITICAL' ? 'bg-red-500/25 text-red-300' : 'bg-amber-500/25 text-amber-300'"
+                    x-text="risk.level"></span>
+                </div>
+                <div>
+                  <div class="text-xs font-bold text-white mb-0.5" x-text="risk.title"></div>
+                  <p class="text-[10px] text-slate-400 leading-relaxed" x-text="risk.description"></p>
+                </div>
+              </div>
+            </template>
+          </div>
+        </div>
+
+        <!-- Scope Creep Timeline -->
+        <div class="bg-slate-900/60 border border-slate-800 rounded-3xl p-6">
+          <div class="flex items-center gap-2 mb-5">
+            <div class="w-1.5 h-5 rounded-full bg-violet-500"></div>
+            <h3 class="text-sm font-bold text-white">Scope Drift Over Time</h3>
+          </div>
+          <!-- Mini chart (SVG bars) -->
+          <svg class="w-full" height="140" viewBox="0 0 380 140">
+            <template x-for="(bar, i) in scopeTimeline" :key="i">
+              <g :transform="`translate(${30 + i * 58}, 0)`">
+                <rect x="8" :y="140 - bar.pct" width="36" :height="bar.pct" rx="5" ry="5"
+                  :fill="bar.pct > 80 ? '#ef4444' : bar.pct > 60 ? '#f59e0b' : '#6366f1'" opacity="0.75" />
+                <text x="26" :y="140 - bar.pct - 6" text-anchor="middle" style="font-size:10px;font-weight:700;font-family:Inter,sans-serif;" fill="#e2e8f0" x-text="bar.label"></text>
+                <text x="26" y="155" text-anchor="middle" style="font-size:9px;fill:#64748b;font-family:Inter,sans-serif;" x-text="bar.sprint"></text>
+              </g>
+            </template>
+            <!-- Baseline line -->
+            <line x1="30" y1="60" x2="360" y2="60" stroke="#334155" stroke-width="1" stroke-dasharray="4,3"/>
+            <text x="32" y="56" style="font-size:9px;fill:#475569;font-family:Inter,sans-serif;">Baseline scope</text>
+          </svg>
+
+          <!-- Prediction callout -->
+          <div class="mt-3 bg-violet-500/8 border border-violet-500/20 rounded-xl p-3 flex items-start gap-3">
+            <div class="text-violet-400 text-lg shrink-0">🔮</div>
+            <div>
+              <div class="text-[10px] font-bold text-violet-400 uppercase tracking-widest mb-1">AI Prediction</div>
+              <p class="text-[11px] text-slate-300 leading-snug">At the current rate of requirement additions (+8 per sprint), the project will exceed its original scope by <span class="text-amber-400 font-bold">62%</span> by Sprint 5. Recommend a scope freeze after Sprint 3.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- ════ Resolved Toast ════ -->
+  <div x-show="showToast" x-transition:enter="transition ease-out duration-300" x-transition:enter-start="opacity-0 translate-y-4" x-transition:enter-end="opacity-100 translate-y-0" x-transition:leave="transition ease-in duration-200" x-transition:leave-start="opacity-100" x-transition:leave-end="opacity-0"
+    class="fixed bottom-6 right-6 bg-emerald-900/90 border border-emerald-500/30 text-emerald-300 px-5 py-3 rounded-2xl text-sm font-semibold backdrop-blur shadow-2xl flex items-center gap-3 z-50">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+    <span x-text="toastMsg"></span>
+  </div>
+
+<script>
+function prototype() {
+  return {
+    activeTab: 'conflict',
+    showToast: false,
+    toastMsg: '',
+    selectedNode: null,
+    scopeRisk: 0,
+
+    tabs: [
+      { id: 'conflict',     label: '⚡ Conflict Resolution Hub' },
+      { id: 'traceability', label: '🔗 Traceability Graph' },
+      { id: 'scope',        label: '📊 Scope-Creep Index' },
+    ],
+
+    // ══════ CONFLICT DATA ══════
+    conflicts: [
+      {
+        id: 'CONF-001', severity: 'CRITICAL', status: 'open', expanded: true,
+        title: 'Payment Method Contradiction',
+        sourceA: 'Initial MOM (Sprint 1)',
+        sourceB: 'Updated PRD (Sprint 3)',
+        textA: 'The payment gateway shall support credit card transactions ONLY. All other payment methods are explicitly out of scope for Phase 1 launch.',
+        textB: 'The checkout module must integrate PayPal, Apple Pay, and Google Pay in addition to credit cards to remain competitive with market alternatives.',
+        recommendation: 'Merge both into a phased approach: Phase 1 launches with credit card + PayPal only, with Apple Pay / Google Pay reserved for Phase 2. Update the FRD acceptance criteria to reflect this.',
+        mergedText: '',
+      },
+      {
+        id: 'CONF-002', severity: 'HIGH', status: 'open', expanded: false,
+        title: 'Authentication Method Conflict',
+        sourceA: 'BRD Section 3.1',
+        sourceB: 'FRD FR-009',
+        textA: 'Users shall authenticate using standard email + password credentials for the initial release. MFA is deferred to post-launch.',
+        textB: 'The system shall enforce OTP-based two-factor authentication on every login attempt to meet PCI-DSS Level 1 compliance requirements.',
+        recommendation: 'Given PCI-DSS compliance is a hard regulatory requirement, Statement B must win. Update BRD to align: MFA via OTP is mandatory for compliance, not optional.',
+        mergedText: '',
+      },
+      {
+        id: 'CONF-003', severity: 'HIGH', status: 'resolved', expanded: false,
+        title: 'Session Timeout Duration',
+        sourceA: 'Security SRD',
+        sourceB: 'UX PRD',
+        textA: 'The system shall terminate idle sessions after 5 minutes of inactivity (bank-grade security standard).',
+        textB: 'To improve user experience, the session shall remain active for 60 minutes of inactivity to reduce re-authentication friction.',
+        recommendation: 'Agreed on 15-minute adaptive timeout with a soft warning at 12 minutes, satisfying both security and UX requirements.',
+        mergedText: 'The system shall maintain active sessions for up to 15 minutes of inactivity, displaying a warning dialog at 12 minutes. The user may extend the session with a single click. After 15 minutes, the session terminates and all unsaved data is cleared.',
+      },
+    ],
+
+    conflictStats: [
+      { label: 'Total Detected',  value: '3',  color: 'text-slate-200' },
+      { label: 'Critical',        value: '1',  color: 'text-red-400'   },
+      { label: 'High',            value: '1',  color: 'text-amber-400' },
+      { label: 'Resolved',        value: '1',  color: 'text-emerald-400' },
+    ],
+
+    resolveConflict(idx, choice) {
+      const c = this.conflicts[idx];
+      if (choice === 'A') {
+        c.mergedText = c.textA + ' (Statement B has been deprecated and removed from scope.)';
+      } else if (choice === 'B') {
+        c.mergedText = c.textB + ' (Statement A has been superseded and removed from scope.)';
+      } else {
+        c.mergedText = c.recommendation + '\n\n— AI-generated merged requirement, pending BA approval.';
+      }
+      c.status = 'resolved';
+      c.expanded = false;
+      this.conflictStats[3].value = String(this.conflicts.filter(x => x.status === 'resolved').length);
+      this.conflictStats[0].value = String(this.conflicts.length);
+      this.showToast = true;
+      this.toastMsg = `${c.id} resolved — FRD & BRD queued for update`;
+      setTimeout(() => this.showToast = false, 3500);
+    },
+
+    // ══════ GRAPH DATA ══════
+    graphNodes: [
+      { id: 'MOM',   type: 'DOC',         label: 'Minutes of Meeting\n(Initial Brief)',        x:20,   y:190, w:120, h:55, stale:false },
+      { id: 'FR-001',type: 'REQUIREMENT', label: 'User Authentication\n(OTP Login)',             x:180,  y:60,  w:130, h:55, stale:false },
+      { id: 'FR-002',type: 'REQUIREMENT', label: 'Payment Gateway\n(Multi-method)',              x:180,  y:185, w:130, h:55, stale:false },
+      { id: 'FR-003',type: 'REQUIREMENT', label: 'Transaction History\n(Audit Trail)',           x:180,  y:310, w:130, h:55, stale:false },
+      { id: 'SCR-01',type: 'SCREEN',      label: 'Login Screen\n(OTP Entry)',                   x:355,  y:30,  w:120, h:52, stale:false },
+      { id: 'SCR-02',type: 'SCREEN',      label: 'Checkout Screen\n(Payment Flow)',             x:355,  y:145, w:120, h:52, stale:false },
+      { id: 'SCR-03',type: 'SCREEN',      label: 'Dashboard\n(History Table)',                  x:355,  y:265, w:120, h:52, stale:false },
+      { id: 'RULE-01',type:'RULE',        label: 'PCI-DSS Compliance\nTokenization Rule',       x:355,  y:370, w:120, h:52, stale:false },
+      { id: 'TC-001', type:'TEST_CASE',   label: 'Auth: OTP Validation\nPass/Fail Cases',       x:530,  y:30,  w:130, h:52, stale:false },
+      { id: 'TC-002', type:'TEST_CASE',   label: 'Payment: Card + PayPal\nEdge Cases',          x:530,  y:145, w:130, h:52, stale:false },
+      { id: 'TC-003', type:'TEST_CASE',   label: 'History: Pagination\n& Filter Tests',         x:530,  y:265, w:130, h:52, stale:false },
+    ],
+    graphEdges: [
+      { id:'e1',  from:'MOM',    to:'FR-001', stale:false },
+      { id:'e2',  from:'MOM',    to:'FR-002', stale:false },
+      { id:'e3',  from:'MOM',    to:'FR-003', stale:false },
+      { id:'e4',  from:'FR-001', to:'SCR-01', stale:false },
+      { id:'e5',  from:'FR-002', to:'SCR-02', stale:false },
+      { id:'e6',  from:'FR-003', to:'SCR-03', stale:false },
+      { id:'e7',  from:'FR-002', to:'RULE-01',stale:false },
+      { id:'e8',  from:'SCR-01', to:'TC-001', stale:false },
+      { id:'e9',  from:'SCR-02', to:'TC-002', stale:false },
+      { id:'e10', from:'SCR-03', to:'TC-003', stale:false },
+    ],
+
+    getNodeClass(type) {
+      return { DOC:'node-doc', REQUIREMENT:'node-req', SCREEN:'node-screen', RULE:'node-rule', TEST_CASE:'node-test' }[type] || 'node-doc';
+    },
+    getNodeTextColor(type) {
+      return { DOC:'text-slate-400', REQUIREMENT:'text-indigo-400', SCREEN:'text-blue-400', RULE:'text-amber-400', TEST_CASE:'text-emerald-400' }[type] || 'text-slate-400';
+    },
+    getNodeDot(type) {
+      return { DOC:'bg-slate-400', REQUIREMENT:'bg-indigo-400', SCREEN:'bg-blue-400', RULE:'bg-amber-400', TEST_CASE:'bg-emerald-400' }[type] || 'bg-slate-400';
+    },
+
+    computeEdgePath(edge) {
+      const from = this.graphNodes.find(n => n.id === edge.from);
+      const to   = this.graphNodes.find(n => n.id === edge.to);
+      if (!from || !to) return '';
+      const x1 = from.x + from.w, y1 = from.y + from.h / 2;
+      const x2 = to.x,            y2 = to.y   + to.h   / 2;
+      const cx = (x1 + x2) / 2;
+      return `M ${x1} ${y1} C ${cx} ${y1}, ${cx} ${y2}, ${x2} ${y2}`;
+    },
+
+    selectNode(node) {
+      this.selectedNode = node;
+    },
+
+    getUpstream(id) {
+      if (!id) return [];
+      const parentIds = this.graphEdges.filter(e => e.to === id).map(e => e.from);
+      return this.graphNodes.filter(n => parentIds.includes(n.id));
+    },
+
+    getDownstream(id) {
+      if (!id) return [];
+      const childIds = this.graphEdges.filter(e => e.from === id).map(e => e.to);
+      return this.graphNodes.filter(n => childIds.includes(n.id));
+    },
+
+    triggerStale() {
+      // Simulate changing FR-002 → makes SCR-02, TC-002, RULE-01 stale
+      this.graphNodes = this.graphNodes.map(n =>
+        ['SCR-02','TC-002','RULE-01'].includes(n.id) ? { ...n, stale:true } : n
+      );
+      this.graphEdges = this.graphEdges.map(e =>
+        (e.from === 'FR-002' || e.from === 'SCR-02') ? { ...e, stale:true } : e
+      );
+      this.selectedNode = this.graphNodes.find(n => n.id === 'FR-002') || null;
+      this.showToast = true;
+      this.toastMsg = 'FR-002 changed — 3 downstream artifacts marked STALE';
+      setTimeout(() => this.showToast = false, 3500);
+    },
+
+    regenStale() {
+      this.graphNodes = this.graphNodes.map(n => ({ ...n, stale:false }));
+      this.graphEdges = this.graphEdges.map(e => ({ ...e, stale:false }));
+      this.showToast = true;
+      this.toastMsg = 'All stale artifacts queued for regeneration ✓';
+      setTimeout(() => this.showToast = false, 3000);
+    },
+
+    // ══════ SCOPE DATA ══════
+    effortItems: [
+      { label: 'User Authentication Module', size: 'L',  points: 21, pct: 68 },
+      { label: 'Payment Gateway Integration',size: 'XL', points: 34, pct: 100 },
+      { label: 'Transaction Dashboard',      size: 'M',  points: 13, pct: 42 },
+      { label: 'Admin & Compliance Panel',   size: 'L',  points: 21, pct: 68 },
+    ],
+
+    scopeTimeline: [
+      { sprint: 'Sprint 1', label: '40%', pct: 56  },
+      { sprint: 'Sprint 2', label: '58%', pct: 75  },
+      { sprint: 'Sprint 3', label: '63%', pct: 82  },
+      { sprint: 'Sprint 4', label: '71%', pct: 92  },
+      { sprint: 'Sprint 5 ▶', label: '87%?', pct: 113 },
+    ],
+
+    techRisks: [
+      { id:1, level:'CRITICAL', title:'Real-Time Settlement Load', description:'Requirement specifies sub-100ms transaction confirmation for 10,000 concurrent users. This exceeds standard PostgreSQL throughput by ~8x without a Redis caching layer explicitly scoped.' },
+      { id:2, level:'CRITICAL', title:'PCI-DSS Tokenization Missing', description:'No requirement explicitly mandates card data tokenization before storage. This is a hard regulatory violation that will block launch.' },
+      { id:3, level:'HIGH',     title:'Third-Party API Rate Limits', description:'PayPal Checkout API has a 5,000 req/min limit on sandbox tier. PRD does not define a retry/queue strategy for peak load.' },
+    ],
+
+    init() {
+      // Animate scope risk gauge in
+      setTimeout(() => { this.scopeRisk = 63; }, 400);
+    }
+  }
+}
+</script>
+</body>
+</html>
