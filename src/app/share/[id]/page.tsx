@@ -113,7 +113,7 @@ export default function SharePage() {
 
         <div className="flex-1 overflow-y-auto p-10">
           <div className="max-w-4xl mx-auto bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 p-10 rounded-3xl shadow-2xl">
-            ) : (activeTab === "Wireframes" || activeTab === "Prototypes") ? (
+            {(activeTab === "Wireframes" || activeTab === "Prototypes") ? (
                <div className="h-[600px]"><DynamicUIBuilder schema={displayDoc} isProcessing={false} /></div>
             ) : (activeTab === "Flowcharts" || activeTab === "UML Diagrams") ? (
                <div className="h-[600px] my-8 shadow-2xl rounded-3xl overflow-hidden border border-slate-700/50">
