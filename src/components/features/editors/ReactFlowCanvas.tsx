@@ -10,10 +10,28 @@ import {
   useEdgesState,
   addEdge,
   Connection,
-  Edge
+  Edge,
+  Handle,
+  Position
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { AlertTriangle, Loader2 } from 'lucide-react';
+
+const HtmlNode = ({ data, isConnectable }: any) => {
+  return (
+    <>
+      <Handle type="target" position={Position.Top} isConnectable={isConnectable} className="opacity-0" />
+      <div dangerouslySetInnerHTML={{ __html: data.label }} className="text-xs font-mono leading-relaxed" />
+      <Handle type="source" position={Position.Bottom} isConnectable={isConnectable} className="opacity-0" />
+      <Handle type="source" position={Position.Right} id="right" isConnectable={isConnectable} className="opacity-0" />
+      <Handle type="target" position={Position.Left} id="left" isConnectable={isConnectable} className="opacity-0" />
+    </>
+  );
+};
+
+const nodeTypes = {
+  custom: HtmlNode,
+};
 
 export const ReactFlowCanvas = ({ chart, isProcessing }: { chart: string, isProcessing?: boolean }) => {
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
@@ -46,6 +64,7 @@ export const ReactFlowCanvas = ({ chart, isProcessing }: { chart: string, isProc
         return rawNodes.map(n => ({
           ...n,
           id: String(n.id || Math.random()),
+          type: 'custom',
           position: {
             x: Number(n.position?.x || 0),
             y: Number(n.position?.y || 0)
@@ -132,6 +151,7 @@ export const ReactFlowCanvas = ({ chart, isProcessing }: { chart: string, isProc
       <ReactFlow
         nodes={nodes}
         edges={edges}
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onConnect={onConnect}
