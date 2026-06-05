@@ -1,6 +1,6 @@
 export const GOLD_STANDARD_EXAMPLES: Record<string, string> = {
   'JSON UI Component': `
-### GOLD STANDARD: JSON UI COMPONENT SCHEMA
+### GOLD STANDARD: COMPONENT REGISTRY JSON SCHEMA
 Example: "Application Dashboard"
 \`\`\`json
 {
@@ -11,7 +11,10 @@ Example: "Application Dashboard"
       "layout": "sidebar-main",
       "components": [
         { "type": "nav", "links": ["Dashboard", "Settings"] },
-        { "type": "card", "title": "Total Revenue", "value": "$50,000", "theme": "primary" },
+        { "type": "grid", "cols": 2, "children": [
+            { "type": "card", "title": "Total Revenue", "value": "$50,000", "theme": "primary" },
+            { "type": "card", "title": "Active Users", "value": "1,200", "theme": "secondary" }
+        ]},
         { "type": "table", "columns": ["Name", "Status"], "rows": [["Initial Corp", "Approved"]] }
       ]
     }
@@ -58,33 +61,14 @@ Example: "Application Dashboard"
 </div>
 \`\`\`
 `,
-  'Mermaid': `
-### GOLD STANDARD: FLOWCHART (MERMAID)
-Example: "Order Fulfillment Logic"
-\`\`\`mermaid
-graph TD
-  A["Customer Order"] --> B{"Stock Check"}
-  B -- "In Stock" --> C["Reserve Items"]
-  B -- "OOS" --> D["Trigger Restock"]
-  C --> E["Payment Processing"]
-  E --> F["Ship Order"]
-\`\`\`
-`,
-  'PlantUML': `
-### GOLD STANDARD: UML (PLANTUML) - CORRECT SYNTAX
-\`\`\`plantuml
-@startuml
-left to right direction
-actor "Doctor" as D
-actor "Admin" as A
-package "Hospital System" {
-  usecase "View Records" as UC1
-  usecase "Update Meds" as UC2
+  'React Flow JSON': `
+### GOLD STANDARD: REACT FLOW JSON SCHEMA
+Example: "Order Fulfillment Flowchart"
+\`\`\`json
+{
+  "summary": "Order fulfillment process.",
+  "code": "{\n  \\"nodes\\": [\n    { \\"id\\": \\"1\\", \\"position\\": { \\"x\\": 250, \\"y\\": 0 }, \\"data\\": { \\"label\\": \\"Customer Order\\" }, \\"style\\": { \\"background\\": \\"#1e293b\\", \\"color\\": \\"#f8fafc\\", \\"border\\": \\"1px solid #3b82f6\\", \\"borderRadius\\": \\"8px\\", \\"padding\\": \\"10px\\" } },\n    { \\"id\\": \\"2\\", \\"position\\": { \\"x\\": 250, \\"y\\": 100 }, \\"data\\": { \\"label\\": \\"Stock Check\\" }, \\"style\\": { \\"background\\": \\"#334155\\", \\"color\\": \\"#f8fafc\\", \\"border\\": \\"1px solid #64748b\\", \\"borderRadius\\": \\"8px\\", \\"padding\\": \\"10px\\" } }\n  ],\n  \\"edges\\": [\n    { \\"id\\": \\"e1-2\\", \\"source\\": \\"1\\", \\"target\\": \\"2\\", \\"label\\": \\"Initiates\\", \\"animated\\": true, \\"style\\": { \\"stroke\\": \\"#3b82f6\\" } }\n  ]\n}"
 }
-D --> UC1
-D --> UC2
-A --> UC1
-@enduml
 \`\`\`
 `
 };
@@ -113,16 +97,17 @@ export const AGENT_CONFIGS: Record<string, any> = {
   'Wireframes': {
     name: "UX Architect Agent",
     tool: "JSON UI Component",
-    instruction: `Generate a CONCISE, low-fidelity grayscale wireframe as a strict JSON UI Schema.
+    instruction: `Generate a High-Fidelity Component Schema as strict JSON.
 STRICT RULES:
 1. Output a SINGLE self-contained JSON object matching the standard.
-2. STRUCTURAL SYMMETRY: You MUST generate ALL screens defined in the Functional Requirements AND any additional screens or modifications mentioned in the Conversation Context. Do not drop existing screens when new ones are added.
-3. Use the exact same screen names and IDs from the Functional Requirements.
-4. TEXTUAL CLARITY: Use actual text labels, field names, and descriptive titles. NEVER use 'Lorem Ipsum'.
-5. Set the theme to 'grayscale' in the schema.
-6. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations before or after the code block.
+2. You MUST use nested structural components: \`grid\`, \`flex\`, \`card\`, \`section\` to layout items nicely.
+3. Supported primitive components: \`typography\`, \`button\`, \`input\`, \`badge\`, \`avatar\`, \`table\`.
+4. Use actual text labels, field names, and descriptive titles. NEVER use 'Lorem Ipsum'.
+5. Set the theme to 'modern' in the schema.
+6. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations.
 7. ANTI-HALLUCINATION RULE: NEVER hallucinate features, screens, or components that are not explicitly requested. You MUST strictly follow the user requirements.
-8. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks (e.g. 'XXXX-XXXX-XXXX-1234'). DO NOT output any random sequence of 9 or more digits. Failure to mask will trigger a critical security violation.`
+8. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks.
+${DECISION_PARTNER_INSTRUCTION}`
   },
   'Prototypes': {
     name: "Elite UI/UX Designer",
@@ -145,18 +130,15 @@ STRICT RULES:
   },
   'Flowcharts': {
     name: "Elite Process Architect",
-    tool: "Mermaid",
-    instruction: `Generate professional Flowcharts using strictly stable syntax.
+    tool: "React Flow JSON",
+    instruction: `Generate professional Flowcharts using strictly React Flow JSON schema.
 MANDATORY STABILITY RULES:
-1. Use ONLY: graph TD
-2. Use ONLY solid arrows: -->
-3. NEVER use dotted arrows (-.->) or labels on arrows.
-4. Put all text INSIDE nodes: A["Action Text"] --> B["Next Step"]
-5. Every node MUST have a quoted label: ID["Text"]
-6. Maximum 12 nodes for absolute stability.
-7. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output Markdown summaries or explanations before or after the code block.
-8. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps, both from the Functional Requirements and the Conversation Context. Do not drop old steps when new ones are added.
-9. ANTI-HALLUCINATION RULE: NEVER hallucinate processes or steps that are not explicitly requested. You MUST strictly model only the user requirements.
+1. You MUST output a strict JSON object with a \`summary\` and a \`code\` field.
+2. The \`code\` field MUST be a stringified JSON object containing \`nodes\` and \`edges\` arrays.
+3. Every node MUST have: \`id\`, \`position\` (x, y coords to prevent overlapping), \`data\` (with \`label\`), and \`style\`.
+4. Ensure a top-down or left-to-right logical coordinate layout (increment y by 100 or x by 200).
+5. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations.
+6. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Logic Sandbox': {
@@ -172,17 +154,15 @@ STRICT RULES:
   },
   'UML Diagrams': {
     name: "System Architect Agent",
-    tool: "PlantUML",
-    instruction: `Generate a professional, high-fidelity PlantUML Class Diagram. 
-MANDATORY STABILITY RULES: 
-1. Use ONLY standard class and relationship syntax. 
-2. NEVER use parentheses () or spaces in relationship labels. 
-3. MUST include 'left to right direction' and 'hide empty members' at the top of the diagram to prevent visual overlapping.
-4. Maximum 8 classes for layout stability. Max 4 properties/methods per class. Keep the diagram sparse and easy to read.
-5. NEVER use the 'artifact' keyword. Use ONLY 'class', 'interface', or 'enum'.
-6. Output ONLY the raw PlantUML code wrapped in triple-backtick plantuml fences (\`\`\`plantuml). NEVER output Markdown summaries or explanations.
-7. COMPREHENSIVENESS RULE: You MUST combine ALL classes and relationships from both the Functional Requirements and the Conversation Context. Do not drop old classes when new ones are added.
-8. ANTI-HALLUCINATION RULE: NEVER hallucinate classes, fields, or relationships that are not explicitly requested. You MUST strictly follow the user requirements.
+    tool: "React Flow JSON",
+    instruction: `Generate a professional, high-fidelity UML Diagram using strictly React Flow JSON schema.
+MANDATORY STABILITY RULES:
+1. You MUST output a strict JSON object with a \`summary\` and a \`code\` field.
+2. The \`code\` field MUST be a stringified JSON object containing \`nodes\` and \`edges\` arrays.
+3. Use \`data.label\` for class names and attributes (you can use newline characters or HTML in labels if needed to show properties).
+4. Ensure logical X/Y spacing for classes to prevent overlapping.
+5. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations.
+6. COMPREHENSIVENESS RULE: You MUST combine ALL classes and relationships from both the Functional Requirements and the Conversation Context.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Test Cases': {

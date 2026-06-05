@@ -8,9 +8,9 @@ import remarkGfm from 'remark-gfm';
 import pako from 'pako';
 import { motion } from 'framer-motion';
 
-import { MermaidRenderer } from '@/components/features/editors/MermaidRenderer';
+import { ReactFlowCanvas } from '@/components/features/editors/ReactFlowCanvas';
 import { LivePreviewIframe } from '@/components/features/editors/LivePreviewIframe';
-import { PlantUMLRenderer } from '@/components/features/editors/PlantUMLRenderer';
+
 import { DynamicUIBuilder } from '@/components/DynamicUIBuilder';
 
 export default function SharePage() {
@@ -174,7 +174,7 @@ export default function SharePage() {
             ) : activeTab === "Wireframes" ? (
                <div className="h-[600px]"><DynamicUIBuilder schema={displayDoc} isProcessing={false} /></div>
             ) : activeTab === "UML Diagrams" ? (
-               <PlantUMLRenderer code={displayDoc.replace(/```[a-zA-Z]*\n?/gi, '').replace(/```\n?/g, '')} />
+               <ReactFlowCanvas chart={displayDoc.replace(/```[a-zA-Z]*\n?/gi, '').replace(/```\n?/g, '')} />
             ) : (
               <div className="prose prose-invert prose-slate max-w-none">
                 <ReactMarkdown 
@@ -183,7 +183,7 @@ export default function SharePage() {
                     code({inline, className, children, ...props}: any) {
                       const match = /language-(\w+)/.exec(className || '');
                       if (!inline && match && match[1] === 'mermaid') {
-                        return <MermaidRenderer chart={String(children).replace(/\n$/, '')} />
+                        return <ReactFlowCanvas chart={String(children).replace(/\n$/, '')} />
                       }
                       return <code {...props}>{children}</code>
                     }

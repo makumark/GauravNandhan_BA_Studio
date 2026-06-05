@@ -1,14 +1,24 @@
 'use client';
 
 import React from 'react';
-
-// Example structured JSON:
-// { "screens": [{ "id": "dashboard", "title": "Dashboard", "layout": "sidebar-main", "components": [...] }] }
+import { 
+  UserCircle2, 
+  Settings, 
+  Menu, 
+  Bell, 
+  Search, 
+  ChevronRight, 
+  Loader2,
+  AlertTriangle,
+  LayoutDashboard,
+  Users,
+  CreditCard,
+  Package
+} from 'lucide-react';
 
 export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isProcessing?: boolean }) {
   let parsedSchema;
   try {
-    // We expect the LLM to output a JSON string, possibly wrapped in markdown backticks
     let jsonStr = schema;
     const jsonMatch = schema.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
     if (jsonMatch) {
@@ -24,136 +34,141 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
     try {
       parsedSchema = JSON.parse(jsonStr);
     } catch (e1) {
-      // Fallback for LLM hallucinations like trailing commas or unquoted keys
       parsedSchema = new Function("return " + jsonStr)();
     }
   } catch (e) {
     if (isProcessing) {
       return (
-        <div className="flex flex-col items-center justify-center p-12 bg-slate-900/50 rounded-2xl border border-slate-700/30 min-h-[300px]">
-          <div className="w-8 h-8 animate-spin border-4 border-blue-500 border-t-transparent rounded-full mb-4" />
-          <p className="text-slate-400 text-sm font-medium animate-pulse">Generating UI Schema...</p>
+        <div className="flex flex-col items-center justify-center p-12 bg-slate-900/50 rounded-2xl border border-slate-700/30 min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-blue-500 mb-4" />
+          <p className="text-slate-400 text-sm font-medium animate-pulse">Rendering Component Engine...</p>
         </div>
       );
     }
     return (
-      <div className="p-4 bg-red-900/50 text-red-200 border border-red-500 rounded-md">
-        <h3 className="font-bold">UI Render Error</h3>
-        <p>The AI generated invalid JSON schema. The self-healing agent has been notified.</p>
-        <pre className="mt-2 text-xs opacity-50 whitespace-pre-wrap">{schema}</pre>
+      <div className="p-8 bg-slate-900/80 border border-red-500/30 rounded-2xl flex flex-col gap-4">
+        <div className="flex items-center gap-3 text-red-400">
+          <AlertTriangle className="w-6 h-6" />
+          <h3 className="font-bold uppercase tracking-widest text-sm">Component Registry Error</h3>
+        </div>
+        <p className="text-[10px] text-slate-500 leading-relaxed italic">The AI generated an invalid component layout JSON.</p>
+        <div className="p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400 max-h-32 overflow-y-auto custom-scrollbar font-mono">
+          Syntax Error
+        </div>
       </div>
     );
   }
 
   if (!parsedSchema || !parsedSchema.screens || !Array.isArray(parsedSchema.screens)) {
-    return <div className="p-4 text-white">Awaiting UI Schema...</div>;
+    if (isProcessing) return <div className="p-12 text-center text-slate-500 animate-pulse">Initializing Layouts...</div>;
+    return <div className="p-4 text-slate-400">Invalid Schema Structure</div>;
   }
 
   const safeText = (val: any): string => {
     if (val === null || val === undefined) return '';
     if (typeof val === 'object') {
-      try { return JSON.stringify(val); } catch(e) { return '[Object]'; }
+      try { return JSON.stringify(val); } catch(e) { return ''; }
     }
     return String(val);
   };
 
-  const renderComponent = (comp: any, cIdx: string | number) => {
+  // Modern Component Registry Rendering
+  const renderComponent = (comp: any, cIdx: string) => {
     if (!comp) return null;
-    if (comp.type === 'progress-bar') {
-      const percent = comp.totalSteps ? Math.round((comp.currentStep / comp.totalSteps) * 100) : 50;
+
+    const key = `registry-${cIdx}`;
+    
+    // STRUCTURE: Grid
+    if (comp.type === 'grid') {
+      const cols = comp.cols || 2;
       return (
-        <div key={cIdx} className="w-full">
-          <div className="flex justify-between text-xs text-slate-400 mb-1">
-            <span>{safeText(comp.label) || `Step ${comp.currentStep}`}</span>
-            <span>{percent}%</span>
-          </div>
-          <div className="w-full bg-slate-700 rounded-full h-2">
-            <div className="bg-blue-500 h-2 rounded-full" style={{ width: `${percent}%` }}></div>
-          </div>
+        <div key={key} className={`grid gap-4 ${cols === 2 ? 'grid-cols-2' : cols === 3 ? 'grid-cols-3' : cols === 4 ? 'grid-cols-4' : 'grid-cols-1'}`}>
+          {Array.isArray(comp.children || comp.components) && (comp.children || comp.components).map((child: any, idx: number) => renderComponent(child, `${cIdx}-${idx}`))}
         </div>
       );
     }
-    if (comp.type === 'heading') {
-      return React.createElement(`h${comp.level || 2}`, { key: cIdx, className: "text-lg font-bold text-slate-100 mt-2" }, safeText(comp.text || comp.title || comp.label || comp.content || ""));
-    }
-    if (comp.type === 'text' || comp.type === 'paragraph') {
-      return <p key={cIdx} className="text-sm text-slate-300 leading-relaxed">{safeText(comp.content || comp.text)}</p>;
-    }
-    const inputTypes = ['input', 'text-input', 'password-input', 'date-input', 'email-input', 'number-input', 'tel-input', 'select', 'dropdown', 'textarea', 'checkbox', 'radio'];
-    if (inputTypes.includes(comp.type)) {
-      const isCheckOrRadio = comp.type === 'checkbox' || comp.type === 'radio';
+
+    // STRUCTURE: Flex
+    if (comp.type === 'flex') {
+      const direction = comp.direction === 'col' ? 'flex-col' : 'flex-row';
+      const justify = comp.justify === 'between' ? 'justify-between' : comp.justify === 'center' ? 'justify-center' : 'justify-start';
+      const align = comp.align === 'center' ? 'items-center' : 'items-start';
       return (
-        <div key={cIdx} className={`flex ${isCheckOrRadio ? 'flex-row items-center gap-2' : 'flex-col gap-1'}`}>
-          {!isCheckOrRadio && comp.label && <label className="text-xs font-semibold text-slate-400 uppercase">{safeText(comp.label)} {(comp.mandatory || comp.required) && <span className="text-red-400">*</span>}</label>}
-          {comp.type === 'textarea' ? (
-            <textarea placeholder={safeText(comp.placeholder)} className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200 min-h-[80px]" disabled={comp.disabled} />
-          ) : (comp.type === 'select' || comp.type === 'dropdown') ? (
-            <select className="bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200" disabled={comp.disabled}>
-              <option value="">{safeText(comp.placeholder) || "Select option..."}</option>
-              {Array.isArray(comp.options) && comp.options.map((opt: any, optIdx: number) => <option key={optIdx} value={typeof opt === 'string' ? opt : JSON.stringify(opt)}>{safeText(opt)}</option>)}
-            </select>
-          ) : (
-            <input 
-              type={comp.type === 'tel-input' ? 'tel' : comp.type === 'password-input' ? 'password' : comp.type === 'date-input' ? 'date' : comp.type === 'email-input' ? 'email' : comp.type === 'number-input' ? 'number' : comp.type === 'checkbox' ? 'checkbox' : comp.type === 'radio' ? 'radio' : 'text'} 
-              placeholder={safeText(comp.placeholder)} 
-              className={isCheckOrRadio ? "w-4 h-4 text-blue-600 bg-slate-900 border-slate-600 rounded focus:ring-blue-500 focus:ring-2" : "bg-slate-900 border border-slate-600 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-500 text-slate-200"} 
-              disabled={comp.disabled} 
-            />
+        <div key={key} className={`flex ${direction} ${justify} ${align} gap-4`}>
+          {Array.isArray(comp.children || comp.components) && (comp.children || comp.components).map((child: any, idx: number) => renderComponent(child, `${cIdx}-${idx}`))}
+        </div>
+      );
+    }
+
+    // COMPONENT: Card
+    if (comp.type === 'card') {
+      const themeClass = comp.theme === 'primary' 
+        ? 'bg-blue-600/10 border-blue-500/30' 
+        : comp.theme === 'secondary'
+        ? 'bg-emerald-600/10 border-emerald-500/30'
+        : 'bg-white/5 border-white/10';
+        
+      const textClass = comp.theme === 'primary' ? 'text-blue-400' : comp.theme === 'secondary' ? 'text-emerald-400' : 'text-slate-400';
+
+      return (
+        <div key={key} className={`p-6 rounded-2xl border backdrop-blur-md shadow-xl transition-all hover:scale-[1.02] ${themeClass}`}>
+          {comp.title && <h4 className={`text-xs font-bold uppercase tracking-wider mb-2 ${textClass}`}>{safeText(comp.title)}</h4>}
+          {comp.value && <p className="text-3xl font-light text-white tracking-tight">{safeText(comp.value)}</p>}
+          {comp.description && <p className="text-xs text-slate-500 mt-2">{safeText(comp.description)}</p>}
+          
+          {Array.isArray(comp.children || comp.components) && (
+             <div className="mt-4 flex flex-col gap-3">
+               {(comp.children || comp.components).map((child: any, idx: number) => renderComponent(child, `${cIdx}-${idx}`))}
+             </div>
           )}
-          {isCheckOrRadio && comp.label && <label className="text-sm font-medium text-slate-300">{safeText(comp.label)} {(comp.mandatory || comp.required) && <span className="text-red-400">*</span>}</label>}
         </div>
       );
     }
-    if (comp.type === 'link') {
-      return (
-        <a key={cIdx} href="#" className="text-sm text-blue-400 hover:text-blue-300 underline mt-2 inline-block">
-          {safeText(comp.text || comp.label)}
-        </a>
-      );
-    }
-    if (comp.type === 'button') {
-      const isPrimary = comp.variant !== 'secondary';
-      return (
-        <button key={cIdx} className={`px-4 py-2 mt-2 rounded-lg text-sm font-bold transition-all ${isPrimary ? 'bg-blue-600 hover:bg-blue-500 text-white' : 'bg-slate-700 hover:bg-slate-600 text-slate-200'} ${comp.disabled ? 'opacity-50 cursor-not-allowed' : ''}`}>
-          {safeText(comp.text || comp.label)}
-        </button>
-      );
-    }
+
+    // COMPONENT: Navigation
     if (comp.type === 'nav') {
       return (
-        <nav key={cIdx} className="flex gap-4 border-b border-slate-700 pb-4">
-          {Array.isArray(comp.links) && comp.links.map((link: any, lIdx: number) => (
-            <button key={lIdx} className="text-sm font-semibold text-slate-400 hover:text-white transition-colors">{safeText(link.label || link.text || link)}</button>
-          ))}
+        <nav key={key} className="flex items-center justify-between px-6 py-4 bg-slate-900/80 border-b border-slate-800 backdrop-blur-xl -mx-6 -mt-6 mb-6 rounded-t-2xl">
+          <div className="flex items-center gap-6">
+            <div className="w-8 h-8 rounded-lg bg-blue-500/20 border border-blue-500/50 flex items-center justify-center">
+              <LayoutDashboard className="w-4 h-4 text-blue-400" />
+            </div>
+            {Array.isArray(comp.links) && comp.links.map((link: any, idx: number) => (
+              <span key={idx} className={`text-sm font-medium cursor-pointer transition-colors ${idx === 0 ? 'text-white' : 'text-slate-400 hover:text-slate-200'}`}>
+                {safeText(link)}
+              </span>
+            ))}
+          </div>
+          <div className="flex items-center gap-4">
+            <Search className="w-4 h-4 text-slate-500" />
+            <Bell className="w-4 h-4 text-slate-500" />
+            <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center overflow-hidden">
+              <UserCircle2 className="w-6 h-6 text-slate-400" />
+            </div>
+          </div>
         </nav>
       );
     }
-    if (comp.type === 'card') {
-      return (
-        <div key={cIdx} className="bg-white/5 backdrop-blur-md border border-white/10 rounded-xl p-6 shadow-xl">
-          <h4 className="text-sm text-slate-400 uppercase tracking-wider">{safeText(comp.title)}</h4>
-          <p className="text-4xl font-light text-white mt-2">{safeText(comp.value)}</p>
-        </div>
-      );
-    }
+
+    // COMPONENT: Table
     if (comp.type === 'table') {
       return (
-        <div key={cIdx} className="overflow-x-auto border border-slate-700 rounded-lg">
+        <div key={key} className="w-full overflow-hidden border border-slate-800 rounded-xl bg-slate-900/50">
           <table className="w-full text-left text-sm">
-            <thead className="bg-slate-800 text-slate-300">
+            <thead className="bg-slate-800/80 text-slate-400 text-xs uppercase tracking-wider">
               <tr>
-                {Array.isArray(comp.columns) && comp.columns.map((col: any, colIdx: number) => (
-                  <th key={colIdx} className="p-3 font-semibold">{safeText(col.label || col.title || col)}</th>
+                {Array.isArray(comp.columns) && comp.columns.map((col: any, idx: number) => (
+                  <th key={idx} className="px-6 py-4 font-medium">{safeText(col)}</th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-700/50">
-              {Array.isArray(comp.rows) && comp.rows.map((row: any, rowIdx: number) => (
-                <tr key={rowIdx} className="hover:bg-slate-800/50 transition-colors">
-                  {Array.isArray(row) ? row.map((cell: any, cellIdx: number) => (
-                    <td key={cellIdx} className="p-3 text-slate-300">{safeText(cell)}</td>
+            <tbody className="divide-y divide-slate-800/50">
+              {Array.isArray(comp.rows) && comp.rows.map((row: any, rIdx: number) => (
+                <tr key={rIdx} className="hover:bg-slate-800/30 transition-colors group">
+                  {Array.isArray(row) ? row.map((cell: any, cIdx: number) => (
+                    <td key={cIdx} className="px-6 py-4 text-slate-300 group-hover:text-white transition-colors">{safeText(cell)}</td>
                   )) : (
-                    <td className="p-3 text-slate-300">{safeText(row)}</td>
+                    <td className="px-6 py-4 text-slate-300">{safeText(row)}</td>
                   )}
                 </tr>
               ))}
@@ -162,41 +177,82 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
         </div>
       );
     }
-    if (comp.type === 'section' || comp.type === 'conditional_group' || comp.type === 'form' || comp.components || comp.fields || comp.children) {
-      const children = comp.components || comp.fields || comp.children;
+
+    // COMPONENT: Input
+    if (comp.type === 'input' || comp.type === 'text-input' || comp.type === 'password-input') {
       return (
-        <div key={cIdx} className="flex flex-col gap-3 p-4 bg-slate-800/30 border border-slate-700/50 rounded-xl w-full">
-          {(comp.title || comp.label) && <h3 className="text-sm font-bold text-slate-200">{safeText(comp.title || comp.label)}</h3>}
-          {Array.isArray(children) && children.map((childComp: any, childIdx: number) => renderComponent(childComp, `${cIdx}-${childIdx}`))}
+        <div key={key} className="flex flex-col gap-1.5 w-full">
+          {comp.label && <label className="text-xs font-medium text-slate-400">{safeText(comp.label)}</label>}
+          <input 
+            type={comp.type === 'password-input' ? 'password' : 'text'}
+            placeholder={safeText(comp.placeholder)}
+            className="w-full bg-slate-950/50 border border-slate-700 rounded-xl px-4 py-2.5 text-sm text-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all placeholder:text-slate-600"
+          />
         </div>
       );
     }
-    if (comp.type === 'text-display') {
+
+    // COMPONENT: Button
+    if (comp.type === 'button') {
+      const isPrimary = comp.theme !== 'secondary' && comp.variant !== 'outline';
       return (
-        <div key={cIdx} className="flex flex-col gap-1 py-1">
-          {comp.label && <span className="text-xs font-semibold text-slate-400 uppercase">{safeText(comp.label)}</span>}
-          {comp.value && <span className="text-sm text-slate-200">{safeText(comp.value)}</span>}
+        <button key={key} className={`px-5 py-2.5 rounded-xl text-sm font-semibold transition-all shadow-lg active:scale-95 ${
+          isPrimary 
+            ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white shadow-blue-900/20' 
+            : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700'
+        }`}>
+          {safeText(comp.label || comp.text)}
+        </button>
+      );
+    }
+
+    // COMPONENT: Typography
+    if (comp.type === 'typography' || comp.type === 'heading' || comp.type === 'text') {
+      const variant = comp.variant || comp.type;
+      if (variant === 'heading' || comp.level) {
+        return <h3 key={key} className="text-xl font-bold text-white tracking-tight">{safeText(comp.text || comp.content)}</h3>;
+      }
+      return <p key={key} className="text-sm text-slate-400 leading-relaxed">{safeText(comp.text || comp.content)}</p>;
+    }
+    
+    // COMPONENT: Badge
+    if (comp.type === 'badge') {
+      return (
+        <span key={key} className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+          {safeText(comp.text || comp.label)}
+        </span>
+      );
+    }
+
+    // COMPONENT: Generic Section/Form
+    if (comp.type === 'section' || comp.type === 'form' || comp.components || comp.children) {
+      return (
+        <div key={key} className="flex flex-col gap-4 p-6 bg-slate-800/20 border border-slate-800 rounded-2xl">
+          {(comp.title || comp.label) && <h3 className="text-sm font-bold text-slate-300 uppercase tracking-widest">{safeText(comp.title || comp.label)}</h3>}
+          {Array.isArray(comp.components || comp.children) && (comp.components || comp.children).map((child: any, idx: number) => renderComponent(child, `${cIdx}-${idx}`))}
         </div>
       );
     }
-    // Fallback: Never display raw JSON. Try to extract any readable text properties.
+
+    // Fallback Renderer
     const fallbackText = comp.text || comp.label || comp.title || comp.value || comp.content || comp.type;
     return (
-      <div key={cIdx} className="flex flex-col gap-1 py-1 opacity-70">
-        <span className="text-sm text-slate-300">{safeText(fallbackText)}</span>
+      <div key={key} className="flex p-3 bg-slate-800/30 border border-slate-700/50 rounded-lg text-sm text-slate-400 items-center justify-between">
+        <span>{safeText(fallbackText)}</span>
+        <span className="text-[10px] uppercase tracking-widest opacity-50 border border-slate-700 px-2 py-0.5 rounded-md">{comp.type}</span>
       </div>
     );
   };
 
   return (
-    <div className="dynamic-ui-container w-full h-full bg-slate-900 text-slate-100 rounded-lg overflow-x-auto overflow-y-auto shadow-2xl flex flex-row gap-6 p-6 border border-slate-700">
+    <div className="w-full h-full bg-[#0a0f1c] text-slate-100 rounded-3xl overflow-x-auto overflow-y-auto shadow-2xl flex flex-row gap-8 p-8 border border-slate-800">
       {parsedSchema.screens.map((screen: any, idx: number) => (
-        <div key={idx} className="flex-none w-[400px] h-fit bg-slate-800/50 border border-slate-700 rounded-2xl flex flex-col p-6 shadow-lg">
-          <h2 className="text-2xl font-black mb-6 text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-cyan-300">
-            {safeText(screen.title || screen.id)}
-          </h2>
-          <div className="flex flex-col gap-4">
-            {Array.isArray(screen.components) && screen.components.map((comp: any, cIdx: number) => renderComponent(comp, cIdx))}
+        <div key={idx} className="flex-none w-[800px] h-fit min-h-[600px] bg-slate-900 border border-slate-800 rounded-[2rem] flex flex-col p-6 shadow-2xl relative overflow-hidden">
+          {/* Subtle Ambient Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[400px] h-[200px] bg-blue-500/10 blur-[100px] pointer-events-none" />
+          
+          <div className="relative z-10 flex flex-col gap-6">
+            {Array.isArray(screen.components) && screen.components.map((comp: any, cIdx: number) => renderComponent(comp, `${idx}-${cIdx}`))}
           </div>
         </div>
       ))}

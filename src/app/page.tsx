@@ -78,8 +78,7 @@ import {
 } from "@/lib/graph";
 
 
-import { MermaidRenderer } from '@/components/features/editors/MermaidRenderer';
-import { PlantUMLRenderer } from '@/components/features/editors/PlantUMLRenderer';
+import { ReactFlowCanvas } from '@/components/features/editors/ReactFlowCanvas';
 import { LivePreviewIframe } from '@/components/features/editors/LivePreviewIframe';
 import { ConflictResolveModal } from '@/components/ConflictResolveModal';
 import { ScopeCreepWidget } from '@/components/ScopeCreepWidget';
@@ -155,6 +154,41 @@ export default function Home() {
   const [healthCheckResult, setHealthCheckResult] = useState<any>(null);
   const [isRunningHealthCheck, setIsRunningHealthCheck] = useState(false);
   const [showHealthCheck, setShowHealthCheck] = useState(false);
+  const loadDemoData = () => {
+    // 1. Populate conflicts
+    setConflicts([
+      { id: 'REQ-C-001', severity: 'HIGH', description: 'Sprint 1 logic specifies static username/password login, but Sprint 3 introduces MFA requirements. Additive merge required.', resolution: 'Layer MFA on top of static login flow.' }
+    ]);
+    
+    // 2. Populate scope history
+    setScopeHistory([
+      { snapshot: Array(5).fill('req'), timestamp: '2026-06-01' },
+      { snapshot: Array(7).fill('req'), timestamp: '2026-06-02' },
+      { snapshot: Array(15).fill('req'), timestamp: '2026-06-04' } // Significant scope drift
+    ]);
+
+    // 3. Populate Traceability Graph and Stale Docs
+    setGraphNodes([
+      { id: 'BRD', label: 'Business Requirements Document', type: 'doc', text: 'Baseline requirements for the FinTech platform...' },
+      { id: 'FRD', label: 'Functional Requirements Document', type: 'doc', text: '1. User can login via MFA.\n2. User can view dashboard...' },
+      { id: 'Wireframes', label: 'Wireframes', type: 'doc', text: 'UI specifications for the MFA login screen...' },
+      { id: 'Test_Cases', label: 'Test Cases', type: 'doc', text: 'Test MFA token validation logic...' }
+    ]);
+    setGraphEdges([
+      { source: 'BRD', target: 'FRD', type: 'derives' },
+      { source: 'FRD', target: 'Wireframes', type: 'derives' },
+      { source: 'FRD', target: 'Test_Cases', type: 'validates' }
+    ]);
+    
+    setDocuments({
+      'BRD': { content: 'Baseline requirements...' },
+      'FRD': { content: '1. User can login via MFA...' },
+      'Wireframes': { content: 'UI specifications...' },
+      'Test Cases': { content: 'Test logic...' }
+    });
+
+    setStaleDocs(new Set(['Wireframes', 'Test_Cases']));
+  };
 
   const runHealthCheck = async () => {
     setIsRunningHealthCheck(true);
@@ -1877,7 +1911,7 @@ export default function Home() {
                                       const rawContent = documents[activeTab]?.content || "";
                                       const match = rawContent.match(/```(?:mermaid)?\s*([\s\S]*?)\s*```/i);
                                       const chartCode = match ? match[1].trim() : rawContent.trim();
-                                      return <DiagramErrorBoundary><MermaidRenderer chart={chartCode} isProcessing={isProcessing} /></DiagramErrorBoundary>;
+                                      return <DiagramErrorBoundary><ReactFlowCanvas chart={chartCode} isProcessing={isProcessing} /></DiagramErrorBoundary>;
                                   })()}
                                 </div>
                       ) : (
@@ -1924,7 +1958,7 @@ export default function Home() {
                                  
                                 return (
                                   <div className="flex flex-col gap-4">
-                                    <DiagramErrorBoundary><PlantUMLRenderer code={code} isProcessing={isProcessing} /></DiagramErrorBoundary>
+                                    <DiagramErrorBoundary><ReactFlowCanvas chart={code} isProcessing={isProcessing} /></DiagramErrorBoundary>
                                     <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 overflow-hidden">
                                       <div className="flex items-center justify-between mb-2 px-1">
                                         <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">PlantUML Source</span>
@@ -2176,6 +2210,15 @@ export default function Home() {
                   <p className="text-[10px] text-slate-500 leading-relaxed">
                     Run a deep audit to get a full loophole report, health score, and expert verdict on your project.
                   </p>
+                  
+                  {/* DEMO BUTTON: Populate all features with realistic mock data */}
+                  <button
+                    onClick={loadDemoData}
+                    className="w-full py-2 bg-emerald-600/20 hover:bg-emerald-500/30 border border-emerald-500/30 text-emerald-400 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all flex items-center justify-center gap-2 mb-2"
+                  >
+                    <Sparkles className="w-3 h-3" /> Load Interactive Demo Data
+                  </button>
+
                   <button
                     onClick={runHealthCheck}
                     disabled={isRunningHealthCheck || chatMessages.length < 2}
@@ -2483,7 +2526,7 @@ export default function Home() {
               {name}
             </h1>
             <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#334155' }}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code({inline, className, children, ...props}: any) { const match = /language-(\w+)/.exec(className || ''); if (!inline && match && match[1] === 'mermaid') { return <MermaidRenderer chart={String(children).replace(/\n$/, '')} /> } if (!inline && (name === "Wireframes" || name === "Prototypes")) { return <div style={{ padding: '15px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', color: '#64748b', fontSize: '11px' }}>Interactive demo code excluded.</div>; } return <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }} {...props}>{children}</code> } }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code({inline, className, children, ...props}: any) { const match = /language-(\w+)/.exec(className || ''); if (!inline && match && match[1] === 'mermaid') { return <ReactFlowCanvas chart={String(children).replace(/\n$/, '')} /> } if (!inline && match && match[1] === 'plantuml') { return <ReactFlowCanvas chart={String(children).replace(/\n$/, '')} /> } if (!inline && (name === "Wireframes" || name === "Prototypes")) { return <div style={{ padding: '15px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', color: '#64748b', fontSize: '11px' }}>Interactive demo code excluded.</div>; } return <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }} {...props}>{children}</code> } }}>
                 {(name === "Wireframes" || name === "Prototypes") ? (docObj.content || "").replace(/```html[\s\S]*?```/g, '').trim() : (docObj.content || "")}
               </ReactMarkdown>
             </div>
