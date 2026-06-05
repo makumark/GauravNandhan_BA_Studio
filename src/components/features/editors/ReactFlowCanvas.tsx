@@ -41,14 +41,39 @@ export const ReactFlowCanvas = ({ chart, isProcessing }: { chart: string, isProc
 
       const parsed = JSON.parse(jsonStr);
       
+      const sanitizeNodes = (rawNodes: any[]) => {
+        if (!Array.isArray(rawNodes)) return [];
+        return rawNodes.map(n => ({
+          ...n,
+          id: String(n.id || Math.random()),
+          position: {
+            x: Number(n.position?.x || 0),
+            y: Number(n.position?.y || 0)
+          }
+        }));
+      };
+
+      const sanitizeEdges = (rawEdges: any[]) => {
+        if (!Array.isArray(rawEdges)) return [];
+        return rawEdges.map(e => ({
+          ...e,
+          id: String(e.id || Math.random()),
+          source: String(e.source),
+          target: String(e.target)
+        }));
+      };
+
       if (parsed.code) {
          // LLM might wrap in the { code: "..." } structure as requested in route.ts
-         const innerParsed = JSON.parse(parsed.code);
-         if (innerParsed.nodes) setNodes(innerParsed.nodes);
-         if (innerParsed.edges) setEdges(innerParsed.edges);
+         let innerParsed = parsed.code;
+         if (typeof innerParsed === 'string') {
+             try { innerParsed = JSON.parse(innerParsed); } catch(e) {}
+         }
+         if (innerParsed.nodes) setNodes(sanitizeNodes(innerParsed.nodes));
+         if (innerParsed.edges) setEdges(sanitizeEdges(innerParsed.edges));
       } else {
-         if (parsed.nodes) setNodes(parsed.nodes);
-         if (parsed.edges) setEdges(parsed.edges);
+         if (parsed.nodes) setNodes(sanitizeNodes(parsed.nodes));
+         if (parsed.edges) setEdges(sanitizeEdges(parsed.edges));
       }
       setError(null);
     } catch (err: any) {
@@ -59,6 +84,21 @@ export const ReactFlowCanvas = ({ chart, isProcessing }: { chart: string, isProc
       }
     }
   }, [chart, isProcessing, setNodes, setEdges]);
+
+  if (!isProcessing && !error && nodes.length === 0) {
+    return (
+      <div className="p-8 bg-slate-900/80 border border-yellow-500/30 rounded-2xl flex flex-col gap-4">
+        <div className="flex items-center gap-3 text-yellow-400">
+          <AlertTriangle className="w-6 h-6" />
+          <h3 className="font-bold uppercase tracking-widest text-sm">Canvas Render Warning</h3>
+        </div>
+        <p className="text-[12px] text-slate-400 leading-relaxed">The AI successfully generated JSON, but no valid nodes or edges were found to display on the canvas. It might have misunderstood the React Flow schema.</p>
+        <div className="bg-slate-950 p-4 rounded-xl border border-slate-800">
+          <pre className="text-[11px] text-slate-500 font-mono leading-relaxed overflow-x-auto whitespace-pre-wrap">{chart}</pre>
+        </div>
+      </div>
+    );
+  }
 
   if (error && !isProcessing) {
     return (
