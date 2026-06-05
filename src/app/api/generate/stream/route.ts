@@ -68,7 +68,6 @@ ${context}
 
 CRITICAL RULE: You MUST combine and synthesize ALL requirements provided across the entire conversation history.
 CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble, no "Here is...". NEVER truncate. ALWAYS generate the FULL complete output.
-${!isVisual ? 'AGENTIC REASONING PROTOCOL: Before generating the final document, you MUST output a <thought>...</thought> block where you act as a Senior Editor. Analyze the context, identify missing edge cases against BABOK v3, and plan your document structure. Once you close the </thought> tag, output the final Markdown document.' : ''}
 ${isVisual ? `MANDATORY SCHEMA: You MUST return a strict JSON object with this exact structure:\n{\n  "summary": "A brief 1-2 sentence description",\n  "code": "The raw string of your code. Do NOT wrap in markdown fences inside the JSON string."\n}\nDO NOT output any markdown blocks outside the JSON.` : ''}
     `.trim();
 

@@ -67,7 +67,13 @@ Example: "Order Fulfillment Flowchart"
 \`\`\`json
 {
   "summary": "Order fulfillment process.",
-  "code": "{\n  \\"nodes\\": [\n    { \\"id\\": \\"1\\", \\"position\\": { \\"x\\": 250, \\"y\\": 0 }, \\"data\\": { \\"label\\": \\"Customer Order\\" }, \\"style\\": { \\"background\\": \\"#1e293b\\", \\"color\\": \\"#f8fafc\\", \\"border\\": \\"1px solid #3b82f6\\", \\"borderRadius\\": \\"8px\\", \\"padding\\": \\"10px\\" } },\n    { \\"id\\": \\"2\\", \\"position\\": { \\"x\\": 250, \\"y\\": 100 }, \\"data\\": { \\"label\\": \\"Stock Check\\" }, \\"style\\": { \\"background\\": \\"#334155\\", \\"color\\": \\"#f8fafc\\", \\"border\\": \\"1px solid #64748b\\", \\"borderRadius\\": \\"8px\\", \\"padding\\": \\"10px\\" } }\n  ],\n  \\"edges\\": [\n    { \\"id\\": \\"e1-2\\", \\"source\\": \\"1\\", \\"target\\": \\"2\\", \\"label\\": \\"Initiates\\", \\"animated\\": true, \\"style\\": { \\"stroke\\": \\"#3b82f6\\" } }\n  ]\n}"
+  "nodes": [
+    { "id": "1", "position": { "x": 250, "y": 0 }, "data": { "label": "Customer Order" }, "style": { "background": "#1e293b", "color": "#f8fafc", "border": "1px solid #3b82f6", "borderRadius": "8px", "padding": "10px" } },
+    { "id": "2", "position": { "x": 250, "y": 100 }, "data": { "label": "Stock Check" }, "style": { "background": "#334155", "color": "#f8fafc", "border": "1px solid #64748b", "borderRadius": "8px", "padding": "10px" } }
+  ],
+  "edges": [
+    { "id": "e1-2", "source": "1", "target": "2", "label": "Initiates", "animated": true, "style": { "stroke": "#3b82f6" } }
+  ]
 }
 \`\`\`
 `
@@ -133,8 +139,8 @@ STRICT RULES:
     tool: "React Flow JSON",
     instruction: `Generate professional Flowcharts using strictly React Flow JSON schema.
 MANDATORY STABILITY RULES:
-1. You MUST output a strict JSON object with a \`summary\` and a \`code\` field.
-2. The \`code\` field MUST be a stringified JSON object containing \`nodes\` and \`edges\` arrays.
+1. You MUST output a strict JSON object with a \`summary\`, \`nodes\`, and \`edges\` array at the root level.
+2. DO NOT stringify the nodes and edges arrays.
 3. Every node MUST have: \`id\`, \`position\` (x, y coords to prevent overlapping), \`data\` (with \`label\`), and \`style\`.
 4. Ensure a top-down or left-to-right logical coordinate layout (increment y by 100 or x by 200).
 5. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations.
@@ -157,8 +163,8 @@ STRICT RULES:
     tool: "React Flow JSON",
     instruction: `Generate a professional, high-fidelity UML Diagram using strictly React Flow JSON schema.
 MANDATORY STABILITY RULES:
-1. You MUST output a strict JSON object with a \`summary\` and a \`code\` field.
-2. The \`code\` field MUST be a stringified JSON object containing \`nodes\` and \`edges\` arrays.
+1. You MUST output a strict JSON object with a \`summary\`, \`nodes\`, and \`edges\` array at the root level.
+2. DO NOT stringify the nodes and edges arrays.
 3. Use \`data.label\` for class names and attributes (you can use newline characters or HTML in labels if needed to show properties).
 4. Ensure logical X/Y spacing for classes to prevent overlapping.
 5. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations.
