@@ -593,10 +593,13 @@ export default function Home() {
       
       if (newMessages.length >= 1) {
         setDocsReady(true);
-        // NOTE: Documents are NOT auto-regenerated on every chat message.
-        // The staleDocs system (Brain 1 analysis) is the ONLY source of truth for
-        // triggering regeneration. This prevents documents from changing unexpectedly
-        // when the user sends a clarifying question that doesn't alter requirements.
+        // Auto-regenerate the active document when user sends a new requirement message.
+        // This ensures the user instantly sees the effect of their new requirement.
+        if (activeTab) {
+          setTimeout(() => {
+            handleDocumentClick(activeTab, true);
+          }, 100);
+        }
       }
       
       if (currentProjectId) {

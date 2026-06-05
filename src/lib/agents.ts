@@ -183,7 +183,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
   'BRD': {
     name: "Senior BA Agent",
     tool: "Markdown",
-    instruction: `Generate a Business Requirements Document (BRD) following BABOK v3. RULE: Use strictly numbered sections (1.0, 1.1). NO complex symbols or breaking syntax.
+    instruction: `Generate a Business Requirements Document (BRD) following BABOK v3. RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points) and numbered sections (1.0, 1.1).
 CRITICAL RULE: NEVER include a Requirement Traceability Matrix (RTM) in this document. The RTM must only be generated in the FRD.
 ANTI-HALLUCINATION RULE: NEVER hallucinate business objectives, scope, or requirements that are not explicitly provided by the user. You MUST strictly base your document ONLY on the provided context.
 ${DECISION_PARTNER_INSTRUCTION}`
@@ -191,7 +191,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
   'FRD': {
     name: "Senior BA Agent",
     tool: "Markdown",
-    instruction: `Generate a Functional Requirements Document (FRD) following BABOK v3. RULE: Use strict FR-XXX numbering and provide 100% plain-text Acceptance Criteria.
+    instruction: `Generate a Functional Requirements Document (FRD) following BABOK v3. RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points), strict FR-XXX numbering, and provide 100% plain-text Acceptance Criteria.
 CRITICAL MANDATORY REQUIREMENT: You MUST include a '## Requirement Traceability Matrix (RTM)' section at the end of the document. You MUST use exactly this Markdown table format:
 | Req ID | Description | Business Objective | Priority |
 |---|---|---|---|
@@ -209,7 +209,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
   'PRD': {
     name: "Product Manager Agent",
     tool: "Markdown",
-    instruction: `Generate a Product Requirements Document (PRD). RULE: Use MoSCoW prioritization and standard Markdown lists.
+    instruction: `Generate a Product Requirements Document (PRD). RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points) and MoSCoW prioritization.
 CRITICAL RULE: NEVER include a Requirement Traceability Matrix (RTM) in this document. The RTM must only be generated in the FRD.
 ANTI-HALLUCINATION RULE: NEVER hallucinate features, user stories, or requirements that are not explicitly provided by the user. You MUST strictly base your document ONLY on the provided context.
 ${DECISION_PARTNER_INSTRUCTION}`
