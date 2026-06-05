@@ -672,6 +672,7 @@ export default function Home() {
           documentRequested: docName,
           domainDetected,
           functionalContext: combinedContext,
+          existingDocument: documents[docName]?.content || "",
           templateContent
         })
       });

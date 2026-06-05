@@ -25,6 +25,7 @@ export async function POST(req: Request) {
       documentRequested,
       domainDetected,
       functionalContext: encodedFunctionalContext,
+      existingDocument,
       glossary,
       templateContent
     } = body;
@@ -60,7 +61,8 @@ ${toolExample}
 TASK: Generate a professional and comprehensive ${documentRequested}.
 INSTRUCTIONS: ${agent.instruction}
 DOMAIN: ${domainDetected || 'FinTech / Regulatory Technology'}
-${functionalContext ? `CURRENT BASELINE DOCUMENTS:\n"""\n${functionalContext}\n"""\nCRITICAL INSTRUCTION: You MUST deeply integrate the new requirements from the CONVERSATION CONTEXT into this baseline. DO NOT just regurgitate the baseline.` : ''}
+${existingDocument ? `CURRENT BASELINE (${documentRequested}):\n"""\n${existingDocument}\n"""\nCRITICAL INSTRUCTION: You MUST deeply integrate the new requirements from the CONVERSATION CONTEXT into this baseline. DO NOT just regurgitate the baseline. Modify it to include the new features while preserving the existing structure.` : ''}
+${functionalContext ? `SUPPORTING BUSINESS CONTEXT:\n"""\n${functionalContext}\n"""` : ''}
 ${glossary && glossary.length > 0 ? `ENTITY DICTIONARY (MANDATORY CONSISTENCY):\n"""\n${JSON.stringify(glossary, null, 2)}\n"""\nYou MUST adhere strictly to these terms and rules.` : ''}
 ${templateContent ? `\nCORPORATE TEMPLATE STRUCTURE (MANDATORY FORMATTING):\n"""\n${templateContent}\n"""\nCRITICAL RULE: You MUST output your response strictly adhering to the exact headers, numbering, and structure provided in the CORPORATE TEMPLATE STRUCTURE above.\n` : ''}
 CONVERSATION CONTEXT (INITIAL AND ADDITIONAL REQUIREMENTS):
