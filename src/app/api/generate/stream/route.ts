@@ -77,9 +77,9 @@ ${isVisual ? `MANDATORY SCHEMA: You MUST return a strict JSON object with this e
       model: 'gemini-2.5-pro',
       safetySettings,
       generationConfig: {
-        temperature: 0.1,
-        topP: 0.8,
-        topK: 40,
+        temperature: 0.0,
+        topP: 0.1,
+        topK: 1,
         maxOutputTokens: 65536,
       }
     });
