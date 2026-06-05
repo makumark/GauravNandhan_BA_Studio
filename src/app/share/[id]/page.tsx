@@ -178,7 +178,7 @@ export default function SharePage() {
                  {(() => {
                     const match = currentDoc.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
                     const chartCode = match ? match[1].trim() : currentDoc.trim();
-                    return <ReactFlowCanvas chart={chartCode} />;
+                    return <ReactFlowCanvas key={activeTab} chart={chartCode} />;
                  })()}
                </div>
             ) : (

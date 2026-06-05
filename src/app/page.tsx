@@ -1911,7 +1911,7 @@ export default function Home() {
                                       const rawContent = documents[activeTab]?.content || "";
                                       const match = rawContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
                                       const chartCode = match ? match[1].trim() : rawContent.trim();
-                                      return <DiagramErrorBoundary><ReactFlowCanvas chart={chartCode} isProcessing={isProcessing} /></DiagramErrorBoundary>;
+                                      return <DiagramErrorBoundary><ReactFlowCanvas key={activeTab} chart={chartCode} isProcessing={isProcessing} /></DiagramErrorBoundary>;
                                   })()}
                                 </div>
                       ) : (
