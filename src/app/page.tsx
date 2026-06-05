@@ -596,8 +596,9 @@ export default function Home() {
         // Auto-regenerate the active document when user sends a new requirement message.
         // This ensures the user instantly sees the effect of their new requirement.
         if (activeTab) {
+          const finalMessages = [...newMessages, { role: "assistant", content: assistantContent }];
           setTimeout(() => {
-            handleDocumentClick(activeTab, true);
+            handleDocumentClick(activeTab, true, finalMessages);
           }, 100);
         }
       }
@@ -617,7 +618,7 @@ export default function Home() {
     }
   };
 
-  const handleDocumentClick = async (docName: string, force = false) => {
+  const handleDocumentClick = async (docName: string, force = false, messagesOverride?: any[]) => {
     if (!docsReady) return;
 
 
@@ -668,7 +669,7 @@ export default function Home() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          messages: chatMessages,
+          messages: messagesOverride || chatMessages,
           documentRequested: docName,
           domainDetected,
           functionalContext: combinedContext,
