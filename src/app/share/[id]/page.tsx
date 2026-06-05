@@ -113,65 +113,7 @@ export default function SharePage() {
 
         <div className="flex-1 overflow-y-auto p-10">
           <div className="max-w-4xl mx-auto bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 p-10 rounded-3xl shadow-2xl">
-            {activeTab === "Prototypes" ? (
-               <div className="h-[600px]">
-                 {(() => {
-                    let htmlContent = "";
-                    let summary = "";
-                    let jsonString = currentDoc;
-                    const jsonMatch = currentDoc.match(/```json\s*([\s\S]*?)\s*```/i);
-                    if (jsonMatch) jsonString = jsonMatch[1].trim();
-                    else {
-                      const startIdx = currentDoc.indexOf('{');
-                      const endIdx = currentDoc.lastIndexOf('}');
-                      if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-                        jsonString = currentDoc.substring(startIdx, endIdx + 1).trim();
-                      }
-                    }
-                    try {
-                      const parsed = JSON.parse(jsonString);
-                      htmlContent = typeof parsed.code === 'string' ? parsed.code : (parsed.code ? JSON.stringify(parsed.code) : "");
-                      summary = typeof parsed.summary === 'string' ? parsed.summary : (parsed.summary ? JSON.stringify(parsed.summary) : "");
-                    } catch (e) {
-                      let tempSummary = currentDoc;
-                      // 1. Extract HTML block
-                      const htmlMatch = tempSummary.match(/```(?:html|vue)\s*([\s\S]*?)\s*```/i);
-                      if (htmlMatch) {
-                         htmlContent = htmlMatch[1].trim();
-                         tempSummary = tempSummary.replace(htmlMatch[0], '');
-                      }
-                      
-                      // 2. Extract JS block
-                      const jsMatch = tempSummary.match(/```(?:javascript|js)\s*([\s\S]*?)\s*```/i);
-                      if (jsMatch) {
-                         htmlContent += `\n<script>\n${jsMatch[1].trim()}\n</script>\n`;
-                         tempSummary = tempSummary.replace(jsMatch[0], '');
-                      }
-                      
-                      // 3. Extract CSS block
-                      const cssMatch = tempSummary.match(/```css\s*([\s\S]*?)\s*```/i);
-                      if (cssMatch) {
-                         htmlContent += `\n<style>\n${cssMatch[1].trim()}\n</style>\n`;
-                         tempSummary = tempSummary.replace(cssMatch[0], '');
-                      }
-                      
-                      // 4. Generic block fallback if nothing matched
-                      if (!htmlMatch && !jsMatch && !cssMatch) {
-                         const genericMatch = tempSummary.match(/```\s*([\s\S]*?)\s*```/i);
-                         if (genericMatch) {
-                             htmlContent = genericMatch[1].trim();
-                             tempSummary = tempSummary.replace(genericMatch[0], '');
-                         } else {
-                             htmlContent = tempSummary.trim();
-                             tempSummary = "";
-                         }
-                      }
-                      summary = tempSummary.trim();
-                    }
-                    return <LivePreviewIframe htmlContent={htmlContent} summary={summary} />;
-                 })()}
-               </div>
-            ) : activeTab === "Wireframes" ? (
+            ) : (activeTab === "Wireframes" || activeTab === "Prototypes") ? (
                <div className="h-[600px]"><DynamicUIBuilder schema={displayDoc} isProcessing={false} /></div>
             ) : (activeTab === "Flowcharts" || activeTab === "UML Diagrams") ? (
                <div className="h-[600px] my-8 shadow-2xl rounded-3xl overflow-hidden border border-slate-700/50">

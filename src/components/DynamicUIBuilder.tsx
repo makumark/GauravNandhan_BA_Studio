@@ -67,6 +67,10 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
   const safeText = (val: any): string => {
     if (val === null || val === undefined) return '';
     if (typeof val === 'object') {
+      if (val.label) return String(val.label);
+      if (val.text) return String(val.text);
+      if (val.title) return String(val.title);
+      if (val.value) return String(val.value);
       try { return JSON.stringify(val); } catch(e) { return ''; }
     }
     return String(val);

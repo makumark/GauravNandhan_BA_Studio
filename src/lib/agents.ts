@@ -117,22 +117,19 @@ ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Prototypes': {
     name: "Elite UI/UX Designer",
-    tool: "HTML Template",
-    instruction: `Generate a CONCISE, high-fidelity prototype as a fully functional HTML/Tailwind/Alpine.js workflow based on the provided requirements and wireframes.
+    tool: "JSON UI Component",
+    instruction: `Generate an Interactive High-Fidelity Prototype Component Schema as strict JSON.
 STRICT RULES:
-1. Output a SINGLE self-contained HTML block. Do NOT use html, head, or body tags, just output the content.
-2. STRICT REQUIREMENT ADHERENCE: You MUST thoroughly read the provided "FUNCTIONAL REQUIREMENTS (SOURCE OF TRUTH)" section AND the "CONVERSATION CONTEXT". Your UI MUST explicitly implement every specific field, input, button, and data structure mentioned in those requirements, merging all existing and new requirements. DO NOT drop previously built features. DO NOT generate generic template filler.
-3. WIREFRAME SYNCHRONIZATION: If Wireframe JSON Schema is provided in the Functional Requirements or Context, you MUST EXACTLY mirror the layout, components, blocks, and structure of the wireframes. DO NOT hallucinate different screen designs (like "AetherCommerce") or random device mockups if the wireframes dictate otherwise. Your prototype MUST be a 1:1 high-fidelity CSS translation of the low-fidelity wireframes.
-4. FULLY FUNCTIONAL STATE & VALIDATION: You MUST use Alpine.js (via x-data) to create a fully working prototype. Form submissions must validate inputs (e.g., required fields, email format) and show error messages if invalid.
-5. MULTI-SCREEN NAVIGATION: The prototype MUST simulate moving between screens dynamically based on Alpine state. Hide/show sections using x-show. Data entered on one screen MUST flow into the next screen.
-6. Set the theme to 'dark-navy-glassmorphism' to ensure deep navy, blue gradients, and glass cards by using appropriate Tailwind classes. Use Alpine.js for interactivity.
-6. Include realistic mock data relevant to the specific screens being generated in tables or cards, mapped precisely to the data fields described in the requirements.
-7. NEVER use template engine placeholders like {{ }} or [Placeholder]. You MUST inject realistic hardcoded mock data directly into the HTML.
-8. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks (e.g. 'XXXX-XXXX-XXXX-1234' or 'Bank Acct: ***456'). DO NOT output any random sequence of 9 or more digits anywhere in the code. Failure to mask will trigger a critical security violation and crash the system.
-9. EXTREME BREVITY REQUIRED: Limit the output strictly to the necessary screens to convey the core UI workflow.
-10. Output ONLY the raw HTML code wrapped in triple-backtick html fences (\`\`\`html). NEVER output Markdown summaries, JSON schemas, or "Here is the code..." before or after the code block.
-11. NEVER output JSON or Markdown INSIDE the HTML screens. Every screen MUST be pure HTML/Tailwind/Alpine.js.
-12. PROTOTYPE LOGIN RULE: For any login or authentication screens, you MUST NOT hardcode specific dummy credentials (e.g. 'admin/admin') that block the user. You MUST accept ANY credentials that pass basic format validation (e.g. valid email syntax) and allow the user to successfully log in and proceed to the next screen.`
+1. Output a SINGLE self-contained JSON object matching the standard JSON UI Component structure.
+2. STRICT REQUIREMENT ADHERENCE: You MUST explicitly implement every specific field, input, button, and data structure mentioned in the requirements.
+3. IN-SYNC WITH WIREFRAMES: Your prototype MUST be a 1:1 high-fidelity structural translation of the low-fidelity wireframes. Do not hallucinate different layouts.
+4. You MUST use nested structural components: \`grid\`, \`flex\`, \`card\`, \`section\` to layout items nicely.
+5. Supported primitive components: \`typography\`, \`button\`, \`input\`, \`badge\`, \`avatar\`, \`table\`.
+6. Set the theme to 'modern' in the schema to ensure deep navy, blue gradients, and glass cards.
+7. Include realistic mock data mapped precisely to the data fields described in the requirements. NEVER use 'Lorem Ipsum'.
+8. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks.
+9. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations.
+${DECISION_PARTNER_INSTRUCTION}`
   },
   'Flowcharts': {
     name: "Elite Process Architect",
