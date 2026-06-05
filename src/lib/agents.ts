@@ -117,18 +117,23 @@ ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Prototypes': {
     name: "Elite UI/UX Designer",
-    tool: "JSON UI Component",
-    instruction: `Generate an Interactive High-Fidelity Prototype Component Schema as strict JSON.
+    tool: "HTML Template",
+    instruction: `Generate a CONCISE, high-fidelity prototype as a fully functional HTML/Tailwind/Alpine.js workflow based on the provided requirements and wireframes.
 STRICT RULES:
-1. Output a SINGLE self-contained JSON object matching the standard JSON UI Component structure.
+1. Output a SINGLE self-contained HTML block. Do NOT use html, head, or body tags, just output the content.
 2. STRICT REQUIREMENT ADHERENCE: You MUST explicitly implement every specific field, input, button, and data structure mentioned in the requirements.
-3. IN-SYNC WITH WIREFRAMES: Your prototype MUST be a 1:1 high-fidelity structural translation of the low-fidelity wireframes. Do not hallucinate different layouts.
-4. You MUST use nested structural components: \`grid\`, \`flex\`, \`card\`, \`section\` to layout items nicely.
-5. Supported primitive components: \`typography\`, \`button\`, \`input\`, \`badge\`, \`avatar\`, \`table\`.
-6. Set the theme to 'modern' in the schema to ensure deep navy, blue gradients, and glass cards.
-7. Include realistic mock data mapped precisely to the data fields described in the requirements. NEVER use 'Lorem Ipsum'.
-8. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks.
-9. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations.
+3. WIREFRAME SYNCHRONIZATION: You MUST EXACTLY mirror the layout, components, and structure of the wireframes. The Prototype MUST be a 1:1 structural translation of the Wireframes.
+4. FULLY FUNCTIONAL STATE: You MUST use Alpine.js (via x-data) to create a fully working prototype. Form submissions must validate inputs and simulate moving between screens dynamically using x-show. Data entered on one screen MUST flow into the next screen.
+5. VISUAL SYNC RULE: To sync perfectly with the Wireframe design engine, you MUST use this exact 'dark-navy-glassmorphism' Tailwind theme: 
+   - Main App Background: \`bg-slate-950 text-slate-200 font-sans\`
+   - Navigation: \`bg-[#1e293b]/80 border-b border-slate-700/50 backdrop-blur-xl\`
+   - Cards/Sections: \`bg-[#1e293b]/50 backdrop-blur-xl border border-slate-700/50 rounded-2xl shadow-xl\`
+   - Primary Buttons: \`bg-blue-600 hover:bg-blue-500 text-white shadow-lg rounded-xl\`
+   - Inputs/Textareas: \`bg-slate-900/50 border border-slate-700/50 rounded-xl focus:border-blue-500\`
+6. Include realistic mock data mapped precisely to the data fields described in the requirements. NEVER use 'Lorem Ipsum'.
+7. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks.
+8. NEVER output JSON or Markdown INSIDE the HTML screens. Every screen MUST be pure HTML/Tailwind/Alpine.js.
+9. PROTOTYPE LOGIN RULE: For any login screens, you MUST NOT hardcode specific dummy credentials that block the user. Accept ANY valid email syntax to log in.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Flowcharts': {

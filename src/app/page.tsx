@@ -1811,7 +1811,7 @@ export default function Home() {
                         <div className="p-4 h-full">
                            <DiagramErrorBoundary><LogicSandboxRenderer jsonString={documents[activeTab]?.content || ""} isProcessing={isProcessing} /></DiagramErrorBoundary>
                         </div>
-                      ) : (activeTab === "Wireframes" || activeTab === "Prototypes") ? (
+                      ) : activeTab === "Wireframes" ? (
                                 <div className="p-4 h-full">
                                   {(() => {
                                       const rawContent = documents[activeTab]?.content || "";
@@ -1843,6 +1843,66 @@ export default function Home() {
                                       }
 
                                       return <DiagramErrorBoundary><DynamicUIBuilder schema={finalSchema} isProcessing={isProcessing} /></DiagramErrorBoundary>;
+                                  })()}
+                                </div>
+                      ) : activeTab === "Prototypes" ? (
+                                <div className="p-4 h-full">
+                                  {(() => {
+                                      const rawContent = documents[activeTab]?.content || "";
+                                      let htmlContent = "";
+                                      let summary = "";
+                                      let jsonString = rawContent;
+                                      const jsonMatch = rawContent.match(/```json\s*([\s\S]*?)\s*```/i);
+                                      if (jsonMatch) jsonString = jsonMatch[1].trim();
+                                      else {
+                                        const tagStart = rawContent.indexOf('{');
+                                        const tagEnd = rawContent.lastIndexOf('}');
+                                        if (tagStart !== -1 && tagEnd !== -1 && tagEnd > tagStart) {
+                                          jsonString = rawContent.substring(tagStart, tagEnd + 1).trim();
+                                        }
+                                      }
+                                      try {
+                                        const parsed = JSON.parse(jsonString);
+                                        htmlContent = typeof parsed.code === 'string' ? parsed.code : (parsed.code ? JSON.stringify(parsed.code) : "");
+                                        summary = typeof parsed.summary === 'string' ? parsed.summary : (parsed.summary ? JSON.stringify(parsed.summary) : "");
+                                      } catch (e) {
+                                        let tempSummary = rawContent;
+                                        // 1. Extract HTML block (allow unclosed backticks)
+                                        const htmlMatch = tempSummary.match(/```(?:html|vue)\s*([\s\S]*?)(?:```|$)/i);
+                                        if (htmlMatch) {
+                                           htmlContent = htmlMatch[1].trim();
+                                           tempSummary = tempSummary.replace(htmlMatch[0], '');
+                                        }
+                                        
+                                        // 2. Extract JS block
+                                        const jsMatch = tempSummary.match(/```(?:javascript|js)\s*([\s\S]*?)(?:```|$)/i);
+                                        if (jsMatch) {
+                                           htmlContent += `\n<script>\n${jsMatch[1].trim()}\n</script>\n`;
+                                           tempSummary = tempSummary.replace(jsMatch[0], '');
+                                        }
+                                        
+                                        // 3. Extract CSS block
+                                        const cssMatch = tempSummary.match(/```css\s*([\s\S]*?)(?:```|$)/i);
+                                        if (cssMatch) {
+                                           htmlContent += `\n<style>\n${cssMatch[1].trim()}\n</style>\n`;
+                                           tempSummary = tempSummary.replace(cssMatch[0], '');
+                                        }
+                                        
+                                        // 4. Generic block fallback if nothing matched
+                                        if (!htmlMatch && !jsMatch && !cssMatch) {
+                                           const genericMatch = tempSummary.match(/```\s*([\s\S]*?)(?:```|$)/i);
+                                           if (genericMatch) {
+                                               htmlContent = genericMatch[1].trim();
+                                               tempSummary = tempSummary.replace(genericMatch[0], '');
+                                           } else {
+                                               htmlContent = tempSummary.trim();
+                                               tempSummary = "";
+                                           }
+                                        }
+                                        
+                                        summary = tempSummary.trim();
+                                      }
+                                      return <DiagramErrorBoundary><LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} /></DiagramErrorBoundary>;
                                   })()}
                                 </div>
                       ) : (activeTab === "Flowcharts" || activeTab === "UML Diagrams") ? (
