@@ -173,23 +173,20 @@ export default function SharePage() {
                </div>
             ) : activeTab === "Wireframes" ? (
                <div className="h-[600px]"><DynamicUIBuilder schema={displayDoc} isProcessing={false} /></div>
-            ) : activeTab === "UML Diagrams" ? (
-               <ReactFlowCanvas chart={displayDoc.replace(/```[a-zA-Z]*\n?/gi, '').replace(/```\n?/g, '')} />
+            ) : (activeTab === "Flowcharts" || activeTab === "UML Diagrams") ? (
+               <div className="h-[600px] my-8 shadow-2xl rounded-3xl overflow-hidden border border-slate-700/50">
+                 {(() => {
+                    const match = currentDoc.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+                    const chartCode = match ? match[1].trim() : currentDoc.trim();
+                    return <ReactFlowCanvas chart={chartCode} />;
+                 })()}
+               </div>
             ) : (
               <div className="prose prose-invert prose-slate max-w-none">
                 <ReactMarkdown 
                   remarkPlugins={[remarkGfm]}
-                  components={{
-                    code({inline, className, children, ...props}: any) {
-                      const match = /language-(\w+)/.exec(className || '');
-                      if (!inline && match && match[1] === 'mermaid') {
-                        return <ReactFlowCanvas chart={String(children).replace(/\n$/, '')} />
-                      }
-                      return <code {...props}>{children}</code>
-                    }
-                  }}
                 >
-                  {displayDoc}
+                  {currentDoc}
                 </ReactMarkdown>
               </div>
             )}

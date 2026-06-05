@@ -1905,11 +1905,11 @@ export default function Home() {
                                       return <DiagramErrorBoundary><LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} /></DiagramErrorBoundary>;
                                   })()}
                                 </div>
-                      ) : activeTab === "Flowcharts" ? (
+                      ) : (activeTab === "Flowcharts" || activeTab === "UML Diagrams") ? (
                                 <div className="p-4 h-full">
                                   {(() => {
                                       const rawContent = documents[activeTab]?.content || "";
-                                      const match = rawContent.match(/```(?:mermaid)?\s*([\s\S]*?)\s*```/i);
+                                      const match = rawContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
                                       const chartCode = match ? match[1].trim() : rawContent.trim();
                                       return <DiagramErrorBoundary><ReactFlowCanvas chart={chartCode} isProcessing={isProcessing} /></DiagramErrorBoundary>;
                                   })()}
@@ -1918,61 +1918,9 @@ export default function Home() {
                         <div className="prose prose-invert prose-slate max-w-none p-10 prose-headings:text-blue-100">
                           {(() => {
                             const content = documents[activeTab]?.content || "";
-                            let code = "";
-                            let hasUml = false;
-                            let jsonString = content;
-                            const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/i);
-                            if (jsonMatch) jsonString = jsonMatch[1].trim();
-                            else {
-                              const tagStart = content.indexOf('{');
-                              const tagEnd = content.lastIndexOf('}');
-                              if (tagStart !== -1 && tagEnd !== -1 && tagEnd > tagStart) {
-                                jsonString = content.substring(tagStart, tagEnd + 1).trim();
-                              }
-                            }
-                            try {
-                              const parsed = JSON.parse(jsonString);
-                              code = typeof parsed.code === 'string' ? parsed.code : (parsed.code ? JSON.stringify(parsed.code) : "");
-                              hasUml = code.includes('@startuml') || activeTab === "UML Diagrams";
-                            } catch (e) {
-                              hasUml = content.includes('@startuml') || activeTab === "UML Diagrams";
-                              if (hasUml) {
-                                const plantumlMatch = content.match(/@startuml([\s\S]*?)@enduml/i);
-                                code = plantumlMatch ? plantumlMatch[0].trim() : (code || content);
-                              }
-                            }
-                            
-                            // Ensure PlantUML code has the required tags if missing
-                            if (hasUml && code && !code.includes('@startuml')) {
-                              code = `@startuml\n${code}\n@enduml`;
-                            }
+                            // Legacy plantuml/mermaid fallback renderer removed
+                            // Fallback to text rendering for unknown tabs
 
-                            if (hasUml) {
-                                 // Clean code: Remove themes and other non-standard PlantUML junk
-                                 code = code
-                                   .replace(/```[a-zA-Z]*\n?/gi, '')
-                                   .replace(/```\n?/g, '')
-                                   .replace(/!theme\s+\w+/g, '!theme plain') // Force plain theme for stability
-                                   .replace(/\*\*/g, '')
-                                   .replace(/\\_/g, '_');
-                                 
-                                return (
-                                  <div className="flex flex-col gap-4">
-                                    <DiagramErrorBoundary><ReactFlowCanvas chart={code} isProcessing={isProcessing} /></DiagramErrorBoundary>
-                                    <div className="bg-slate-900/80 backdrop-blur-sm border border-slate-700/50 rounded-xl p-4 overflow-hidden">
-                                      <div className="flex items-center justify-between mb-2 px-1">
-                                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-500">PlantUML Source</span>
-                                        <button onClick={() => navigator.clipboard.writeText(code)} className="text-[10px] text-blue-400 hover:text-blue-300 font-bold uppercase tracking-widest flex items-center gap-1 transition-colors">
-                                          <Copy className="w-3 h-3" /> Copy Code
-                                        </button>
-                                      </div>
-                                      <pre className="text-[11px] text-slate-400 font-mono leading-relaxed overflow-x-auto max-h-60 custom-scrollbar">
-                                        {code}
-                                      </pre>
-                                    </div>
-                                  </div>
-                                );
-                              }
                             const textDocs = ["BRD", "FRD", "PRD", "SRD", "Test Cases", "Executive Pitch", "Regulatory Advisor"];
                             const isTextDoc = textDocs.includes(activeTab);
 
