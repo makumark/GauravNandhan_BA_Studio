@@ -676,7 +676,13 @@ export default function Home() {
     setIsEditing(false);
     
     // If we already generated it and not forcing AND not stale, don't re-fetch
-    if (documents[docName] && !force && !staleDocs.has(docName)) return;
+    // UNLESS it's an error state (failed generation), then allow retry.
+    if (documents[docName] && !force && !staleDocs.has(docName)) {
+      const content = documents[docName].content || "";
+      if (!content.includes('[Generation Error:') && !content.includes('Generation Failed')) {
+        return;
+      }
+    }
 
     // Clear stale flag if we are about to regenerate
     if (staleDocs.has(docName)) {
@@ -1933,7 +1939,7 @@ export default function Home() {
                     ) : (
                       activeTab === "Logic Sandbox" ? (
                         <div className="p-4 h-full">
-                           <DiagramErrorBoundary><LogicSandboxRenderer jsonString={documents[activeTab]?.content || ""} isProcessing={isProcessing} /></DiagramErrorBoundary>
+                           <DiagramErrorBoundary><LogicSandboxRenderer jsonString={documents[activeTab]?.content || ""} isProcessing={isProcessing} onRegenerate={() => handleDocumentClick(activeTab, true)} /></DiagramErrorBoundary>
                         </div>
                       ) : activeTab === "Wireframes" ? (
                                 <div className="p-4 h-full">

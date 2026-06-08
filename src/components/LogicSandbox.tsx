@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { Cpu, Play } from 'lucide-react';
 
-export const LogicSandboxRenderer = ({ jsonString, isProcessing }: { jsonString: string, isProcessing: boolean }) => {
+export const LogicSandboxRenderer = ({ jsonString, isProcessing, onRegenerate }: { jsonString: string, isProcessing: boolean, onRegenerate?: () => void }) => {
   const [inputs, setInputs] = useState<any>({});
   const [result, setResult] = useState<string | null>(null);
   
@@ -25,11 +25,26 @@ export const LogicSandboxRenderer = ({ jsonString, isProcessing }: { jsonString:
            <div className="p-8 bg-slate-900 border border-red-500/50 rounded-2xl m-4">
               <p className="text-red-400 font-bold mb-2">AI Generation Failed</p>
               <p className="text-sm text-slate-300">The AI service encountered an error while generating the sandbox logic. Please try regenerating.</p>
+              {onRegenerate && (
+                 <button onClick={onRegenerate} className="mt-4 px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-sm font-bold border border-amber-500/30 transition-all flex items-center gap-2">
+                    Regenerate Logic Sandbox
+                 </button>
+              )}
               <pre className="text-xs text-red-300 mt-4 whitespace-pre-wrap bg-red-950/30 p-4 rounded-lg overflow-x-auto border border-red-500/20">{jsonString}</pre>
            </div>
         );
      }
-     return <div className="p-8 bg-slate-900 border border-red-500/50 rounded-2xl m-4"><p className="text-red-400">Failed to parse logic schema.</p><pre className="text-xs text-slate-500 mt-2">{jsonString}</pre></div>;
+     return (
+       <div className="p-8 bg-slate-900 border border-red-500/50 rounded-2xl m-4">
+         <p className="text-red-400">Failed to parse logic schema.</p>
+         {onRegenerate && (
+            <button onClick={onRegenerate} className="mt-4 px-4 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 rounded-lg text-sm font-bold border border-amber-500/30 transition-all flex items-center gap-2">
+               Regenerate Logic Sandbox
+            </button>
+         )}
+         <pre className="text-xs text-slate-500 mt-2">{jsonString}</pre>
+       </div>
+     );
   }
 
   if (!schema || !schema.inputs || !schema.logic) return null;
