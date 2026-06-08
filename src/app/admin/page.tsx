@@ -13,6 +13,9 @@ const ROLE_COLORS: Record<string, string> = {
   ADMIN: "bg-purple-500/20 text-purple-300 border-purple-500/30",
   BA_LEAD: "bg-blue-500/20 text-blue-300 border-blue-500/30",
   BA_ANALYST: "bg-green-500/20 text-green-300 border-green-500/30",
+  PM: "bg-teal-500/20 text-teal-300 border-teal-500/30",
+  DEVELOPER: "bg-orange-500/20 text-orange-300 border-orange-500/30",
+  QA_VIEWER: "bg-pink-500/20 text-pink-300 border-pink-500/30",
   VIEWER: "bg-slate-500/20 text-slate-300 border-slate-500/30",
 };
 
@@ -20,6 +23,9 @@ const ROLE_ICONS: Record<string, any> = {
   ADMIN: Crown,
   BA_LEAD: Brain,
   BA_ANALYST: Edit3,
+  PM: Edit3,
+  DEVELOPER: Edit3,
+  QA_VIEWER: Eye,
   VIEWER: Eye,
 };
 
@@ -202,7 +208,10 @@ export default function AdminPage() {
                 >
                   <option value="ADMIN">Admin</option>
                   <option value="BA_LEAD">BA Lead</option>
+                  <option value="PM">Project Manager</option>
                   <option value="BA_ANALYST">BA Analyst</option>
+                  <option value="DEVELOPER">Developer</option>
+                  <option value="QA_VIEWER">QA Viewer</option>
                   <option value="VIEWER">Viewer</option>
                 </select>
               </div>
@@ -398,6 +407,9 @@ export default function AdminPage() {
                 >
                   <option value="BA_ANALYST">BA Analyst</option>
                   <option value="BA_LEAD">BA Lead</option>
+                  <option value="PM">Project Manager</option>
+                  <option value="DEVELOPER">Developer</option>
+                  <option value="QA_VIEWER">QA Viewer</option>
                   <option value="VIEWER">Viewer (Read-only)</option>
                   <option value="ADMIN">Admin</option>
                 </select>

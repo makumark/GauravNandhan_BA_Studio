@@ -37,18 +37,14 @@ ${toolExample}
 TASK: Generate a professional and comprehensive ${documentRequested}.
 INSTRUCTIONS: ${agent.instruction}
 DOMAIN: ${domainDetected || 'FinTech / Regulatory Technology'}
+CURRENT DATE: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
 ${functionalContext ? `FUNCTIONAL REQUIREMENTS (SOURCE OF TRUTH):\n"""\n${functionalContext}\n"""` : ''}
 ${glossary && glossary.length > 0 ? `ENTITY DICTIONARY (MANDATORY CONSISTENCY):\n"""\n${JSON.stringify(glossary, null, 2)}\n"""\nYou MUST adhere strictly to these terms and rules.` : ''}
 CONVERSATION CONTEXT:
 ${context}
 
 CRITICAL RULE: Output ONLY the ${agent.tool} content. Start immediately. No preamble, no "Here is...", no markdown outside code fences. NEVER truncate or use placeholders like "... (skipping lines) ...". ALWAYS generate the FULL complete code.
-${isVisual ? `MANDATORY SCHEMA: You MUST return a strict JSON object with this exact structure:
-{
-  "summary": "A brief 1-2 sentence description",
-  "code": "The raw string of your code (HTML/React for prototypes, PlantUML for UML, JSON schema for Wireframes). Do NOT wrap in markdown fences inside the JSON string."
-}
-DO NOT output any markdown blocks outside the JSON.` : ''}
+${isVisual ? `MANDATORY INSTRUCTION: You MUST return ONLY the raw code (HTML/React for prototypes, PlantUML/Mermaid for UML/Flowcharts, JSON schema for Wireframes). DO NOT wrap it inside another JSON object. Just output the raw code block.` : ''}
       `.trim();
 
       const model = genAI.getGenerativeModel({

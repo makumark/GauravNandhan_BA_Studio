@@ -22,6 +22,7 @@ model Organization {
   projects  Project[]
   auditLogs AuditLog[]
   templates Template[]
+  integrationConfigs IntegrationConfig[]
 }
 
 // ── Enterprise: Links Users to Organizations with a role ──────────────────────
@@ -29,7 +30,7 @@ model OrganizationMember {
   id             String       @id @default(cuid())
   userId         String
   organizationId String
-  role           String       @default("BA_ANALYST") // ADMIN | BA_LEAD | BA_ANALYST | VIEWER
+  role           String       @default("BA_ANALYST") // ADMIN | BA_LEAD | BA_ANALYST | PM | DEVELOPER | QA_VIEWER
   joinedAt       DateTime     @default(now())
   isActive       Boolean      @default(true) // For suspending access to this org
 
@@ -65,6 +66,7 @@ model User {
 
   projects    Project[]
   memberships OrganizationMember[]
+  taskComments TaskComment[]
 }
 
 // ── Core: Project ──────────────────────────────────────────────────────────────
@@ -73,18 +75,23 @@ model Project {
   title          String
   userId         String
   organizationId String?       // null for legacy solo users — non-destructive
+  pmId           String?       // Assigned Project Manager
 
   user         User          @relation(fields: [userId], references: [id], onDelete: Cascade)
   organization Organization? @relation(fields: [organizationId], references: [id], onDelete: SetNull)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+  status    String   @default("DRAFT") // DRAFT | READY_FOR_PM | NEEDS_REVISION | APPROVED
+  pmFeedback String? // Feedback from PM when rejecting a project
 
   messages    Message[]
   documents   Document[]
   graphNodes  GraphNode[]
   graphEdges  GraphEdge[]
   scopeSnapshots ScopeSnapshot[]
+  sprints     Sprint[]
+  tasks       Task[]
 }
 
 // ── Core: Message ──────────────────────────────────────────────────────────────
@@ -109,6 +116,7 @@ model Document {
 
   versions    DocumentVersion[]
   suggestions DocumentSuggestion[]
+  traceabilityLinks TraceabilityLink[]
 }
 
 // ── Semantic Graph: Knowledge Graph Nodes ────────────────────────────────────
@@ -127,6 +135,7 @@ model GraphNode {
   project   Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
   outEdges  GraphEdge[] @relation("EdgeFrom")
   inEdges   GraphEdge[] @relation("EdgeTo")
+  traceabilityLinks TraceabilityLink[]
 
   @@unique([projectId, nodeId])
 }
@@ -199,5 +208,82 @@ model ScopeSnapshot {
   project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, round])
+}
+
+// ── Advanced Project Management: Sprints ───────────────────────────────────────
+model Sprint {
+  id          String   @id @default(cuid())
+  projectId   String
+  name        String
+  startDate   DateTime?
+  endDate     DateTime?
+  status      String   @default("PLANNED") // PLANNED | ACTIVE | COMPLETED
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  tasks       Task[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ── Advanced Project Management: Tasks ─────────────────────────────────────────
+model Task {
+  id          String   @id @default(cuid())
+  sprintId    String?
+  projectId   String
+  title       String
+  description String?
+  status      String   @default("TODO") // TODO | IN_PROGRESS | REVIEW | DONE | NEEDS_REVISION
+  assigneeId  String?  // References OrganizationMember.id or User.id
+  jiraIssueId String?
+  externalId  String?  // For other integrations
+  storyPoints Int?     // Agile story points
+  priority    String   @default("MEDIUM") // HIGH | MEDIUM | LOW
+  
+  sprint      Sprint?  @relation(fields: [sprintId], references: [id], onDelete: SetNull)
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  
+  traceabilityLinks TraceabilityLink[]
+  comments          TaskComment[]
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// ── Advanced Project Management: Task Comments (PM Feedback) ───────────────────
+model TaskComment {
+  id        String   @id @default(cuid())
+  taskId    String
+  userId    String   // The PM/User who left the feedback
+  content   String   // The feedback text
+  createdAt DateTime @default(now())
+
+  task      Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ── Advanced Project Management: Traceability Links ────────────────────────────
+model TraceabilityLink {
+  id          String   @id @default(cuid())
+  taskId      String
+  documentId  String?  // Link to a full document
+  graphNodeId String?  // Link to a specific node (Wireframe, UML, FRD req)
+  
+  task        Task       @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  document    Document?  @relation(fields: [documentId], references: [id], onDelete: SetNull)
+  graphNode   GraphNode? @relation(fields: [graphNodeId], references: [id], onDelete: SetNull)
+}
+
+// ── Advanced Project Management: Integrations ──────────────────────────────────
+model IntegrationConfig {
+  id             String   @id @default(cuid())
+  organizationId String
+  provider       String   // JIRA | AZURE_DEVOPS | ASANA
+  webhookSecret  String?
+  configData     String?  // JSON string
+  
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, provider])
 }
 

@@ -18,11 +18,15 @@ export async function GET(req: Request) {
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     const orgId = (session.user as any).organizationId;
+    const role = (session.user as any).role;
 
     // If user belongs to an org, return org-scoped projects; otherwise personal projects
     const projects = await prisma.project.findMany({
       where: orgId
-        ? { organizationId: orgId }
+        ? { 
+            organizationId: orgId,
+            ...(role === 'PM' ? { OR: [{ pmId: user.id }, { userId: user.id }] } : {})
+          }
         : { userId: user.id, organizationId: null },
       orderBy: { updatedAt: 'desc' },
       include: { messages: true, documents: true }

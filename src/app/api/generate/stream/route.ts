@@ -61,6 +61,7 @@ ${toolExample}
 TASK: Generate a professional and comprehensive ${documentRequested}.
 INSTRUCTIONS: ${agent.instruction}
 DOMAIN: ${domainDetected || 'FinTech / Regulatory Technology'}
+CURRENT DATE: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
 ${existingDocument ? `CURRENT BASELINE (${documentRequested}):\n"""\n${existingDocument}\n"""\nCRITICAL INSTRUCTION: You MUST deeply integrate the new requirements from the CONVERSATION CONTEXT into this baseline. DO NOT just regurgitate the baseline. Modify it to include the new features while preserving the existing structure.` : ''}
 ${functionalContext ? `SUPPORTING BUSINESS CONTEXT:\n"""\n${functionalContext}\n"""` : ''}
 ${glossary && glossary.length > 0 ? `ENTITY DICTIONARY (MANDATORY CONSISTENCY):\n"""\n${JSON.stringify(glossary, null, 2)}\n"""\nYou MUST adhere strictly to these terms and rules.` : ''}

@@ -110,7 +110,7 @@ export async function PATCH(req: Request) {
   const auditLogs: any[] = [];
 
   if (newRole) {
-    const validRoles = ['ADMIN', 'BA_LEAD', 'BA_ANALYST', 'VIEWER'];
+    const validRoles = ['ADMIN', 'BA_LEAD', 'BA_ANALYST', 'PM', 'DEVELOPER', 'QA_VIEWER', 'VIEWER'];
     if (validRoles.includes(newRole)) {
       updates.role = newRole;
       auditLogs.push({ action: 'ROLE_CHANGED', metadata: { targetEmail: member.user.email, newRole } });

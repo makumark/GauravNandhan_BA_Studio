@@ -104,6 +104,9 @@ export default function Home() {
   const [isProjectSelectionModalOpen, setIsProjectSelectionModalOpen] = useState(false);
   const [newProjectTitle, setNewProjectTitle] = useState("");
   const [staleDocs, setStaleDocs] = useState<Set<string>>(new Set());
+  
+  // Custom PM Handoff state
+  const [isSubmittingToPM, setIsSubmittingToPM] = useState(false);
   const [cachedTemplates, setCachedTemplates] = useState<any[]>([]);
 
   // â”€â”€ Brain 1: Session State Machine â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -125,6 +128,10 @@ export default function Home() {
   const [scopeHistory, setScopeHistory] = useState<{snapshot: any[], impact?: any, timestamp: string}[]>([]);
   const [showTimeline, setShowTimeline] = useState(false);
   const [currentDate, setCurrentDate] = useState("");
+  const [isPmModalOpen, setIsPmModalOpen] = useState(false);
+  const [pmList, setPmList] = useState<any[]>([]);
+  const [selectedPmId, setSelectedPmId] = useState<string>("");
+  const [isLoadingPms, setIsLoadingPms] = useState(false);
 
   useEffect(() => {
     setCurrentDate(new Date().toLocaleDateString());
@@ -615,6 +622,48 @@ export default function Home() {
       setChatMessages(prev => [...prev, { role: "assistant", content: `Sorry, I encountered an error: ${error.message}` }]);
     } finally {
       setIsProcessing(false);
+    }
+  };
+
+  const handleOpenPmModal = async () => {
+    if (!currentProjectId) {
+      alert("Please save the project first before submitting to PM!");
+      return;
+    }
+    setIsPmModalOpen(true);
+    setIsLoadingPms(true);
+    try {
+      const res = await fetch('/api/organization/pms');
+      if (res.ok) {
+        const data = await res.json();
+        setPmList(data);
+        if (data.length > 0) setSelectedPmId(data[0].id);
+      }
+    } catch (e) {
+      console.error("Failed to fetch PMs", e);
+    } finally {
+      setIsLoadingPms(false);
+    }
+  };
+
+  const handlePMSubmit = async () => {
+    setIsSubmittingToPM(true);
+    try {
+      const res = await fetch('/api/tasks/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: currentProjectId, pmId: selectedPmId || undefined })
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to generate PM tasks");
+      }
+      router.push('/board');
+    } catch (err: any) {
+      alert(`Error handing off to PM: ${err.message}`);
+    } finally {
+      setIsSubmittingToPM(false);
+      setIsPmModalOpen(false);
     }
   };
 
@@ -1270,6 +1319,8 @@ export default function Home() {
     prompt("Public Share Link generated! You can copy it directly from below:", url);
   };
 
+  const activeProject = pastProjects.find(p => p.id === currentProjectId);
+
   return (
     <div className="flex h-screen bg-[#0f172a] text-slate-200 overflow-hidden font-sans">
       
@@ -1302,7 +1353,15 @@ export default function Home() {
                         if (p.messages && p.messages.length > 1) setDocsReady(true);
                         setActiveTab("Chat");
                       }} className="w-full text-left p-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-all border border-slate-700 hover:border-blue-500/30 group">
-                        <div className="font-semibold text-slate-200 group-hover:text-blue-400 transition-colors mb-1 pr-8">{p.title}</div>
+                        <div className="font-semibold text-slate-200 group-hover:text-blue-400 transition-colors mb-1 pr-8 flex items-center gap-2">
+                          <span className="truncate">{p.title}</span>
+                          {p.status === 'NEEDS_REVISION' && (
+                            <span className="shrink-0 px-2 py-0.5 bg-red-500/20 text-red-400 text-[10px] rounded border border-red-500/30">Needs Revision</span>
+                          )}
+                          {p.status === 'APPROVED' && (
+                            <span className="shrink-0 px-2 py-0.5 bg-green-500/20 text-green-400 text-[10px] rounded border border-green-500/30">Approved</span>
+                          )}
+                        </div>
                         <div className="text-[10px] text-slate-500 flex justify-between items-center">
                           <span>{new Date(p.updatedAt).toLocaleDateString()}</span>
                           <span>{(p.messages?.length || 0)} messages</span>
@@ -1363,6 +1422,36 @@ export default function Home() {
         </div>
       )}
 
+      {isPmModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl">
+            <h3 className="text-xl font-bold text-white mb-2">Select Project Manager</h3>
+            <p className="text-sm text-slate-400 mb-6">Choose the PM who will review these documents.</p>
+            {isLoadingPms ? (
+              <div className="flex items-center gap-2 text-slate-400 text-sm mb-6">
+                <Loader2 className="w-4 h-4 animate-spin" /> Fetching PMs...
+              </div>
+            ) : pmList.length === 0 ? (
+              <div className="text-slate-400 text-sm mb-6">No PMs found in your organization. You can still submit unassigned.</div>
+            ) : (
+              <select 
+                value={selectedPmId} 
+                onChange={(e) => setSelectedPmId(e.target.value)}
+                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-sm text-slate-200 focus:outline-none focus:border-blue-500/50 mb-6"
+              >
+                {pmList.map(pm => (
+                  <option key={pm.id} value={pm.id}>{pm.name || pm.email}</option>
+                ))}
+              </select>
+            )}
+            <div className="flex justify-end gap-3">
+              <button onClick={() => setIsPmModalOpen(false)} disabled={isSubmittingToPM} className="px-4 py-2 rounded-lg text-sm text-slate-400 hover:text-white transition-colors">Cancel</button>
+              <button onClick={handlePMSubmit} disabled={isSubmittingToPM} className="px-4 py-2 rounded-lg text-sm font-bold bg-blue-600 hover:bg-blue-700 text-white transition-colors disabled:opacity-50">{isSubmittingToPM ? "Submitting..." : "Submit to PM"}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <aside className="w-72 shrink-0 bg-[#1e293b]/80 border-r border-slate-700/50 backdrop-blur-xl flex flex-col shadow-2xl z-10 no-print">
         <div className="p-6 border-b border-slate-700/50 flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-cyan-400 flex items-center justify-center shadow-lg shadow-blue-500/20">
@@ -1418,6 +1507,10 @@ export default function Home() {
               <a href="/templates" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium hover:bg-slate-800 text-slate-400 hover:text-slate-200">
                 <FileText className="w-4 h-4" />
                 Corporate Templates
+              </a>
+              <a href="/board" className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200 text-sm font-medium hover:bg-slate-800 text-slate-400 hover:text-slate-200">
+                <LayoutDashboard className="w-4 h-4" />
+                Kanban Board (PM)
               </a>
             </nav>
           </div>
@@ -1612,6 +1705,22 @@ export default function Home() {
                Export All (PDF)
              </button>
 
+             <div className="relative group">
+               <button 
+                 disabled={isSubmittingToPM || !['BRD', 'FRD', 'UML Diagrams', 'Flowcharts', 'Wireframes', 'Prototypes', 'Test Cases'].every(type => !!documents[type])}
+                 onClick={handleOpenPmModal}
+                 className="px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-emerald-500 rounded-lg text-xs font-bold uppercase tracking-wider shadow-lg hover:shadow-emerald-500/20 transition-all active:scale-95 flex items-center gap-2 no-print disabled:opacity-50 disabled:cursor-not-allowed disabled:from-slate-600 disabled:to-slate-600 text-white"
+               >
+                 {isSubmittingToPM ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <LayoutDashboard className="w-3.5 h-3.5" />}
+                 {isSubmittingToPM ? "Submitting..." : "Submit to PM"}
+               </button>
+               {!['BRD', 'FRD', 'UML Diagrams', 'Flowcharts', 'Wireframes', 'Prototypes', 'Test Cases'].every(type => !!documents[type]) && (
+                 <div className="absolute top-full right-0 mt-2 w-72 p-3 bg-slate-800 border border-slate-700 rounded-xl shadow-2xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50 text-xs text-slate-300">
+                   You need to generate BRD/FRD/Test cases/Wireframes/UML/Flowchart/Prototype in order to get this enabled.
+                 </div>
+               )}
+             </div>
+
              {activeTab !== "Chat" && (
                 <div className="flex items-center gap-4">
                   {activeTab === "FRD" && documents[activeTab] && (
@@ -1693,6 +1802,15 @@ export default function Home() {
           <div className="flex-1 flex flex-col min-w-0">
             {activeTab === "Chat" ? (
               <>
+                  {activeProject?.status === 'NEEDS_REVISION' && activeProject?.pmFeedback && (
+                    <div className="mx-10 mt-6 p-4 bg-red-900/40 border border-red-500/50 rounded-xl flex items-start gap-4 shrink-0 shadow-lg">
+                      <AlertCircle className="w-6 h-6 text-red-400 shrink-0 mt-1" />
+                      <div>
+                        <h4 className="text-red-400 font-bold mb-1">Project Needs Revision (PM Feedback)</h4>
+                        <p className="text-red-200 text-sm whitespace-pre-wrap">{activeProject.pmFeedback}</p>
+                      </div>
+                    </div>
+                  )}
                   <div className="flex-1 overflow-y-auto p-10 space-y-8 scroll-smooth custom-scrollbar">
                     <AnimatePresence mode="popLayout">
                       {chatMessages.map((msg, idx) => (

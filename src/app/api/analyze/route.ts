@@ -111,8 +111,9 @@ RULES:
 - If round >= 3, you MUST still provide 'clarifyingQuestions' but set sessionState to 'READY' to allow the user to proceed with existing information.
 - NEVER make up information — only respond based on what is provided.
 - Be SPECIFIC. "Who are the stakeholders?" is bad. "Could you specify whether the primary users are bank tellers, customers, or both?" is good.
-- For graphNodes: extract every distinct artifact (Requirements, UI Screens, APIs, Test Cases) mentioned or implied by the requirements. Use the same IDs from the snapshot for requirements.
-- For graphEdges: map which requirements drive which screens (RENDERS_ON), call which APIs (CALLS), and are verified by which test cases (VERIFIED_BY). Be precise.`;
+- TIMEOUT PREVENTION: To prevent 60-second timeouts, you MUST limit graphNodes to a MAXIMUM of 15 critical core artifacts, and graphEdges to a MAXIMUM of 20 critical links. Do NOT generate massive graphs.
+- For graphNodes: extract only the top distinct artifacts (Requirements, UI Screens, APIs).
+- For graphEdges: map which requirements drive which screens (RENDERS_ON), and APIs (CALLS).`;
 
 export async function POST(req: Request) {
   try {

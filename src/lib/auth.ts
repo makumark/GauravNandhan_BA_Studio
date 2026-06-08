@@ -49,7 +49,7 @@ export const authOptions: NextAuthOptions = {
   ],
   session: { strategy: "jwt" },
   secret: process.env.NEXTAUTH_SECRET || "default_secret_for_dev",
-  pages: { signIn: '/' },
+  pages: { signIn: '/login' },
   events: {
     async signIn({ user }) {
       const membership = await prisma.organizationMember.findFirst({

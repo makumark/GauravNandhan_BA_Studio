@@ -1,12 +1,14 @@
 // ── Role hierarchy ─────────────────────────────────────────────────────────────
-// ADMIN > BA_LEAD > BA_ANALYST > VIEWER
-export type UserRole = 'ADMIN' | 'BA_LEAD' | 'BA_ANALYST' | 'VIEWER';
+export type UserRole = 'ADMIN' | 'BA_LEAD' | 'PM' | 'BA_ANALYST' | 'DEVELOPER' | 'QA_VIEWER' | 'VIEWER';
 
 const ROLE_RANK: Record<UserRole, number> = {
-  ADMIN: 4,
-  BA_LEAD: 3,
-  BA_ANALYST: 2,
-  VIEWER: 1,
+  ADMIN: 100,
+  BA_LEAD: 90,
+  PM: 80,
+  BA_ANALYST: 70,
+  DEVELOPER: 50,
+  QA_VIEWER: 40,
+  VIEWER: 10,
 };
 
 function hasMinRole(role: string | undefined, minRole: UserRole): boolean {
@@ -26,10 +28,10 @@ export const canExportDocuments = (role?: string) => hasMinRole(role, 'BA_ANALYS
 export const canEditDocuments = (role?: string) => hasMinRole(role, 'BA_ANALYST');
 
 /** Can save sessions / projects */
-export const canSaveSessions = (role?: string) => hasMinRole(role, 'BA_ANALYST');
+export const canSaveSessions = (role?: string) => hasMinRole(role, 'DEVELOPER'); // Developers need to save PM state
 
 /** Can sync to Jira */
-export const canSyncJira = (role?: string) => hasMinRole(role, 'BA_LEAD');
+export const canSyncJira = (role?: string) => hasMinRole(role, 'PM');
 
 /** Can view audit logs */
 export const canViewAuditLogs = (role?: string) => hasMinRole(role, 'BA_LEAD');
@@ -42,3 +44,9 @@ export const canAccessAdmin = (role?: string) => hasMinRole(role, 'ADMIN');
 
 /** Is org admin */
 export const isOrgAdmin = (role?: string) => role === 'ADMIN';
+
+/** Can manage sprints and tasks */
+export const canManageSprints = (role?: string) => hasMinRole(role, 'PM');
+
+/** Can view sprint board */
+export const canViewSprints = (role?: string) => hasMinRole(role, 'VIEWER');
