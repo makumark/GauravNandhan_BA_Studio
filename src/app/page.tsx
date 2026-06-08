@@ -87,6 +87,7 @@ import { TraceabilityCanvas } from '@/components/TraceabilityCanvas';
 
 export default function Home() {
   const { data: session } = useSession();
+  const router = useRouter();
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [momInput, setMomInput] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);

@@ -20,6 +20,15 @@ export const LogicSandboxRenderer = ({ jsonString, isProcessing }: { jsonString:
      const parsed = JSON.parse(cleanJson);
      schema = parsed.code || parsed;
   } catch(e) {
+     if (jsonString.includes('[Generation Error:')) {
+        return (
+           <div className="p-8 bg-slate-900 border border-red-500/50 rounded-2xl m-4">
+              <p className="text-red-400 font-bold mb-2">AI Generation Failed</p>
+              <p className="text-sm text-slate-300">The AI service encountered an error while generating the sandbox logic. Please try regenerating.</p>
+              <pre className="text-xs text-red-300 mt-4 whitespace-pre-wrap bg-red-950/30 p-4 rounded-lg overflow-x-auto border border-red-500/20">{jsonString}</pre>
+           </div>
+        );
+     }
      return <div className="p-8 bg-slate-900 border border-red-500/50 rounded-2xl m-4"><p className="text-red-400">Failed to parse logic schema.</p><pre className="text-xs text-slate-500 mt-2">{jsonString}</pre></div>;
   }
 
