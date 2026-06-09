@@ -60,7 +60,7 @@ CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble,
 
     return NextResponse.json({ 
       prompt, 
-      modelName: isVisual ? 'gemini-2.5-pro' : 'gemini-2.5-flash'
+      modelName: isVisual ? 'gemini-2.5-flash' : 'gemini-2.5-flash'
     });
 
   } catch (error: any) {

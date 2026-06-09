@@ -48,7 +48,7 @@ ${isVisual ? `MANDATORY INSTRUCTION: You MUST return ONLY the raw code (HTML/Rea
       `.trim();
 
       const model = genAI.getGenerativeModel({
-        model: isVisual ? 'gemini-2.5-pro' : 'gemini-2.5-flash',
+        model: isVisual ? 'gemini-2.5-flash' : 'gemini-2.5-flash',
         generationConfig: {
           temperature: 0.1,
           topP: 0.8,

@@ -75,7 +75,7 @@ ${isVisual ? `MANDATORY SCHEMA: You MUST return a strict JSON object with this e
     `.trim();
 
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-pro',
+      model: 'gemini-2.5-flash',
       safetySettings,
       generationConfig: {
         temperature: 0.0,

@@ -77,7 +77,7 @@ export async function POST(req: Request) {
     };
 
     const model = genAI.getGenerativeModel({
-      model: isVisual ? 'gemini-2.5-pro' : 'gemini-2.5-flash', // Revert to pro for visual docs to prevent crashing UI builder
+      model: isVisual ? 'gemini-2.5-flash' : 'gemini-2.5-flash', // Revert to pro for visual docs to prevent crashing UI builder
       generationConfig,
       safetySettings,
     });
@@ -129,7 +129,7 @@ DO NOT output any markdown blocks outside the JSON.` : ''}
       }
 
       if (isVisual) {
-        // Stream directly to prevent Vercel 60s timeout for gemini-2.5-pro
+        // Stream directly to prevent Vercel 60s timeout for gemini-2.5-flash
         let isClosed = false;
         stream = new ReadableStream({
           async start(controller) {
