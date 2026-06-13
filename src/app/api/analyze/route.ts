@@ -143,7 +143,7 @@ export async function POST(req: Request) {
     const { message: rawMessage, history = [], round = 0, projectId } = await req.json();
     const message = sanitizeInput(rawMessage);
 
-    if (!apiKey) {
+    if (!process.env.OPENAI_API_KEY) {
       return NextResponse.json({ error: 'API key is missing' }, { status: 500 });
     }
 
