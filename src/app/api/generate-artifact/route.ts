@@ -61,7 +61,12 @@ export async function POST(req: Request) {
       model: customProvider(process.env.LLM_MODEL_NAME || 'qwen2.5'),
       prompt: prompt,
     });
-    const content = text;
+    
+    let content = text.trim();
+    if (content.startsWith('```')) {
+      content = content.replace(/^```[a-z]*\n?/i, '');
+      content = content.replace(/```$/i, '').trim();
+    }
 
     return NextResponse.json({ success: true, content });
 

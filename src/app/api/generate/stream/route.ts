@@ -1,21 +1,16 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { streamText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { AGENT_CONFIGS, GOLD_STANDARD_EXAMPLES } from '@/lib/agents';
 import { sanitizeInput, maskCardOutput } from '@/lib/pii';
-
 
 export const runtime = 'edge';
 export const maxDuration = 120;
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey);
-
-const safetySettings = [
-  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-];
+const customProvider = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+});
 
 export async function POST(req: Request) {
   try {
@@ -73,15 +68,11 @@ CRITICAL RULE: You MUST combine and synthesize ALL requirements provided across 
 CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble, no "Here is...". NEVER truncate. ALWAYS generate the FULL complete output.
     `.trim();
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      safetySettings,
-      generationConfig: {
-        temperature: 0.0,
-        topP: 0.1,
-        topK: 1,
-        maxOutputTokens: 65536,
-      }
+    const result = await streamText({
+      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+      prompt: prompt,
+      temperature: 0.0,
+      maxTokens: 8000,
     });
 
     let isClosed = false;
@@ -90,10 +81,9 @@ CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble,
         try {
           // Heartbeat keep-alive
           controller.enqueue(new TextEncoder().encode(" "));
-          const result = await model.generateContentStream(prompt);
-          for await (const chunk of result.stream) {
+          for await (const chunk of result.textStream) {
             if (isClosed) break;
-            let text = chunk.text();
+            let text = chunk;
             if (!isVisual) {
               text = text
                 .replace(/\|?\s*-+->/g, ' --> ')
