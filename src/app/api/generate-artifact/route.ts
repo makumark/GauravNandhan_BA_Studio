@@ -58,7 +58,7 @@ export async function POST(req: Request) {
     }
 
     const { text } = await generateText({
-      model: customProvider(process.env.LLM_MODEL_NAME || 'qwen2.5'),
+      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
       prompt: prompt,
     });
     
