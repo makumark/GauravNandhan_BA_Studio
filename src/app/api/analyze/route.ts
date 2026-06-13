@@ -13,9 +13,10 @@ import { prisma } from '@/lib/prisma';
 
 export const maxDuration = 60;
 
-const customProvider = createOpenAI({
-  baseURL: process.env.OPENAI_BASE_URL || 'https://api.groq.com/openai/v1',
-  apiKey: process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY || '',
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY || '',
 });
 
 const ANALYSIS_PROMPT = `You are a world-class Senior Business Analyst and Domain Expert with 25 years of experience across Banking, Insurance, Healthcare, Logistics, Retail, Government, and Technology sectors.
@@ -167,7 +168,7 @@ Analyze the evolution of these requirements. In the "snapshot" field, return the
 Analyze this input now and respond with ONLY the JSON object.`;
 
     const result = await generateText({
-      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+      model: google(process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'),
       prompt: prompt,
       temperature: 0.1,
       maxTokens: 8000,

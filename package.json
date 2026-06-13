@@ -12,6 +12,7 @@
     "test:report": "npx playwright show-report"
   },
   "dependencies": {
+    "@ai-sdk/google": "^3.0.82",
     "@ai-sdk/openai": "^3.0.71",
     "@google/generative-ai": "^0.24.1",
     "@next-auth/prisma-adapter": "^1.0.7",

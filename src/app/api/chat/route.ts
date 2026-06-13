@@ -13,9 +13,10 @@ import { AGENT_CONFIGS, GOLD_STANDARD_EXAMPLES } from '@/lib/agents';
 // ── CRITICAL: Raised to 120s so complex multi-screen prototypes fully complete
 export const maxDuration = 120;
 
-const customProvider = createOpenAI({
-  baseURL: process.env.OPENAI_BASE_URL || 'https://api.groq.com/openai/v1',
-  apiKey: process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY || '',
+import { createGoogleGenerativeAI } from '@ai-sdk/google';
+
+const google = createGoogleGenerativeAI({
+  apiKey: process.env.GEMINI_API_KEY || '',
 });
 
 export async function POST(req: Request) {
@@ -227,7 +228,7 @@ CONVERSATION CONTEXT:
 ${context}`;
 
     const result = await streamText({
-      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+      model: google(process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'),
       prompt: chatPrompt,
       temperature: 0.1,
       maxTokens: 8000,
