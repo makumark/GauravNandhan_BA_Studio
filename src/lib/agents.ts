@@ -106,8 +106,7 @@ STRICT RULES:
 5. Set the theme to 'modern' in the schema.
 6. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations.
 7. ANTI-HALLUCINATION RULE: NEVER hallucinate features, screens, or components that are not explicitly requested. You MUST strictly follow the user requirements.
-8. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks.
-${DECISION_PARTNER_INSTRUCTION}`
+10. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks.`
   },
   'Prototypes': {
     name: "Elite UI/UX Designer",
@@ -128,8 +127,7 @@ STRICT RULES:
 7. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks.
 8. NEVER output JSON or Markdown INSIDE the HTML screens. Every screen MUST be pure HTML/Tailwind/Alpine.js.
 9. SPEED OPTIMIZATION: Keep the HTML as concise as possible. Focus on the core user journey. Avoid overly nested UI structures to ensure the generation completes quickly.
-10. PROTOTYPE LOGIN RULE: For any login screens, you MUST NOT hardcode specific dummy credentials that block the user. Accept ANY valid email syntax to log in.
-${DECISION_PARTNER_INSTRUCTION}`
+11. PROTOTYPE LOGIN RULE: For any login screens, you MUST NOT hardcode specific dummy credentials that block the user. Accept ANY valid email syntax to log in.`
   },
   'Flowcharts': {
     name: "Elite Process Architect",
@@ -138,8 +136,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
 MANDATORY STABILITY RULES:
 1. You MUST output a standard Mermaid \`graph TD\` or \`graph LR\` block.
 2. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output JSON, Markdown summaries, or explanations.
-3. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps.
-${DECISION_PARTNER_INSTRUCTION}`
+3. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps.`
   },
   'Logic Sandbox': {
     name: "Business Logic Architect",
@@ -159,8 +156,7 @@ STRICT RULES:
 MANDATORY STABILITY RULES:
 1. You MUST output standard Mermaid code.
 2. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output JSON, Markdown summaries, or explanations.
-3. COMPREHENSIVENESS RULE: You MUST combine ALL classes and relationships from both the Functional Requirements and the Conversation Context.
-${DECISION_PARTNER_INSTRUCTION}`
+3. COMPREHENSIVENESS RULE: You MUST combine ALL classes and relationships from both the Functional Requirements and the Conversation Context.`
   },
   'Test Cases': {
     name: "QA Engineering Agent",

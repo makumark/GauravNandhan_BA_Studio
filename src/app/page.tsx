@@ -1968,7 +1968,7 @@ export default function Home() {
                     ) : (
                       activeTab === "Logic Sandbox" ? (
                         <div className="p-4 h-full">
-                           <DiagramErrorBoundary><LogicSandboxRenderer jsonString={documents[activeTab]?.content || ""} isProcessing={isProcessing} onRegenerate={() => handleDocumentClick(activeTab, true)} /></DiagramErrorBoundary>
+                           <DiagramErrorBoundary key={activeTab}><LogicSandboxRenderer jsonString={documents[activeTab]?.content || ""} isProcessing={isProcessing} onRegenerate={() => handleDocumentClick(activeTab, true)} /></DiagramErrorBoundary>
                         </div>
                       ) : activeTab === "Wireframes" ? (
                                 <div className="p-4 h-full">
@@ -2001,7 +2001,7 @@ export default function Home() {
                                         );
                                       }
 
-                                      return <DiagramErrorBoundary><DynamicUIBuilder schema={finalSchema} isProcessing={isProcessing} /></DiagramErrorBoundary>;
+                                      return <DiagramErrorBoundary key={activeTab}><DynamicUIBuilder schema={finalSchema} isProcessing={isProcessing} /></DiagramErrorBoundary>;
                                   })()}
                                 </div>
                       ) : activeTab === "Prototypes" ? (
@@ -2059,16 +2059,16 @@ export default function Home() {
                                         
                                         summary = tempSummary.trim();
                                       }
-                                      return <DiagramErrorBoundary><LivePreviewIframe html={htmlContent} isProcessing={isProcessing} /></DiagramErrorBoundary>;
+                                      return <DiagramErrorBoundary key={activeTab}><LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} /></DiagramErrorBoundary>;
                                   })()}
                                 </div>
                       ) : (activeTab === "Flowcharts" || activeTab === "UML Diagrams") ? (
                                 <div className="p-4 h-full">
                                   {(() => {
                                       const rawContent = documents[activeTab]?.content || "";
-                                      const match = rawContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+                                      const match = rawContent.match(/```[a-z]*\s*([\s\S]*?)\s*```/i);
                                       const chartCode = match ? match[1].trim() : rawContent.trim();
-                                      return <DiagramErrorBoundary><MermaidCanvas key={activeTab} chart={chartCode} isProcessing={isProcessing} /></DiagramErrorBoundary>;
+                                      return <DiagramErrorBoundary key={activeTab}><MermaidCanvas key={activeTab} chart={chartCode} isProcessing={isProcessing} /></DiagramErrorBoundary>;
                                   })()}
                                 </div>
                       ) : (
