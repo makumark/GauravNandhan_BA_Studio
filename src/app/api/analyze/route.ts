@@ -1,8 +1,7 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
-import { generateText } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+import { robustGenerateText } from '@/lib/llm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { canGenerateDocuments } from '@/lib/permissions';
@@ -12,12 +11,6 @@ import { inferEdgesFromSnapshot, upsertGraph, type GraphNodeData, type GraphEdge
 import { prisma } from '@/lib/prisma';
 
 export const maxDuration = 60;
-
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY || '',
-});
 
 const ANALYSIS_PROMPT = `You are a world-class Senior Business Analyst and Domain Expert with 25 years of experience across Banking, Insurance, Healthcare, Logistics, Retail, Government, and Technology sectors.
 
@@ -167,8 +160,7 @@ ${message}
 Analyze the evolution of these requirements. In the "snapshot" field, return the CUMULATIVE list of all confirmed requirements so far.
 Analyze this input now and respond with ONLY the JSON object.`;
 
-    const result = await generateText({
-      model: google(process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'),
+    const result = await robustGenerateText({
       prompt: prompt,
       temperature: 0.1,
       maxTokens: 8000,

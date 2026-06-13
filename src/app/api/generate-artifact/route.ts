@@ -1,14 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { generateText } from "ai";
-import { createOpenAI } from "@ai-sdk/openai";
+import { robustGenerateText } from '@/lib/llm';
 import { AGENT_CONFIGS } from "@/lib/agents";
-
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY || '',
-});
 
 export async function POST(req: Request) {
   try {
@@ -51,8 +44,7 @@ ${contextLines}
 CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble, no "Here is...".
     `.trim();
 
-    const { text } = await generateText({
-      model: google(process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'),
+    const { text } = await robustGenerateText({
       prompt: prompt,
     });
     

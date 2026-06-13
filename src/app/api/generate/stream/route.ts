@@ -1,17 +1,10 @@
 import { NextResponse } from 'next/server';
-import { streamText } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+import { robustStreamText } from '@/lib/llm';
 import { AGENT_CONFIGS, GOLD_STANDARD_EXAMPLES } from '@/lib/agents';
 import { sanitizeInput, maskCardOutput } from '@/lib/pii';
 
 export const runtime = 'edge';
 export const maxDuration = 120;
-
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY || '',
-});
 
 export async function POST(req: Request) {
   try {
@@ -69,8 +62,7 @@ CRITICAL RULE: You MUST combine and synthesize ALL requirements provided across 
 CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble, no "Here is...". NEVER truncate. ALWAYS generate the FULL complete output.
     `.trim();
 
-    const result = await streamText({
-      model: google(process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'),
+    const result = await robustStreamText({
       prompt: prompt,
       temperature: 0.0,
       maxTokens: 8000,

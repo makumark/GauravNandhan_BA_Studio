@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { streamText } from 'ai';
-import { createOpenAI } from '@ai-sdk/openai';
+import { robustStreamText } from '@/lib/llm';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
@@ -13,11 +12,7 @@ import { AGENT_CONFIGS, GOLD_STANDARD_EXAMPLES } from '@/lib/agents';
 // ── CRITICAL: Raised to 120s so complex multi-screen prototypes fully complete
 export const maxDuration = 120;
 
-import { createGoogleGenerativeAI } from '@ai-sdk/google';
-
-const google = createGoogleGenerativeAI({
-  apiKey: process.env.GEMINI_API_KEY || '',
-});
+// Removed duplicate google provider import
 
 export async function POST(req: Request) {
   try {
@@ -124,8 +119,7 @@ DO NOT output any markdown blocks outside the JSON.` : ''}
               // Write a space immediately to keep the Vercel connection alive
               controller.enqueue(new TextEncoder().encode(" "));
               
-              const result = await streamText({
-                model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+              const result = await robustStreamText({
                 prompt: prompt,
                 temperature: 0.1,
                 maxTokens: 8000,
@@ -163,8 +157,7 @@ DO NOT output any markdown blocks outside the JSON.` : ''}
               // Write a space immediately to keep the Vercel connection alive
               controller.enqueue(new TextEncoder().encode(" "));
               
-              const result = await streamText({
-                model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+              const result = await robustStreamText({
                 prompt: prompt,
                 temperature: 0.1,
                 maxTokens: 8000,
@@ -227,8 +220,7 @@ RULES:
 CONVERSATION CONTEXT:
 ${context}`;
 
-    const result = await streamText({
-      model: google(process.env.GEMINI_MODEL_NAME || 'gemini-2.5-pro'),
+    const result = await robustStreamText({
       prompt: chatPrompt,
       temperature: 0.1,
       maxTokens: 8000,
