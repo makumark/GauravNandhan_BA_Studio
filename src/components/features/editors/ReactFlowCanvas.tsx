@@ -57,6 +57,13 @@ export const ReactFlowCanvas = ({ chart, isProcessing }: { chart: string, isProc
         }
       }
 
+      if (jsonStr.includes('[Generation Error:')) {
+         const errorMsgMatch = jsonStr.match(/\[Generation Error:([^\]]+)\]/);
+         const specificError = errorMsgMatch ? errorMsgMatch[1].trim() : 'AI Provider is busy (503 Service Unavailable).';
+         setError(specificError);
+         return;
+      }
+
       const parsed = JSON.parse(jsonStr);
       
       const sanitizeNodes = (rawNodes: any[]) => {

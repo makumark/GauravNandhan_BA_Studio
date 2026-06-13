@@ -62,19 +62,13 @@ Example: "Application Dashboard"
 \`\`\`
 `,
   'React Flow JSON': `
-### GOLD STANDARD: REACT FLOW JSON SCHEMA
+### GOLD STANDARD: MERMAID SCHEMA
 Example: "Order Fulfillment Flowchart"
-\`\`\`json
-{
-  "summary": "Order fulfillment process.",
-  "nodes": [
-    { "id": "1", "position": { "x": 250, "y": 0 }, "data": { "label": "Customer Order" }, "style": { "background": "#1e293b", "color": "#f8fafc", "border": "1px solid #3b82f6", "borderRadius": "8px", "padding": "10px" } },
-    { "id": "2", "position": { "x": 250, "y": 100 }, "data": { "label": "Stock Check" }, "style": { "background": "#334155", "color": "#f8fafc", "border": "1px solid #64748b", "borderRadius": "8px", "padding": "10px" } }
-  ],
-  "edges": [
-    { "id": "e1-2", "source": "1", "target": "2", "label": "Initiates", "animated": true, "style": { "stroke": "#3b82f6" } }
-  ]
-}
+\`\`\`mermaid
+graph TD
+    A[Customer Order] -->|Initiates| B[Stock Check]
+    style A fill:#1e293b,stroke:#3b82f6,color:#f8fafc
+    style B fill:#334155,stroke:#64748b,color:#f8fafc
 \`\`\`
 `
 };
@@ -118,7 +112,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
   'Prototypes': {
     name: "Elite UI/UX Designer",
     tool: "HTML Template",
-    instruction: `Generate a CONCISE, high-fidelity prototype as a fully functional HTML/Tailwind/Alpine.js workflow based on the provided requirements and wireframes.
+    instruction: `Generate a CONCISE, high-fidelity prototype as a functional HTML/Tailwind/Alpine.js workflow based on the provided requirements and wireframes.
 STRICT RULES:
 1. Output a SINGLE self-contained HTML block. Do NOT use html, head, or body tags, just output the content.
 2. STRICT REQUIREMENT ADHERENCE: You MUST explicitly implement every specific field, input, button, and data structure mentioned in the requirements.
@@ -133,20 +127,18 @@ STRICT RULES:
 6. Include realistic mock data mapped precisely to the data fields described in the requirements. NEVER use 'Lorem Ipsum'.
 7. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks.
 8. NEVER output JSON or Markdown INSIDE the HTML screens. Every screen MUST be pure HTML/Tailwind/Alpine.js.
-9. PROTOTYPE LOGIN RULE: For any login screens, you MUST NOT hardcode specific dummy credentials that block the user. Accept ANY valid email syntax to log in.
+9. SPEED OPTIMIZATION: Keep the HTML as concise as possible. Focus on the core user journey. Avoid overly nested UI structures to ensure the generation completes quickly.
+10. PROTOTYPE LOGIN RULE: For any login screens, you MUST NOT hardcode specific dummy credentials that block the user. Accept ANY valid email syntax to log in.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Flowcharts': {
     name: "Elite Process Architect",
-    tool: "React Flow JSON",
-    instruction: `Generate professional Flowcharts using strictly React Flow JSON schema.
+    tool: "Mermaid",
+    instruction: `Generate professional Flowcharts using strictly standard Mermaid syntax.
 MANDATORY STABILITY RULES:
-1. You MUST output a strict JSON object with a \`summary\`, \`nodes\`, and \`edges\` array at the root level.
-2. DO NOT stringify the nodes and edges arrays.
-3. Every node MUST have: \`id\`, \`position\` (x, y coords to prevent overlapping), \`data\` (with \`label\`), and \`style\`.
-4. Ensure a top-down or left-to-right logical coordinate layout (increment y by 100 or x by 200).
-5. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations.
-6. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps.
+1. You MUST output a standard Mermaid \`graph TD\` or \`graph LR\` block.
+2. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output JSON, Markdown summaries, or explanations.
+3. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Logic Sandbox': {
@@ -162,15 +154,12 @@ STRICT RULES:
   },
   'UML Diagrams': {
     name: "System Architect Agent",
-    tool: "React Flow JSON",
-    instruction: `Generate a professional, high-fidelity UML Diagram using strictly React Flow JSON schema.
+    tool: "Mermaid",
+    instruction: `Generate a professional, high-fidelity UML Diagram using strictly standard Mermaid syntax (e.g. \`classDiagram\`, \`sequenceDiagram\`).
 MANDATORY STABILITY RULES:
-1. You MUST output a strict JSON object with a \`summary\`, \`nodes\`, and \`edges\` array at the root level.
-2. DO NOT stringify the nodes and edges arrays.
-3. Use \`data.label\` for class names and attributes (you can use newline characters or HTML in labels if needed to show properties).
-4. Ensure logical X/Y spacing for classes to prevent overlapping.
-5. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations.
-6. COMPREHENSIVENESS RULE: You MUST combine ALL classes and relationships from both the Functional Requirements and the Conversation Context.
+1. You MUST output standard Mermaid code.
+2. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output JSON, Markdown summaries, or explanations.
+3. COMPREHENSIVENESS RULE: You MUST combine ALL classes and relationships from both the Functional Requirements and the Conversation Context.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
   'Test Cases': {

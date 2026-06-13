@@ -79,6 +79,7 @@ import {
 
 
 import { ReactFlowCanvas } from '@/components/features/editors/ReactFlowCanvas';
+import { MermaidCanvas } from '@/components/features/editors/MermaidCanvas';
 import { LivePreviewIframe } from '@/components/features/editors/LivePreviewIframe';
 import { ConflictResolveModal } from '@/components/ConflictResolveModal';
 import { ScopeCreepWidget } from '@/components/ScopeCreepWidget';
@@ -721,47 +722,75 @@ export default function Home() {
       const matched = cachedTemplates.find((t: any) => t.name.toLowerCase() === docName.toLowerCase());
       const templateContent = matched?.content || "";
 
-      const streamRes = await fetch('/api/generate/stream', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          messages: messagesOverride || chatMessages,
-          documentRequested: docName,
-          domainDetected,
-          functionalContext: combinedContext,
-          existingDocument: documents[docName]?.content || "",
-          templateContent
-        })
-      });
+      const isVisualArtifact = ['UML Diagrams', 'Wireframes', 'Prototypes', 'Flowcharts'].includes(docName);
 
-      if (!streamRes.ok) {
-        const errData = await streamRes.json().catch(() => ({}));
-        throw new Error(errData.error || `Generation failed (HTTP ${streamRes.status})`);
-      }
+      if (isVisualArtifact && activeProjectId) {
+        // Use RAG Endpoint to bypass 429 limits
+        const res = await fetch('/api/generate-artifact', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ projectId: activeProjectId, artifactType: docName })
+        });
+        
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          throw new Error(data.error || "RAG Generation failed");
+        }
+        generatedContent = data.content;
+        
+        setDocuments(prev => ({
+          ...prev,
+          [docName]: { ...prev[docName], content: generatedContent }
+        }));
+      } else {
+        const streamRes = await fetch('/api/generate/stream', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            messages: messagesOverride || chatMessages,
+            documentRequested: docName,
+            domainDetected,
+            functionalContext: combinedContext,
+            existingDocument: documents[docName]?.content || "",
+            templateContent
+          })
+        });
 
-      const reader = streamRes.body?.getReader();
-      const decoder = new TextDecoder();
-      let lastRender = 0;
+        if (!streamRes.ok) {
+          const errData = await streamRes.json().catch(() => ({}));
+          throw new Error(errData.error || `Generation failed (HTTP ${streamRes.status})`);
+        }
 
-      while (reader) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        generatedContent += decoder.decode(value);
-        const now = Date.now();
-        if (now - lastRender > 80) {
-          lastRender = now;
-          const snap = generatedContent;
-          setDocuments(prev => ({
-            ...prev,
-            [docName]: { ...prev[docName], content: snap }
-          }));
+        const reader = streamRes.body?.getReader();
+        const decoder = new TextDecoder();
+        let lastRender = 0;
+
+        while (reader) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          generatedContent += decoder.decode(value);
+          const now = Date.now();
+          if (now - lastRender > 80) {
+            lastRender = now;
+            const snap = generatedContent;
+            setDocuments(prev => ({
+              ...prev,
+              [docName]: { ...prev[docName], content: snap }
+            }));
+          }
+        }
+        // Final flush
+        setDocuments(prev => ({
+          ...prev,
+          [docName]: { ...prev[docName], content: generatedContent }
+        }));
+
+        // Catch Google Generative AI streaming quota errors gracefully!
+        if (generatedContent.includes('[Generation Error:')) {
+          const match = generatedContent.match(/\[Generation Error: (.*?)\]/);
+          throw new Error(match ? match[1] : "API Quota Exceeded (429). Please wait a minute and try again.");
         }
       }
-      // Final flush
-      setDocuments(prev => ({
-        ...prev,
-        [docName]: { ...prev[docName], content: generatedContent }
-      }));
 
       // Stream completed! Now silently save to database
       if (activeProjectId) {
@@ -1997,14 +2026,12 @@ export default function Home() {
                                         summary = typeof parsed.summary === 'string' ? parsed.summary : (parsed.summary ? JSON.stringify(parsed.summary) : "");
                                       } catch (e) {
                                         let tempSummary = rawContent;
-                                        // 1. Extract HTML block (allow unclosed backticks)
                                         const htmlMatch = tempSummary.match(/```(?:html|vue)\s*([\s\S]*?)(?:```|$)/i);
                                         if (htmlMatch) {
                                            htmlContent = htmlMatch[1].trim();
                                            tempSummary = tempSummary.replace(htmlMatch[0], '');
                                         }
-                                        
-                                        // 2. Extract JS block
+
                                         const jsMatch = tempSummary.match(/```(?:javascript|js)\s*([\s\S]*?)(?:```|$)/i);
                                         if (jsMatch) {
                                            htmlContent += `\n<script>\n${jsMatch[1].trim()}\n</script>\n`;
@@ -2024,15 +2051,15 @@ export default function Home() {
                                            if (genericMatch) {
                                                htmlContent = genericMatch[1].trim();
                                                tempSummary = tempSummary.replace(genericMatch[0], '');
-                                           } else {
-                                               htmlContent = tempSummary.trim();
+                                           } else if (rawContent.includes('<div') || rawContent.includes('<html')) {
+                                               htmlContent = rawContent.trim();
                                                tempSummary = "";
                                            }
                                         }
                                         
                                         summary = tempSummary.trim();
                                       }
-                                      return <DiagramErrorBoundary><LivePreviewIframe htmlContent={htmlContent} isProcessing={isProcessing} summary={summary} /></DiagramErrorBoundary>;
+                                      return <DiagramErrorBoundary><LivePreviewIframe html={htmlContent} isProcessing={isProcessing} /></DiagramErrorBoundary>;
                                   })()}
                                 </div>
                       ) : (activeTab === "Flowcharts" || activeTab === "UML Diagrams") ? (
@@ -2041,7 +2068,7 @@ export default function Home() {
                                       const rawContent = documents[activeTab]?.content || "";
                                       const match = rawContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
                                       const chartCode = match ? match[1].trim() : rawContent.trim();
-                                      return <DiagramErrorBoundary><ReactFlowCanvas key={activeTab} chart={chartCode} isProcessing={isProcessing} /></DiagramErrorBoundary>;
+                                      return <DiagramErrorBoundary><MermaidCanvas key={activeTab} chart={chartCode} isProcessing={isProcessing} /></DiagramErrorBoundary>;
                                   })()}
                                 </div>
                       ) : (
@@ -2604,7 +2631,7 @@ export default function Home() {
               {name}
             </h1>
             <div style={{ fontSize: '13px', lineHeight: '1.6', color: '#334155' }}>
-              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code({inline, className, children, ...props}: any) { const match = /language-(\w+)/.exec(className || ''); if (!inline && match && match[1] === 'mermaid') { return <ReactFlowCanvas chart={String(children).replace(/\n$/, '')} /> } if (!inline && match && match[1] === 'plantuml') { return <ReactFlowCanvas chart={String(children).replace(/\n$/, '')} /> } if (!inline && (name === "Wireframes" || name === "Prototypes")) { return <div style={{ padding: '15px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', color: '#64748b', fontSize: '11px' }}>Interactive demo code excluded.</div>; } return <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }} {...props}>{children}</code> } }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]} components={{ code({inline, className, children, ...props}: any) { const match = /language-(\w+)/.exec(className || ''); if (!inline && match && match[1] === 'mermaid') { return <MermaidCanvas chart={String(children).replace(/\n$/, '')} /> } if (!inline && match && match[1] === 'plantuml') { return <MermaidCanvas chart={String(children).replace(/\n$/, '')} /> } if (!inline && (name === "Wireframes" || name === "Prototypes")) { return <div style={{ padding: '15px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '6px', color: '#64748b', fontSize: '11px' }}>Interactive demo code excluded.</div>; } return <code style={{ background: '#f1f5f9', padding: '2px 4px', borderRadius: '4px' }} {...props}>{children}</code> } }}>
                 {(name === "Wireframes" || name === "Prototypes") ? (docObj.content || "").replace(/```html[\s\S]*?```/g, '').trim() : (docObj.content || "")}
               </ReactMarkdown>
             </div>

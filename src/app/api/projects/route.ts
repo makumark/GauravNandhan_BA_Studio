@@ -4,6 +4,7 @@ import { prisma } from '@/lib/prisma';
 import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
 import { canSaveSessions } from '@/lib/permissions';
+import { inngest } from '@/lib/inngest/client';
 
 export const dynamic = 'force-dynamic';
 
@@ -80,6 +81,16 @@ export async function POST(req: Request) {
         resourceId: project.id,
         metadata: { title: project.title, documentCount: Object.keys(documents || {}).length }
       });
+    }
+
+    // Trigger background requirement extraction
+    try {
+      await inngest.send({
+        name: 'chat/extract.requirements',
+        data: { projectId: project.id }
+      });
+    } catch (inngestErr) {
+      console.error("Failed to trigger Inngest extraction:", inngestErr);
     }
 
     return NextResponse.json(project);

@@ -60,14 +60,22 @@ export async function POST(req: Request) {
     MANDATORY RULES:
     1. Use @playwright/test imports. Use test.describe and test blocks.
     2. Map EVERY test case to a separate test() block. Use the TC-ID as the test name.
-    3. Use realistic locators: getByRole, getByLabel, getByPlaceholder, getByTestId — in that order of preference.
+    3. Use realistic locators. If the Prototype Code above looks like an error message or is missing/invalid, IGNORE IT and infer standard locators (e.g., getByRole('button', { name: 'Submit' }), getByPlaceholder('Email')).
     4. Include beforeEach for navigation setup (use 'http://localhost:3000' as base URL).
     5. Add expect assertions for every acceptance criterion.
     6. Return ONLY the TypeScript code block wrapped in \`\`\`typescript fences. No explanations.`;
 
     // ── DRY-RUN VALIDATION LAYER (Self-Healing) ──
-    // We switch from streaming to full generation to allow background validation
-    const result = await model.generateContent(prompt);
+    let result;
+    try {
+      result = await model.generateContent(prompt);
+    } catch (err: any) {
+      if (err.message && err.message.includes('503')) {
+        return NextResponse.json({ error: 'AI service is currently experiencing high demand. Please try generating test cases again in a few moments.' }, { status: 503 });
+      }
+      throw err;
+    }
+
     let generatedCode = result.response.text();
     
     // Extract code from fences
@@ -101,10 +109,14 @@ export async function POST(req: Request) {
       
       Please fix the syntax error and return ONLY the corrected code block.`;
       
-      const retryResult = await model.generateContent(fixPrompt);
-      generatedCode = retryResult.response.text();
-      const retryMatch = generatedCode.match(/```(?:typescript|hcl)?\s*([\s\S]*?)\s*```/i);
-      cleanCode = retryMatch ? retryMatch[1] : generatedCode;
+      try {
+        const retryResult = await model.generateContent(fixPrompt);
+        generatedCode = retryResult.response.text();
+        const retryMatch = generatedCode.match(/```(?:typescript|hcl)?\s*([\s\S]*?)\s*```/i);
+        cleanCode = retryMatch ? retryMatch[1] : generatedCode;
+      } catch (e) {
+        // Ignore retry errors and just return the first generated code
+      }
     }
 
     // Return the validated code as a single response (simulating stream for UI compatibility)

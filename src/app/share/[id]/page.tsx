@@ -9,6 +9,7 @@ import pako from 'pako';
 import { motion } from 'framer-motion';
 
 import { ReactFlowCanvas } from '@/components/features/editors/ReactFlowCanvas';
+import { MermaidCanvas } from '@/components/features/editors/MermaidCanvas';
 import { LivePreviewIframe } from '@/components/features/editors/LivePreviewIframe';
 
 import { DynamicUIBuilder } from '@/components/DynamicUIBuilder';
@@ -176,9 +177,10 @@ export default function SharePage() {
             ) : (activeTab === "Flowcharts" || activeTab === "UML Diagrams") ? (
                <div className="h-[600px] my-8 shadow-2xl rounded-3xl overflow-hidden border border-slate-700/50">
                  {(() => {
-                    const match = currentDoc.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-                    const chartCode = match ? match[1].trim() : currentDoc.trim();
-                    return <ReactFlowCanvas key={activeTab} chart={chartCode} />;
+                    const chartContent = currentDoc;
+                    const match = chartContent.match(/```(?:mermaid|plantuml)?\s*([\s\S]*?)\s*```/i);
+                    const chartCode = match ? match[1].trim() : chartContent.trim();
+                    return <MermaidCanvas key={activeTab} chart={chartCode} />;
                  })()}
                </div>
             ) : (

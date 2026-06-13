@@ -18,6 +18,7 @@ import {
 
 export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isProcessing?: boolean }) {
   let parsedSchema;
+  let parseError = '';
   try {
     let jsonStr = schema;
     const jsonMatch = schema.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
@@ -33,10 +34,33 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
     
     try {
       parsedSchema = JSON.parse(jsonStr);
-    } catch (e1) {
-      parsedSchema = new Function("return " + jsonStr)();
+    } catch (e1: any) {
+      try {
+        parsedSchema = new Function("return " + jsonStr)();
+      } catch (e2: any) {
+         parseError = e1.message || 'Syntax Error';
+         throw e1;
+      }
     }
-  } catch (e) {
+  } catch (e: any) {
+    if (schema && typeof schema === 'string' && schema.includes('[Generation Error:')) {
+      const errorMsgMatch = schema.match(/\[Generation Error:([^\]]+)\]/);
+      const specificError = errorMsgMatch ? errorMsgMatch[1].trim() : 'AI Provider is busy (503 Service Unavailable).';
+      return (
+        <div className="p-8 bg-slate-900/80 border border-orange-500/30 rounded-2xl flex flex-col gap-4">
+          <div className="flex items-center gap-3 text-orange-400">
+            <AlertTriangle className="w-6 h-6" />
+            <h3 className="font-bold uppercase tracking-widest text-sm">Service Temporarily Unavailable</h3>
+          </div>
+          <p className="text-[10px] text-slate-400 leading-relaxed italic">The AI encountered a temporary issue while generating the layout. This is usually due to high demand.</p>
+          <div className="p-2 bg-orange-500/10 border border-orange-500/20 rounded-lg text-xs text-orange-400 max-h-32 overflow-y-auto custom-scrollbar font-mono">
+            {specificError}
+          </div>
+          <button onClick={() => window.location.reload()} className="mt-2 text-xs font-bold bg-slate-800 hover:bg-slate-700 text-slate-200 py-2 rounded-lg transition-colors border border-slate-700">Please Try Again Later</button>
+        </div>
+      );
+    }
+    
     if (isProcessing) {
       return (
         <div className="flex flex-col items-center justify-center p-12 bg-slate-900/50 rounded-2xl border border-slate-700/30 min-h-[400px]">
@@ -53,7 +77,8 @@ export function DynamicUIBuilder({ schema, isProcessing }: { schema: string, isP
         </div>
         <p className="text-[10px] text-slate-500 leading-relaxed italic">The AI generated an invalid component layout JSON.</p>
         <div className="p-2 bg-red-500/10 border border-red-500/20 rounded-lg text-xs text-red-400 max-h-32 overflow-y-auto custom-scrollbar font-mono">
-          Syntax Error
+          {parseError || 'Syntax Error'}
+          <div className="mt-2 text-[10px] text-red-400/70 whitespace-pre-wrap">{schema.substring(0, 500)}...</div>
         </div>
       </div>
     );

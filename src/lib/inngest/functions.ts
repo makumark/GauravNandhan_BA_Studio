@@ -1,125 +1,97 @@
 import { inngest } from "./client";
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { prisma } from "@/lib/prisma";
-import { AGENT_CONFIGS, GOLD_STANDARD_EXAMPLES } from "@/lib/agents";
+import prisma from "@/lib/prisma";
+import { generateText } from "ai";
+import { createOpenAI } from "@ai-sdk/openai";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const customProvider = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+});
 
-export const generateVisualArtifacts = inngest.createFunction(
-  { id: "generate-document-artifacts", event: "app/document.generate" },
+export const processChatChunks = inngest.createFunction(
+  { 
+    id: "process-chat-chunks", 
+    name: "Process Chat Chunks for Requirements",
+    concurrency: 10 // Prevent server crash by limiting to 10 concurrent processes
+  },
+  { event: "chat/extract.requirements" },
   async ({ event, step }) => {
-    const { 
-      projectId, 
-      documentRequested, 
-      messages, 
-      domainDetected, 
-      functionalContext, 
-      glossary,
-      userEmail 
-    } = event.data;
+    const { projectId } = event.data;
 
-    const generatedContent = await step.run("generate-ai-content", async () => {
-      const agent = AGENT_CONFIGS[documentRequested] || AGENT_CONFIGS.DEFAULT;
-      const isVisual = documentRequested === 'Prototypes' || documentRequested === 'Wireframes' || documentRequested === 'UML Diagrams';
-      const toolExample = GOLD_STANDARD_EXAMPLES[agent.tool] || "";
-
-      // Build context: include ALL messages in order. Never slice — slicing drops earlier
-      // requirements and causes the background generator to forget context.
-      const uniqueMessages = messages.filter(Boolean);
-      const context = (uniqueMessages as any[]).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
-
-      const prompt = `
-AGENT: ${agent.name}
-SPECIALIZED TOOL: ${agent.tool}
-
-${toolExample}
-
-TASK: Generate a professional and comprehensive ${documentRequested}.
-INSTRUCTIONS: ${agent.instruction}
-DOMAIN: ${domainDetected || 'FinTech / Regulatory Technology'}
-CURRENT DATE: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-${functionalContext ? `FUNCTIONAL REQUIREMENTS (SOURCE OF TRUTH):\n"""\n${functionalContext}\n"""` : ''}
-${glossary && glossary.length > 0 ? `ENTITY DICTIONARY (MANDATORY CONSISTENCY):\n"""\n${JSON.stringify(glossary, null, 2)}\n"""\nYou MUST adhere strictly to these terms and rules.` : ''}
-CONVERSATION CONTEXT:
-${context}
-
-CRITICAL RULE: Output ONLY the ${agent.tool} content. Start immediately. No preamble, no "Here is...", no markdown outside code fences. NEVER truncate or use placeholders like "... (skipping lines) ...". ALWAYS generate the FULL complete code.
-${isVisual ? `MANDATORY INSTRUCTION: You MUST return ONLY the raw code (HTML/React for prototypes, PlantUML/Mermaid for UML/Flowcharts, JSON schema for Wireframes). DO NOT wrap it inside another JSON object. Just output the raw code block.` : ''}
-      `.trim();
-
-      const model = genAI.getGenerativeModel({
-        model: isVisual ? 'gemini-2.5-flash' : 'gemini-2.5-flash',
-        generationConfig: {
-          temperature: 0.1,
-          topP: 0.8,
-          topK: 40,
-        }
+    // Step 1: Fetch recent unprocessed messages (Chunking)
+    const messages = await step.run("fetch-messages", async () => {
+      // In a real implementation, we'd add an `isProcessed` flag to Message schema.
+      // For this MVP, we take the last 50 messages to represent a "chunk".
+      return await prisma.message.findMany({
+        where: { projectId },
+        orderBy: { createdAt: "desc" },
+        take: 50,
       });
-
-      const result = await model.generateContent(prompt);
-      let text = result.response.text();
-      
-      // Nuclear Syntax Hardening (Mermaid) for text docs
-      if (!isVisual) {
-        text = text
-          .replace(/\|?\s*-+\s*->/g, ' --> ') // Fix malformed arrows like | -- ->
-          .replace(/--\s*>/g, ' --> ')        // Fix space in arrows
-          .replace(/\["([^\]]+)"\]/g, (m, label) => {
-            const safeLabel = label.replace(/[()]/g, '').replace(/\//g, ' ');
-            return `["${safeLabel}"]`;
-          })
-          .replace(/\{"([^"]+)"\}/g, (m, label) => {
-            const safeLabel = label.replace(/[()]/g, '').replace(/\//g, ' ');
-            return `{"${safeLabel}"}`;
-          });
-      }
-
-      return text;
     });
 
-    // Step 2: Save to Database
-    await step.run("save-to-database", async () => {
-      // Find existing document
-      const existingDoc = await prisma.document.findFirst({
-        where: { projectId, type: documentRequested }
-      });
+    if (messages.length === 0) return { success: true, extracted: 0 };
 
-      if (existingDoc) {
-        await prisma.document.update({
-          where: { id: existingDoc.id },
-          data: { content: generatedContent }
-        });
-      } else {
-        await prisma.document.create({
-          data: {
-            projectId,
-            type: documentRequested,
-            content: generatedContent,
-          }
-        });
-      }
+    // Sort ascending for context flow
+    const orderedMessages = messages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+
+    // Step 2: Extract requirements using Local/OS API
+    const extractedNodes = await step.run("extract-requirements", async () => {
+      const chatText = orderedMessages.map((m) => `${m.role}: ${m.content}`).join("\n");
       
-      // Add audit log
-      if (userEmail) {
-        const org = await prisma.project.findUnique({
-          where: { id: projectId },
-          select: { organizationId: true, userId: true }
+      const prompt = `
+        You are a Business Analyst extraction engine. 
+        Extract system requirements, screens, APIs, and test cases from the following chat.
+        Return ONLY a raw JSON array of objects without markdown formatting or backticks.
+        Structure: [{ "nodeId": "REQ-1", "nodeType": "REQUIREMENT", "label": "User can login via Google" }]
+        Valid nodeTypes: REQUIREMENT, SCREEN, API, TEST_CASE, EPIC, FEATURE, DOCUMENT
+        
+        Chat context:
+        ${chatText}
+      `;
+
+      try {
+        const { text } = await generateText({
+          model: customProvider(process.env.LLM_MODEL_NAME || 'qwen2.5'),
+          prompt: prompt,
         });
         
-        if (org && org.organizationId) {
-           await prisma.auditLog.create({
-             data: {
-               organizationId: org.organizationId,
-               userId: org.userId,
-               userEmail: userEmail,
-               action: 'DOCUMENT_GENERATED_BACKGROUND',
-               resourceType: documentRequested,
-             }
-           });
-        }
+        let responseText = text;
+        
+        // Clean up markdown code blocks if the AI includes them
+        responseText = responseText.replace(/```json/g, "").replace(/```/g, "").trim();
+        
+        return JSON.parse(responseText) as { nodeId: string, nodeType: string, label: string }[];
+      } catch (e) {
+        console.error("Failed to parse AI output", e);
+        return [];
       }
     });
 
-    return { success: true, documentType: documentRequested };
+    // Step 3: Save to Structured Knowledge Base (GraphNode)
+    if (extractedNodes.length > 0) {
+      await step.run("save-to-database", async () => {
+        for (const node of extractedNodes) {
+          // Store each extracted piece of knowledge into the Graph Database Layer
+          // This avoids passing 1000 pages of chat next time
+          await prisma.graphNode.upsert({
+            where: { 
+              projectId_nodeId: { projectId, nodeId: node.nodeId } 
+            },
+            update: { 
+              label: node.label, 
+              nodeType: node.nodeType 
+            },
+            create: {
+              projectId,
+              nodeId: node.nodeId,
+              nodeType: node.nodeType,
+              label: node.label
+            }
+          });
+        }
+      });
+    }
+
+    return { success: true, extracted: extractedNodes.length };
   }
 );
