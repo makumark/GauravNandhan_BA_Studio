@@ -12,9 +12,9 @@ export const processChatChunks = inngest.createFunction(
   { 
     id: "process-chat-chunks", 
     name: "Process Chat Chunks for Requirements",
-    concurrency: 10 // Prevent server crash by limiting to 10 concurrent processes
+    concurrency: 10, // Prevent server crash by limiting to 10 concurrent processes
+    triggers: [{ event: "chat/extract.requirements" }]
   },
-  { event: "chat/extract.requirements" },
   async ({ event, step }) => {
     const { projectId } = event.data;
 
