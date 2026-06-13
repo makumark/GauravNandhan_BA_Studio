@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { canGenerateDocuments } from '@/lib/permissions';
@@ -12,8 +13,10 @@ import { prisma } from '@/lib/prisma';
 
 export const maxDuration = 60;
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey);
+const customProvider = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+});
 
 const ANALYSIS_PROMPT = `You are a world-class Senior Business Analyst and Domain Expert with 25 years of experience across Banking, Insurance, Healthcare, Logistics, Retail, Government, and Technology sectors.
 
@@ -167,22 +170,13 @@ ${message}
 Analyze the evolution of these requirements. In the "snapshot" field, return the CUMULATIVE list of all confirmed requirements so far.
 Analyze this input now and respond with ONLY the JSON object.`;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash', // STABLE: Current production model as of May 2026
-      safetySettings: [
-        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-      ],
-      generationConfig: {
-        temperature: 0.1,
-        responseMimeType: 'application/json',
-      },
+    const result = await generateText({
+      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+      prompt: prompt,
+      temperature: 0.1,
+      maxTokens: 8000,
     });
-
-    const result = await model.generateContent(prompt);
-    const rawText = result.response.text().trim();
+    const rawText = result.text.trim();
 
     // Parse and validate the JSON
     let analysis;

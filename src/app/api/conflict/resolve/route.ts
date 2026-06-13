@@ -5,12 +5,16 @@
 // Returns: { type, mergedText, deprecated, updateFRD }
 
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { sanitizeInput } from '@/lib/pii';
 
 export const maxDuration = 60;
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
+const customProvider = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+});
 
 export async function POST(req: Request) {
   try {
@@ -56,19 +60,13 @@ Respond with ONLY valid JSON:
   "phaseNote": "Optional note like 'Phase 1: Statement A. Phase 2 (this sprint): Statement B.'"
 }`;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      safetySettings: [
-        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-      ],
-      generationConfig: { temperature: 0.1, responseMimeType: 'application/json' },
+    const result = await generateText({
+      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+      prompt: classifyPrompt,
+      temperature: 0.1,
+      maxTokens: 4000,
     });
-
-    const result = await model.generateContent(classifyPrompt);
-    const rawText = result.response.text().trim();
+    const rawText = result.text.trim();
 
     let classification: any;
     try {

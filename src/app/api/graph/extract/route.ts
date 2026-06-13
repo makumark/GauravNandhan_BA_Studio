@@ -1,11 +1,14 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey);
+const customProvider = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+});
 
 export async function POST(req: Request) {
   try {
@@ -18,9 +21,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing content or projectId' }, { status: 400 });
     }
 
-    if (!apiKey) return NextResponse.json({ error: 'API key missing' }, { status: 500 });
-
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
+    // API Config check handled by provider
 
     const prompt = `Analyze this project document and extract the core Requirements, APIs, Screens, and Test Cases as Nodes, and their relationships as Edges.
 
@@ -41,8 +42,13 @@ export async function POST(req: Request) {
     }
     Return ONLY JSON.`;
 
-    const result = await model.generateContent(prompt);
-    const text = result.response.text().trim();
+    const result = await generateText({
+      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+      prompt: prompt,
+      temperature: 0.1,
+      maxTokens: 8000,
+    });
+    const text = result.text.trim();
     
     let graphData;
     try {

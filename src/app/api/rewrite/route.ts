@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { streamText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { rateLimit } from '@/lib/rate-limit';
 
 export const maxDuration = 60;
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey);
+const customProvider = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+});
 
 export async function POST(req: Request) {
   try {
@@ -29,16 +32,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 });
     }
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      safetySettings: [
-        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-      ],
-      generationConfig: { temperature: 0.2 },
-    });
+    // Model configuration moved to streamText call
 
     const prompt = `You are a Senior Business Analyst. A user wants to rewrite a specific section of a document.
     
@@ -59,15 +53,20 @@ Your task is to provide ONLY the rewritten text that will replace the ORIGINAL S
 Do NOT include the rest of the document. Do NOT include markdown fences if the original text didn't have them (unless specifically asked to format as code).
 Output ONLY the replacement text.`;
 
-    const result = await model.generateContentStream(prompt);
+    const result = await streamText({
+      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+      prompt: prompt,
+      temperature: 0.2,
+      maxTokens: 4000,
+    });
 
     let isClosed = false;
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of result.stream) {
+          for await (const chunk of result.textStream) {
             if (isClosed) break;
-            const text = chunk.text();
+            const text = chunk;
             if (text) controller.enqueue(new TextEncoder().encode(text));
           }
         } catch (e: any) {

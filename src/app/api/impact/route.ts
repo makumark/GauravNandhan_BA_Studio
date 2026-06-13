@@ -1,12 +1,15 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 
 export const maxDuration = 60;
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey);
+const customProvider = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+});
 
 const IMPACT_PROMPT = `You are a Senior Project Manager and Systems Architect. Your job is to perform a detailed IMPACT ANALYSIS between two versions of business requirements.
 
@@ -42,17 +45,7 @@ export async function POST(req: Request) {
   try {
     const { previousSnapshot, currentSnapshot } = await req.json();
 
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key is missing' }, { status: 500 });
-    }
-
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash', // STABLE: Current production model as of May 2026
-      generationConfig: {
-        temperature: 0.1,
-        responseMimeType: 'application/json',
-      },
-    });
+    // Model setup handled in generateText
 
     const prompt = `${IMPACT_PROMPT}
 
@@ -64,8 +57,13 @@ ${JSON.stringify(currentSnapshot, null, 2)}
 
 Analyze the delta and cascading impact now. Response ONLY JSON.`;
 
-    const result = await model.generateContent(prompt);
-    const rawText = result.response.text().trim();
+    const result = await generateText({
+      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+      prompt: prompt,
+      temperature: 0.1,
+      maxTokens: 8000,
+    });
+    const rawText = result.text.trim();
 
     let impact;
     try {

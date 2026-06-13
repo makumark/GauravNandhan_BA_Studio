@@ -1,8 +1,11 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey);
+const customProvider = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+});
 
 export const maxDuration = 60;
 
@@ -14,7 +17,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Text and instruction are required' }, { status: 400 });
     }
 
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash' });
     const prompt = `You are a Senior BA Assistant.
 A user wants you to rewrite a specific section of a document.
 INSTRUCTION: ${instruction}
@@ -25,9 +27,13 @@ ${text}
 
 CRITICAL RULE: Return ONLY the rewritten text. Do not include markdown code blocks, do not explain your changes, do not write "Here is the rewritten text". Just the raw text.`;
 
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const suggestedText = response.text();
+    const result = await generateText({
+      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+      prompt: prompt,
+      temperature: 0.1,
+      maxTokens: 4000,
+    });
+    const suggestedText = result.text;
 
     return NextResponse.json({ suggestedText: suggestedText.trim() });
   } catch (error: any) {

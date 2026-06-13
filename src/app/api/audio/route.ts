@@ -1,10 +1,7 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
-
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || '');
 
 export async function POST(req: Request) {
   try {
@@ -14,29 +11,31 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'No audio data provided' }, { status: 400 });
     }
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      safetySettings: [
-        { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-        { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-      ]
+    // Convert base64 audio string to Blob for FormData
+    const base64Data = audioData.replace(/^data:audio\/\w+;base64,/, '');
+    const buffer = Buffer.from(base64Data, 'base64');
+    const blob = new Blob([buffer], { type: mimeType || 'audio/webm' });
+
+    const formData = new FormData();
+    formData.append('file', blob, 'audio.webm');
+    formData.append('model', 'whisper-large-v3');
+    formData.append('prompt', 'Transcribe this audio recording accurately. This is a business meeting or requirements discussion.');
+    formData.append('response_format', 'text'); // Return raw text instead of JSON payload
+
+    const response = await fetch('https://api.groq.com/openai/v1/audio/transcriptions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${process.env.OPENAI_API_KEY}`,
+      },
+      body: formData,
     });
 
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: mimeType || 'audio/webm',
-          data: audioData
-        }
-      },
-      {
-        text: 'Transcribe this audio recording accurately. This is a business meeting or requirements discussion. Return only the transcribed text, no commentary.'
-      }
-    ]);
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Groq Whisper Error: ${errorText}`);
+    }
 
-    const transcribedText = result.response.text();
+    const transcribedText = await response.text();
     return NextResponse.json({ content: transcribedText });
 
   } catch (error: any) {

@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { prisma } from '@/lib/prisma';
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey);
+const customProvider = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+});
 
 export async function POST(req: Request) {
   try {
@@ -63,16 +66,13 @@ Format exactly like this:
   }
 ]`;
 
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
-      generationConfig: {
-        temperature: 0.1,
-        responseMimeType: 'application/json',
-      },
+    const result = await generateText({
+      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+      prompt: prompt,
+      temperature: 0.1,
+      maxTokens: 8000,
     });
-
-    const result = await model.generateContent(prompt);
-    const rawText = result.response.text().trim();
+    const rawText = result.text.trim();
     
     let parsedData: any[] = [];
     try {

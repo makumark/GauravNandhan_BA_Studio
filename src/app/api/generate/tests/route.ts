@@ -1,38 +1,23 @@
 import { NextResponse } from 'next/server';
-import { GoogleGenerativeAI } from '@google/generative-ai';
+import { generateText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 
 // ── Raised to 120s (same as /api/chat) so large test suites fully complete
 export const maxDuration = 120;
 export const dynamic = 'force-dynamic';
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey);
+const customProvider = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+});
 
-import { HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
-const safetySettings = [
-  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-];
+// Safety settings handled by Universal API directly if needed
 
 export async function POST(req: Request) {
   try {
     const { prototypeCode, testCases } = await req.json();
 
-    if (!apiKey) {
-      return NextResponse.json({ error: 'API key missing' }, { status: 500 });
-    }
-
-    const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash', // Match user settings for reliability
-      generationConfig: {
-        temperature: 0.1,
-        topP: 0.8,
-        topK: 40,
-      },
-      safetySettings,
-    });
+    // Model setup moved to generateText
 
     const isIaC = prototypeCode === 'GENERATE_IAC';
 
@@ -68,7 +53,12 @@ export async function POST(req: Request) {
     // ── DRY-RUN VALIDATION LAYER (Self-Healing) ──
     let result;
     try {
-      result = await model.generateContent(prompt);
+      result = await generateText({
+        model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+        prompt: prompt,
+        temperature: 0.1,
+        maxTokens: 8000,
+      });
     } catch (err: any) {
       if (err.message && err.message.includes('503')) {
         return NextResponse.json({ error: 'AI service is currently experiencing high demand. Please try generating test cases again in a few moments.' }, { status: 503 });
@@ -76,7 +66,7 @@ export async function POST(req: Request) {
       throw err;
     }
 
-    let generatedCode = result.response.text();
+    let generatedCode = result.text;
     
     // Extract code from fences
     const cleanCodeMatch = generatedCode.match(/```(?:typescript|hcl)?\s*([\s\S]*?)\s*```/i);
@@ -110,8 +100,13 @@ export async function POST(req: Request) {
       Please fix the syntax error and return ONLY the corrected code block.`;
       
       try {
-        const retryResult = await model.generateContent(fixPrompt);
-        generatedCode = retryResult.response.text();
+        const retryResult = await generateText({
+          model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+          prompt: fixPrompt,
+          temperature: 0.1,
+          maxTokens: 8000,
+        });
+        generatedCode = retryResult.text;
         const retryMatch = generatedCode.match(/```(?:typescript|hcl)?\s*([\s\S]*?)\s*```/i);
         cleanCode = retryMatch ? retryMatch[1] : generatedCode;
       } catch (e) {
