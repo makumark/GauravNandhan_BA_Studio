@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
-import { GoogleGenerativeAI, HarmCategory, HarmBlockThreshold } from '@google/generative-ai';
+import { streamText } from 'ai';
+import { createOpenAI } from '@ai-sdk/openai';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth';
 import { logAudit } from '@/lib/audit';
@@ -12,15 +13,10 @@ import { AGENT_CONFIGS, GOLD_STANDARD_EXAMPLES } from '@/lib/agents';
 // ── CRITICAL: Raised to 120s so complex multi-screen prototypes fully complete
 export const maxDuration = 120;
 
-const apiKey = process.env.GEMINI_API_KEY || '';
-const genAI = new GoogleGenerativeAI(apiKey);
-
-const safetySettings = [
-  { category: HarmCategory.HARM_CATEGORY_HARASSMENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_HATE_SPEECH, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_SEXUALLY_EXPLICIT, threshold: HarmBlockThreshold.BLOCK_NONE },
-  { category: HarmCategory.HARM_CATEGORY_DANGEROUS_CONTENT, threshold: HarmBlockThreshold.BLOCK_NONE },
-];
+const customProvider = createOpenAI({
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+});
 
 export async function POST(req: Request) {
   try {
@@ -70,17 +66,7 @@ export async function POST(req: Request) {
     const agent = AGENT_CONFIGS[documentRequested as keyof typeof AGENT_CONFIGS] || AGENT_CONFIGS.DEFAULT;
     const isVisual = documentRequested === 'Prototypes' || documentRequested === 'Wireframes' || documentRequested === 'UML Diagrams' || documentRequested === 'Logic Sandbox';
 
-    const generationConfig: any = {
-      temperature: 0.1,
-      topP: 0.8,
-      topK: 40,
-    };
-
-    const model = genAI.getGenerativeModel({
-      model: isVisual ? 'gemini-2.5-flash' : 'gemini-2.5-flash', // Revert to pro for visual docs to prevent crashing UI builder
-      generationConfig,
-      safetySettings,
-    });
+    // Model configuration moved to streamText calls
 
     // Build context: include ALL messages in order. Do NOT deduplicate by content —
     // that would silently drop messages with identical text (e.g. "Yes", "OK").
@@ -137,11 +123,16 @@ DO NOT output any markdown blocks outside the JSON.` : ''}
               // Write a space immediately to keep the Vercel connection alive
               controller.enqueue(new TextEncoder().encode(" "));
               
-              const result = await model.generateContentStream(prompt);
+              const result = await streamText({
+                model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+                prompt: prompt,
+                temperature: 0.1,
+                maxTokens: 8000,
+              });
               
-              for await (const chunk of result.stream) {
+              for await (const chunk of result.textStream) {
                 if (isClosed) break;
-                let text = chunk.text();
+                let text = chunk;
                 // We apply maskCardOutput per chunk. It may miss numbers split across chunk boundaries,
                 // but prompt instructions already forbid PII.
                 if (documentRequested === 'Prototypes' || documentRequested === 'Wireframes') {
@@ -171,11 +162,16 @@ DO NOT output any markdown blocks outside the JSON.` : ''}
               // Write a space immediately to keep the Vercel connection alive
               controller.enqueue(new TextEncoder().encode(" "));
               
-              const result = await model.generateContentStream(prompt);
+              const result = await streamText({
+                model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+                prompt: prompt,
+                temperature: 0.1,
+                maxTokens: 8000,
+              });
               
-              for await (const chunk of result.stream) {
+              for await (const chunk of result.textStream) {
                 if (isClosed) break;
-                const text = chunk.text();
+                const text = chunk;
                 if (text) {
                   // Nuclear Syntax Hardening (Mermaid)
                   let cleanText = text
@@ -230,15 +226,20 @@ RULES:
 CONVERSATION CONTEXT:
 ${context}`;
 
-    const result = await model.generateContentStream(chatPrompt);
+    const result = await streamText({
+      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+      prompt: chatPrompt,
+      temperature: 0.1,
+      maxTokens: 8000,
+    });
 
     let isClosed = false;
     const stream = new ReadableStream({
       async start(controller) {
         try {
-          for await (const chunk of result.stream) {
+          for await (const chunk of result.textStream) {
             if (isClosed) break;
-            const text = chunk.text();
+            const text = chunk;
             if (text) controller.enqueue(new TextEncoder().encode(text));
           }
         } catch (e: any) {
