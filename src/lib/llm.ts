@@ -11,28 +11,28 @@ const groq = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY || '',
 });
 
-// Primary: Google Gemini (Flash for speed & quota)
-const primaryModel = google(process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash');
+// Primary: Groq Llama 3 (Instant for speed & quota)
+const primaryModel = groq(process.env.LLM_MODEL_NAME || 'llama-3.1-8b-instant');
 
-// Secondary: Groq Llama 3 (Instant for speed & quota)
-const fallbackModel = groq(process.env.LLM_MODEL_NAME || 'llama-3.1-8b-instant');
+// Secondary: Google Gemini (Flash for speed & quota)
+const fallbackModel = google(process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash');
 
-export async function robustGenerateText(options: Omit<GenerateTextParameters<any>, 'model'>) {
+export async function robustGenerateText(options: Omit<GenerateTextParameters<any>, 'model' | 'maxRetries'>) {
   try {
-    return await aiGenerateText({ ...options, model: primaryModel });
+    return await aiGenerateText({ ...options, model: primaryModel, maxRetries: 0 });
   } catch (error: any) {
-    console.warn("⚠️ Primary LLM (Google) Failed:", error.message);
-    console.warn("🔄 Automatically switching to Fallback LLM (Groq Llama 3)...");
-    return await aiGenerateText({ ...options, model: fallbackModel });
+    console.warn("⚠️ Primary LLM Failed:", error.message);
+    console.warn("🔄 Automatically switching to Fallback LLM...");
+    return await aiGenerateText({ ...options, model: fallbackModel, maxRetries: 0 });
   }
 }
 
-export async function robustStreamText(options: Omit<StreamTextParameters<any>, 'model'>) {
+export async function robustStreamText(options: Omit<StreamTextParameters<any>, 'model' | 'maxRetries'>) {
   try {
-    return await aiStreamText({ ...options, model: primaryModel });
+    return await aiStreamText({ ...options, model: primaryModel, maxRetries: 0 });
   } catch (error: any) {
-    console.warn("⚠️ Primary LLM (Google) Failed:", error.message);
-    console.warn("🔄 Automatically switching to Fallback LLM (Groq Llama 3)...");
-    return await aiStreamText({ ...options, model: fallbackModel });
+    console.warn("⚠️ Primary LLM Failed:", error.message);
+    console.warn("🔄 Automatically switching to Fallback LLM...");
+    return await aiStreamText({ ...options, model: fallbackModel, maxRetries: 0 });
   }
 }
