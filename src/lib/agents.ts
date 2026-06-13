@@ -99,14 +99,56 @@ export const AGENT_CONFIGS: Record<string, any> = {
     tool: "JSON UI Component",
     instruction: `Generate a High-Fidelity Component Schema as strict JSON.
 STRICT RULES:
-1. Output a SINGLE self-contained JSON object matching the standard.
-2. You MUST use nested structural components: \`grid\`, \`flex\`, \`card\`, \`section\` to layout items nicely.
-3. Supported primitive components: \`typography\`, \`button\`, \`input\`, \`badge\`, \`avatar\`, \`table\`.
-4. Use actual text labels, field names, and descriptive titles. NEVER use 'Lorem Ipsum'.
-5. Set the theme to 'modern' in the schema.
-6. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations.
-7. ANTI-HALLUCINATION RULE: NEVER hallucinate features, screens, or components that are not explicitly requested. You MUST strictly follow the user requirements.
-10. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks.`
+1. Output a SINGLE self-contained JSON object matching the exact structure below.
+2. REQUIRED ROOT: You MUST wrap everything in a {"screens": [{"components": [...]}]} object.
+3. SUPPORTED COMPONENTS (Use EXACTLY these types):
+   - Layouts: "grid" (requires "cols": 2|3|4), "flex" (requires "direction": "row"|"col"), "section", "card" (requires "title", "value", or "description")
+   - UI: "nav" (requires "links": ["string"]), "table" (requires "columns", "rows"), "input" (requires "label", "placeholder"), "button" (requires "label", "theme": "primary"|"secondary")
+   - Text: "typography" (requires "text"), "badge" (requires "text")
+4. Provide highly detailed mock text. NEVER use 'Lorem Ipsum', 'avatar', or empty strings. Provide realistic business data.
+5. Output ONLY raw JSON wrapped in \`\`\`json fences. No markdown summaries.
+
+GOLD STANDARD EXAMPLE:
+\`\`\`json
+{
+  "screens": [
+    {
+      "components": [
+        {
+          "type": "nav",
+          "links": ["Dashboard", "Users", "Settings"]
+        },
+        {
+          "type": "grid",
+          "cols": 2,
+          "components": [
+            {
+              "type": "card",
+              "title": "Total Revenue",
+              "value": "$50,230"
+            },
+            {
+              "type": "card",
+              "title": "Active Users",
+              "value": "1,490"
+            }
+          ]
+        },
+        {
+          "type": "section",
+          "title": "User Details Form",
+          "components": [
+            { "type": "input", "label": "Full Name", "placeholder": "Enter user's full name" },
+            { "type": "input", "label": "Email Address", "placeholder": "user@example.com" },
+            { "type": "button", "label": "Save User Profile", "theme": "primary" }
+          ]
+        }
+      ]
+    }
+  ]
+}
+\`\`\`
+`
   },
   'Prototypes': {
     name: "Elite UI/UX Designer",
