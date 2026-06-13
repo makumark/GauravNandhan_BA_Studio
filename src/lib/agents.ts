@@ -169,6 +169,16 @@ ${DECISION_PARTNER_INSTRUCTION}`
     name: "Senior BA Agent",
     tool: "Markdown",
     instruction: `Generate a Business Requirements Document (BRD) following BABOK v3. RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points) and numbered sections (1.0, 1.1).
+MANDATORY STRUCTURE: You MUST format the document EXACTLY with these headers in this order:
+# 1.0 Executive Summary
+# 2.0 Business Objectives & Goals
+# 3.0 Project Scope
+## 3.1 In-Scope
+## 3.2 Out-of-Scope
+# 4.0 Business Requirements
+# 5.0 Stakeholder Roles & Responsibilities
+# 6.0 Assumptions & Constraints
+# 7.0 Risks & Mitigations
 CRITICAL RULE: NEVER include a Requirement Traceability Matrix (RTM) in this document. The RTM must only be generated in the FRD.
 ANTI-HALLUCINATION RULE: NEVER hallucinate business objectives, scope, or requirements that are not explicitly provided by the user. You MUST strictly base your document ONLY on the provided context.
 ${DECISION_PARTNER_INSTRUCTION}`
@@ -177,7 +187,15 @@ ${DECISION_PARTNER_INSTRUCTION}`
     name: "Senior BA Agent",
     tool: "Markdown",
     instruction: `Generate a Functional Requirements Document (FRD) following BABOK v3. RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points), strict FR-XXX numbering, and provide 100% plain-text Acceptance Criteria.
-CRITICAL MANDATORY REQUIREMENT: You MUST include a '## Requirement Traceability Matrix (RTM)' section at the end of the document. You MUST use exactly this Markdown table format:
+MANDATORY STRUCTURE: You MUST format the document EXACTLY with these headers in this order:
+# 1.0 Introduction
+# 2.0 Context & Scope
+# 3.0 Functional Requirements (FR-XXX)
+# 4.0 Non-Functional Requirements
+# 5.0 Data & Integration Requirements
+# 6.0 Assumptions & Dependencies
+# 7.0 Requirement Traceability Matrix (RTM)
+CRITICAL MANDATORY REQUIREMENT: You MUST include the '## 7.0 Requirement Traceability Matrix (RTM)' section at the end of the document. You MUST use exactly this Markdown table format:
 | Req ID | Description | Business Objective | Priority |
 |---|---|---|---|
 | FR-001 | ... | ... | ... |
@@ -195,6 +213,14 @@ ${DECISION_PARTNER_INSTRUCTION}`
     name: "Product Manager Agent",
     tool: "Markdown",
     instruction: `Generate a Product Requirements Document (PRD). RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points) and MoSCoW prioritization.
+MANDATORY STRUCTURE: You MUST format the document EXACTLY with these headers in this order:
+# 1.0 Product Vision & Strategy
+# 2.0 Target Audience & User Personas
+# 3.0 User Stories & Epics
+# 4.0 Features (MoSCoW Prioritization)
+# 5.0 UX/UI & Design Requirements
+# 6.0 Metrics & KPIs
+# 7.0 Future Roadmap
 CRITICAL RULE: NEVER include a Requirement Traceability Matrix (RTM) in this document. The RTM must only be generated in the FRD.
 ANTI-HALLUCINATION RULE: NEVER hallucinate features, user stories, or requirements that are not explicitly provided by the user. You MUST strictly base your document ONLY on the provided context.
 ${DECISION_PARTNER_INSTRUCTION}`
@@ -203,6 +229,14 @@ ${DECISION_PARTNER_INSTRUCTION}`
     name: "Systems Analyst Agent",
     tool: "Markdown",
     instruction: `Generate a System Requirements Document (SRD). RULE: Focus on ISO/IEC 25010 standards using strictly stable Markdown.
+MANDATORY STRUCTURE: You MUST format the document EXACTLY with these headers in this order:
+# 1.0 System Overview
+# 2.0 Architecture & Integrations
+# 3.0 API & Interface Requirements
+# 4.0 Database & Storage Specifications
+# 5.0 Security & Compliance
+# 6.0 Performance Metrics (ISO/IEC 25010)
+# 7.0 Deployment & Operations
 CRITICAL RULE: NEVER include a Requirement Traceability Matrix (RTM) in this document. The RTM must only be generated in the FRD.
 ANTI-HALLUCINATION RULE: NEVER hallucinate system architectures, APIs, or requirements that are not explicitly provided by the user. You MUST strictly base your document ONLY on the provided context.
 ${DECISION_PARTNER_INSTRUCTION}`
