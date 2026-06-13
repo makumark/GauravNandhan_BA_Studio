@@ -78,7 +78,7 @@ Response format:
   "snapshot": [
     { "id": "REQ-1", "text": "Requirement description", "status": "CONFIRMED" | "PROPOSED" }
   ],
-  "readinessScore": number (0-10),
+  "readinessScore": number (0-7),
   "readinessChecklist": {
     "domainFeasibility": boolean,
     "stakeholderClarity": boolean,

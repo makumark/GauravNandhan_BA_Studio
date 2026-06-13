@@ -1634,7 +1634,7 @@ export default function Home() {
                   readinessScore >= 3 ? 'bg-amber-500/20 text-amber-400' :
                   'bg-red-500/20 text-red-400'
                 }`}>
-                  {readinessScore}/7
+                  {Math.min(readinessScore, 7)}/7
                 </span>
               </div>
               <div className="w-full h-1.5 bg-slate-700 rounded-full overflow-hidden mb-3">
@@ -1643,7 +1643,7 @@ export default function Home() {
                     sessionState === 'READY' ? 'bg-emerald-400' :
                     readinessScore >= 3 ? 'bg-amber-400' : 'bg-red-400'
                   }`}
-                  style={{ width: `${(readinessScore / 7) * 100}%` }}
+                  style={{ width: `${(Math.min(readinessScore, 7) / 7) * 100}%` }}
                 />
               </div>
               
