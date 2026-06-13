@@ -146,7 +146,7 @@ STRICT RULES:
 1. Output a SINGLE self-contained JSON object matching the standard.
 2. STRUCTURAL SYMMETRY: You MUST extract and combine ALL complex business rules and calculations from both the Functional Requirements and the Conversation Context into a single comprehensive logic code block. Do not drop existing rules when new ones are added.
 3. INLINE JAVASCRIPT: The \`logic\` field must contain a raw JavaScript string that takes the variables defined in \`inputs\` (by their exact \`name\`) and returns a string Outcome. The logic must use standard JS syntax (if/else, math, etc.).
-4. Do NOT output a markdown block inside the JSON string. The \`code\` field should be a nested JSON object containing \`title\`, \`inputs\`, and \`logic\`.
+4. JSON ENCODING RULE: The Javascript code inside the \`logic\` field MUST be properly JSON-escaped (use '\\n' for newlines). NEVER output raw newlines inside a JSON string value.
 5. Output ONLY the raw JSON code wrapped in triple-backtick json fences (\`\`\`json). NEVER output Markdown summaries or explanations before or after the code block.`
   },
   'UML Diagrams': {
@@ -186,7 +186,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
   'FRD': {
     name: "Senior BA Agent",
     tool: "Markdown",
-    instruction: `Generate a Functional Requirements Document (FRD) following BABOK v3. RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points), strict FR-XXX numbering, and provide 100% plain-text Acceptance Criteria.
+    instruction: `Generate a Functional Requirements Document (FRD) following BABOK v3. RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points), strict FR-XXX numbering. Requirement MUST be written in the form of User Stories with Acceptance Criteria strictly following the Gherkin method (Given/When/Then).
 MANDATORY STRUCTURE: You MUST format the document EXACTLY with these headers in this order:
 # 1.0 Introduction
 # 2.0 Context & Scope

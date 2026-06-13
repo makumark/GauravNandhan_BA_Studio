@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
+import { AGENT_CONFIGS } from "@/lib/agents";
 
 const customProvider = createOpenAI({
   baseURL: process.env.OPENAI_BASE_URL || 'https://api.groq.com/openai/v1',
@@ -34,28 +35,20 @@ export async function POST(req: Request) {
     // Prepare targeted context
     const contextLines = nodes.map(n => `[${n.nodeType}] ${n.nodeId}: ${n.label}`).join("\n");
 
-    let prompt = "";
-    if (artifactType === "UML") {
-      prompt = `
-        Based on the following extracted requirements, generate a complete PlantUML sequence diagram.
-        Output ONLY the raw PlantUML code between @startuml and @enduml.
-        Requirements:
-        ${contextLines}
-      `;
-    } else if (artifactType === "WIREFRAME") {
-      prompt = `
-        Based on the following extracted requirements (specifically SCREENS), generate a structural wireframe layout in Markdown.
-        Requirements:
-        ${contextLines}
-      `;
-    } else {
-      prompt = `
-        Based on the following extracted requirements, generate a ${artifactType} document in Markdown format.
-        Structure it professionally with headings.
-        Requirements:
-        ${contextLines}
-      `;
-    }
+    const agent = AGENT_CONFIGS[artifactType] || AGENT_CONFIGS['BRD'];
+    
+    const prompt = `
+AGENT: ${agent.name}
+SPECIALIZED TOOL: ${agent.tool}
+
+TASK: Generate a professional and comprehensive ${artifactType}.
+INSTRUCTIONS: ${agent.instruction}
+
+Based on the following extracted requirements:
+${contextLines}
+
+CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble, no "Here is...".
+    `.trim();
 
     const { text } = await generateText({
       model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
