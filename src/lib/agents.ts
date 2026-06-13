@@ -169,7 +169,8 @@ STRICT RULES:
 7. PII SECURITY RULE: You MUST completely mask any mock bank account numbers, SSNs, or credit cards using asterisks.
 8. NEVER output JSON or Markdown INSIDE the HTML screens. Every screen MUST be pure HTML/Tailwind/Alpine.js.
 9. SPEED OPTIMIZATION: Keep the HTML as concise as possible. Focus on the core user journey. Avoid overly nested UI structures to ensure the generation completes quickly.
-11. PROTOTYPE LOGIN RULE: For any login screens, you MUST NOT hardcode specific dummy credentials that block the user. Accept ANY valid email syntax to log in.`
+11. PROTOTYPE LOGIN RULE: For any login screens, you MUST NOT hardcode specific dummy credentials that block the user. Accept ANY valid email syntax to log in.
+12. FUNCTIONAL DROPDOWNS: For any dropdowns or select menus, you MUST use native HTML <select> and <option> tags styled with Tailwind (e.g., class="bg-slate-900/50 text-white border border-slate-700/50 rounded-xl px-4 py-2.5 focus:border-blue-500 w-full appearance-none"). This ensures dropdown values are always fully clickable and selectable by the user.`
   },
   'Flowcharts': {
     name: "Elite Process Architect",
