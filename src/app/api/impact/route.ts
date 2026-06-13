@@ -7,8 +7,8 @@ import { createOpenAI } from '@ai-sdk/openai';
 export const maxDuration = 60;
 
 const customProvider = createOpenAI({
-  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
-  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.groq.com/openai/v1',
+  apiKey: process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY || '',
 });
 
 const IMPACT_PROMPT = `You are a Senior Project Manager and Systems Architect. Your job is to perform a detailed IMPACT ANALYSIS between two versions of business requirements.

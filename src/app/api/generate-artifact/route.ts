@@ -4,8 +4,8 @@ import { generateText } from "ai";
 import { createOpenAI } from "@ai-sdk/openai";
 
 const customProvider = createOpenAI({
-  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
-  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.groq.com/openai/v1',
+  apiKey: process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY || '',
 });
 
 export async function POST(req: Request) {

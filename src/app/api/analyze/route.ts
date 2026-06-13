@@ -14,8 +14,8 @@ import { prisma } from '@/lib/prisma';
 export const maxDuration = 60;
 
 const customProvider = createOpenAI({
-  baseURL: process.env.OPENAI_BASE_URL || 'https://api.openai.com/v1',
-  apiKey: process.env.OPENAI_API_KEY || 'custom-key',
+  baseURL: process.env.OPENAI_BASE_URL || 'https://api.groq.com/openai/v1',
+  apiKey: process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY || process.env.GEMINI_API_KEY || '',
 });
 
 const ANALYSIS_PROMPT = `You are a world-class Senior Business Analyst and Domain Expert with 25 years of experience across Banking, Insurance, Healthcare, Logistics, Retail, Government, and Technology sectors.
@@ -184,7 +184,7 @@ Analyze this input now and respond with ONLY the JSON object.`;
       analysis = JSON.parse(rawText);
     } catch {
       // Attempt to extract JSON from response if model added extra text
-      const jsonMatch = rawText.match(/\\{[\\s\\S]*\\}/);
+      const jsonMatch = rawText.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
         try {
           analysis = JSON.parse(jsonMatch[0]);
