@@ -178,8 +178,9 @@ STRICT RULES:
     instruction: `Generate professional Flowcharts using strictly standard Mermaid syntax.
 MANDATORY STABILITY RULES:
 1. You MUST output a standard Mermaid \`graph TD\` or \`graph LR\` block.
-2. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output JSON, Markdown summaries, or explanations.
-3. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps.`
+2. MERMAID SYNTAX SAFETY: You MUST wrap all node text in double quotes if it contains spaces, colons, or parentheses. Example: \`NodeID["This is safe text: (123)"]\` or \`DecisionID{"Is this valid?"}\`. NEVER use unquoted special characters inside node brackets, as this causes catastrophic parse errors.
+3. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output JSON, Markdown summaries, or explanations.
+4. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps.`
   },
   'Logic Sandbox': {
     name: "Business Logic Architect",
@@ -195,11 +196,13 @@ STRICT RULES:
   'UML Diagrams': {
     name: "System Architect Agent",
     tool: "Mermaid",
-    instruction: `Generate a professional, high-fidelity UML Diagram using strictly standard Mermaid syntax (e.g. \`classDiagram\`, \`sequenceDiagram\`).
+    instruction: `Generate a professional, high-fidelity UML Diagram using strictly standard Mermaid syntax.
 MANDATORY STABILITY RULES:
-1. You MUST output standard Mermaid code.
-2. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output JSON, Markdown summaries, or explanations.
-3. COMPREHENSIVENESS RULE: You MUST combine ALL classes and relationships from both the Functional Requirements and the Conversation Context.`
+1. You MUST output a true UML diagram type, such as \`classDiagram\`, \`sequenceDiagram\`, \`stateDiagram-v2\`, or \`erDiagram\`.
+2. STRICT BAN: You are STRICTLY FORBIDDEN from using \`graph TD\`, \`graph LR\`, or \`flowchart\`. You MUST generate a UML diagram, NOT a flowchart.
+3. MERMAID SYNTAX SAFETY: Do not use unescaped special characters in method names, properties, or messages.
+4. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output JSON, Markdown summaries, or explanations.
+5. COMPREHENSIVENESS RULE: You MUST combine ALL classes and relationships from both the Functional Requirements and the Conversation Context.`
   },
   'Test Cases': {
     name: "QA Engineering Agent",
