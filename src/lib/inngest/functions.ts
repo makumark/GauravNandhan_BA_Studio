@@ -50,8 +50,8 @@ export const processChatChunks = inngest.createFunction(
       `;
 
       try {
-        const { text } = await generateText({
-          model: customProvider(process.env.LLM_MODEL_NAME || 'qwen2.5'),
+        const { robustGenerateText } = require('@/lib/llm');
+        const { text } = await robustGenerateText({
           prompt: prompt,
         });
         

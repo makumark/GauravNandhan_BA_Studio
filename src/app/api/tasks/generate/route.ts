@@ -66,8 +66,8 @@ Format exactly like this:
   }
 ]`;
 
-    const result = await generateText({
-      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+    const { robustGenerateText } = require('@/lib/llm');
+    const result = await robustGenerateText({
       prompt: prompt,
       temperature: 0.1,
       maxTokens: 8000,

@@ -60,8 +60,8 @@ Respond with ONLY valid JSON:
   "phaseNote": "Optional note like 'Phase 1: Statement A. Phase 2 (this sprint): Statement B.'"
 }`;
 
-    const result = await generateText({
-      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+    const { robustGenerateText } = require('@/lib/llm');
+    const result = await robustGenerateText({
       prompt: classifyPrompt,
       temperature: 0.1,
       maxTokens: 4000,
