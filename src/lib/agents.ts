@@ -180,10 +180,9 @@ STRICT RULES:
     instruction: `Generate professional Flowcharts using strictly standard Mermaid syntax.
 MANDATORY STABILITY RULES:
 1. You MUST output a standard Mermaid \`graph TD\` or \`graph LR\` block.
-2. MERMAID SYNTAX SAFETY: You MUST wrap all node text in double quotes if it contains spaces, colons, or parentheses. Example: \`NodeID["This is safe text: (123)"]\` or \`DecisionID{"Is this valid?"}\`. NEVER use unquoted special characters inside node brackets, as this causes catastrophic parse errors.
+2. MERMAID SYNTAX SAFETY: Do NOT use quotes ("), colons (:), commas (,), parentheses (), or question marks (?) inside node labels. Keep node names simple, alphanumeric, and concise (e.g., use [Display Dashboard Details] instead of [Display "Dashboard Details: ID, Name?"]). NEVER use unquoted special characters inside node labels, as this causes catastrophic parse errors.
 3. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output JSON, Markdown summaries, or explanations.
-4. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps.
-${DECISION_PARTNER_INSTRUCTION}`
+4. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps.`
   },
   'Logic Sandbox': {
     name: "Business Logic Architect",
