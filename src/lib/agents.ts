@@ -244,12 +244,6 @@ MANDATORY STRUCTURE: You MUST format the document EXACTLY with these headers in 
 # 4.0 Non-Functional Requirements
 # 5.0 Data & Integration Requirements
 # 6.0 Assumptions & Dependencies
-# 7.0 Requirement Traceability Matrix (RTM)
-CRITICAL MANDATORY REQUIREMENT: You MUST include the '## 7.0 Requirement Traceability Matrix (RTM)' section at the end of the document. You MUST ensure this is a strictly valid Markdown table.
-| Req ID | Description | Business Objective | Priority |
-|---|---|---|---|
-| FR-001 | ... | ... | ... |
-Do not omit this section under any circumstances. Ensure columns are separated by exactly '|'.
 ANTI-HALLUCINATION RULE: NEVER hallucinate functional requirements, UI elements, or acceptance criteria that are not explicitly provided by the user. You MUST strictly base your document ONLY on the provided context.
 ${DECISION_PARTNER_INSTRUCTION}`
   },

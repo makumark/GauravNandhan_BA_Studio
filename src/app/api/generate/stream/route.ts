@@ -136,6 +136,20 @@ CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble,
             }
             controller.enqueue(new TextEncoder().encode(text));
           }
+
+          // ── Hybrid AI: Programmatic Traceability Matrix ──
+          if (documentRequested === 'FRD' && projectId) {
+             try {
+               const { generateTraceabilityMatrix } = await import('@/lib/graph');
+               const rtmMarkdown = await generateTraceabilityMatrix(projectId);
+               if (rtmMarkdown) {
+                 controller.enqueue(new TextEncoder().encode(rtmMarkdown));
+               }
+             } catch (rtmErr) {
+               console.error("Failed to append programmatic RTM:", rtmErr);
+             }
+          }
+
         } catch (e: any) {
           if (e.name !== 'AbortError') {
             controller.enqueue(new TextEncoder().encode(`\n\n[Generation Error: ${e.message}]`));

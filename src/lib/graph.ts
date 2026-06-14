@@ -241,3 +241,64 @@ export async function upsertGraph(
     console.error('[SemanticGraph] upsertGraph failed (non-fatal):', err);
   }
 }
+
+// ── Hybrid AI: Programmatic Traceability Matrix Generation ─────────────────────
+/**
+ * Queries the database to build a complete Requirement Traceability Matrix (RTM)
+ * and formats it as a Markdown table.
+ */
+export async function generateTraceabilityMatrix(projectId: string): Promise<string> {
+  const { prisma } = await import('@/lib/prisma');
+  
+  // Fetch all graph nodes for this project
+  const nodes = await prisma.graphNode.findMany({
+    where: { projectId }
+  });
+  
+  if (nodes.length === 0) return "";
+
+  // Fetch all edges mapping requirements to screens, apis, tests, docs
+  const edges = await prisma.graphEdge.findMany({
+    where: { projectId },
+    include: {
+      fromNode: true,
+      toNode: true
+    }
+  });
+
+  // Filter out only requirements
+  const requirements = nodes.filter(n => n.nodeType === 'REQUIREMENT' || n.nodeType === 'FEATURE');
+  if (requirements.length === 0) return "";
+
+  let markdown = "\n\n# 7.0 Requirement Traceability Matrix (RTM)\n\n";
+  markdown += "| Req ID | Description | Maps To (Screens/APIs) | Verified By (Tests) | Documented In |\n";
+  markdown += "|---|---|---|---|---|\n";
+
+  for (const req of requirements) {
+    const reqEdges = edges.filter(e => e.fromNodeId === req.id);
+    
+    // Group downstream nodes by relationship type
+    const mapsTo = reqEdges
+      .filter(e => e.relationship === 'RENDERS_ON' || e.relationship === 'CALLS')
+      .map(e => `[${e.toNode.nodeType}] ${e.toNode.nodeId}`)
+      .join(', ') || 'None';
+      
+    const tests = reqEdges
+      .filter(e => e.relationship === 'VERIFIED_BY')
+      .map(e => e.toNode.nodeId)
+      .join(', ') || 'None';
+      
+    const docs = reqEdges
+      .filter(e => e.relationship === 'DOCUMENTED_IN')
+      .map(e => e.toNode.nodeId)
+      .join(', ') || 'None';
+      
+    // Escape pipes for markdown table compatibility
+    const safeDesc = req.label.replace(/\|/g, '-');
+    
+    markdown += `| **${req.nodeId}** | ${safeDesc} | ${mapsTo} | ${tests} | ${docs} |\n`;
+  }
+
+  markdown += "\n*Note: This Traceability Matrix was generated deterministically from the central Semantic Graph.*";
+  return markdown;
+}
