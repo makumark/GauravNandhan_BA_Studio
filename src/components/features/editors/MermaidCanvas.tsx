@@ -47,6 +47,14 @@ export const MermaidCanvas = ({ chart, isProcessing }: { chart: string, isProces
         const { svg } = await mermaid.render(id, cleanChart);
         if (containerRef.current) {
           containerRef.current.innerHTML = svg;
+          // Force the SVG to its natural size instead of shrinking to fit
+          const svgElement = containerRef.current.querySelector('svg');
+          if (svgElement) {
+            svgElement.style.maxWidth = 'none';
+            svgElement.style.height = 'auto';
+            svgElement.style.width = '100%';
+            svgElement.style.minWidth = '1200px'; // Prevent microscopic scaling for massive charts
+          }
         }
       } catch (err: any) {
         console.error('Mermaid render error:', err);
@@ -85,11 +93,11 @@ export const MermaidCanvas = ({ chart, isProcessing }: { chart: string, isProces
   }
 
   return (
-    <div className="w-full min-h-[600px] bg-slate-900 rounded-3xl border border-slate-700/50 overflow-hidden relative my-8 shadow-2xl flex items-center justify-center p-8">
-      <div ref={containerRef} className="w-full h-full flex items-center justify-center overflow-auto" />
+    <div className="w-full h-[calc(100vh-200px)] min-h-[600px] bg-slate-900 rounded-3xl border border-slate-700/50 overflow-hidden relative my-8 shadow-2xl p-8">
+      <div ref={containerRef} className="w-full h-full overflow-auto custom-scrollbar block" />
       <div className="absolute top-4 right-4 pointer-events-none">
-         <div className="text-[9px] font-bold text-blue-400 uppercase tracking-tighter px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded backdrop-blur-md">
-           Standard UML View
+         <div className="text-[9px] font-bold text-blue-400 uppercase tracking-tighter px-2 py-1 bg-blue-500/10 border border-blue-500/20 rounded backdrop-blur-md shadow-sm">
+           Standard UML View (Scrollable)
          </div>
       </div>
     </div>
