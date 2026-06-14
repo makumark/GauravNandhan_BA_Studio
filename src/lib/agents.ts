@@ -215,7 +215,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
   'BRD': {
     name: "Senior BA Agent",
     tool: "Markdown",
-    instruction: `Generate a Business Requirements Document (BRD) following BABOK v3. RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points) and numbered sections (1.0, 1.1).
+    instruction: `Generate a Business Requirements Document (BRD) following strict BABOK v3 standards. RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points) and numbered sections (1.0, 1.1).
 MANDATORY STRUCTURE: You MUST format the document EXACTLY with these headers in this order:
 # 1.0 Executive Summary
 # 2.0 Business Objectives & Goals
@@ -260,7 +260,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
   'PRD': {
     name: "Product Manager Agent",
     tool: "Markdown",
-    instruction: `Generate a Product Requirements Document (PRD). RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points) and MoSCoW prioritization.
+    instruction: `Generate a Product Requirements Document (PRD) following strict BABOK v3 standards. RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points) and MoSCoW prioritization.
 MANDATORY STRUCTURE: You MUST format the document EXACTLY with these headers in this order:
 # 1.0 Product Vision & Strategy
 # 2.0 Target Audience & User Personas
@@ -276,7 +276,7 @@ ${DECISION_PARTNER_INSTRUCTION}`
   'SRD': {
     name: "Systems Analyst Agent",
     tool: "Markdown",
-    instruction: `Generate a System Requirements Document (SRD). RULE: Focus on ISO/IEC 25010 standards using strictly stable Markdown.
+    instruction: `Generate a System Requirements Document (SRD) following strict BABOK v3 standards (incorporating ISO/IEC 25010 standards for metrics). RULE: Focus on technical precision using strictly stable Markdown.
 MANDATORY STRUCTURE: You MUST format the document EXACTLY with these headers in this order:
 # 1.0 System Overview
 # 2.0 Architecture & Integrations
