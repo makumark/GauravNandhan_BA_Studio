@@ -41,19 +41,26 @@ export async function POST(req: Request) {
     const uniqueMessages = sanitizedMessages.filter(Boolean);
     const context = (uniqueMessages as any[]).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
 
-    // ── RAG GRAPH NODE INTEGRATION ──
+    // ── FULL CONTEXT INTEGRATION (FIX ARCHITECTURE BOTTLENECK) ──
     let ragContext = "";
     const projectId = body.projectId;
     if (projectId) {
       try {
         const { prisma } = await import('@/lib/prisma');
-        const nodes = await prisma.graphNode.findMany({
+        // Fetch the latest full scope snapshot instead of truncated graph nodes
+        const latestSnapshot = await prisma.scopeSnapshot.findFirst({
           where: { projectId },
-          select: { nodeId: true, nodeType: true, label: true }
+          orderBy: { round: "desc" }
         });
-        if (nodes.length > 0) {
-          ragContext = nodes.map((n: any) => `[${n.nodeType}] ${n.nodeId}: ${n.label}`).join("\n");
-        } else {
+        
+        if (latestSnapshot && latestSnapshot.snapshot) {
+          const reqs = JSON.parse(latestSnapshot.snapshot);
+          if (Array.isArray(reqs) && reqs.length > 0) {
+            ragContext = reqs.map((r: any) => `[REQUIREMENT] ${r.id || 'REQ'}: ${r.text}`).join("\\n\\n");
+          }
+        }
+        
+        if (!ragContext) {
            const recentMessages = await prisma.message.findMany({
             where: { projectId },
             orderBy: { createdAt: "desc" },
@@ -62,15 +69,15 @@ export async function POST(req: Request) {
           
           if (recentMessages.length === 0) {
              return NextResponse.json(
-              { error: "Generation Failed\n\nError: No requirements extracted yet. Please chat more or wait for background processing.\n\nPlease try regenerating." }, 
+              { error: "Generation Failed\\n\\nError: No requirements extracted yet. Please chat more or wait for background processing.\\n\\nPlease try regenerating." }, 
               { status: 400 }
             );
           }
           const orderedMessages = recentMessages.sort((a: any, b: any) => a.createdAt.getTime() - b.createdAt.getTime());
-          ragContext = orderedMessages.map((m: any) => `[${m.role.toUpperCase()}]: ${m.content}`).join("\n");
+          ragContext = orderedMessages.map((m: any) => `[${m.role.toUpperCase()}]: ${m.content}`).join("\\n");
         }
       } catch (err) {
-        console.warn("Failed to fetch RAG GraphNodes:", err);
+        console.warn("Failed to fetch full scope context:", err);
       }
     }
 
