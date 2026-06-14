@@ -148,7 +148,7 @@ GOLD STANDARD EXAMPLE:
   ]
 }
 \`\`\`
-`
+${DECISION_PARTNER_INSTRUCTION}`
   },
   'Prototypes': {
     name: "Elite UI/UX Designer",
@@ -171,7 +171,8 @@ STRICT RULES:
 9. SPEED OPTIMIZATION: Keep the HTML as concise as possible. Focus on the core user journey. Avoid overly nested UI structures to ensure the generation completes quickly.
 11. PROTOTYPE LOGIN RULE: For any login screens, you MUST NOT hardcode specific dummy credentials that block the user. Accept ANY valid email syntax to log in.
 12. FUNCTIONAL DROPDOWNS: For any dropdowns or select menus, you MUST use native HTML <select> and <option> tags styled with Tailwind (e.g., class="bg-slate-900/50 text-white border border-slate-700/50 rounded-xl px-4 py-2.5 focus:border-blue-500 w-full appearance-none"). This ensures dropdown values are always fully clickable and selectable by the user.
-13. IMAGE PLACEHOLDERS: For any products, users, or visual items, you MUST include realistic image placeholders using \`<img src='https://placehold.co/600x400/1e293b/white?text=Image' alt='Placeholder' class='object-cover w-full h-full' />\` to make the UI look premium and realistic.`
+13. IMAGE PLACEHOLDERS: For any products, users, or visual items, you MUST include realistic image placeholders using \`<img src='https://placehold.co/600x400/1e293b/white?text=Image' alt='Placeholder' class='object-cover w-full h-full' />\` to make the UI look premium and realistic.
+${DECISION_PARTNER_INSTRUCTION}`
   },
   'Flowcharts': {
     name: "Elite Process Architect",
@@ -181,7 +182,8 @@ MANDATORY STABILITY RULES:
 1. You MUST output a standard Mermaid \`graph TD\` or \`graph LR\` block.
 2. MERMAID SYNTAX SAFETY: You MUST wrap all node text in double quotes if it contains spaces, colons, or parentheses. Example: \`NodeID["This is safe text: (123)"]\` or \`DecisionID{"Is this valid?"}\`. NEVER use unquoted special characters inside node brackets, as this causes catastrophic parse errors.
 3. Output ONLY the raw Mermaid code wrapped in triple-backtick mermaid fences (\`\`\`mermaid). NEVER output JSON, Markdown summaries, or explanations.
-4. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps.`
+4. COMPREHENSIVENESS RULE: You MUST combine and model ALL steps.
+${DECISION_PARTNER_INSTRUCTION}`
   },
   'Logic Sandbox': {
     name: "Business Logic Architect",
