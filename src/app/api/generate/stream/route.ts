@@ -3,7 +3,7 @@ import { robustStreamText } from '@/lib/llm';
 import { AGENT_CONFIGS, GOLD_STANDARD_EXAMPLES } from '@/lib/agents';
 import { sanitizeInput, maskCardOutput } from '@/lib/pii';
 
-export const runtime = 'edge';
+export const dynamic = 'force-dynamic';
 export const maxDuration = 120;
 
 export async function POST(req: Request) {
