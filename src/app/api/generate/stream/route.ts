@@ -41,6 +41,39 @@ export async function POST(req: Request) {
     const uniqueMessages = sanitizedMessages.filter(Boolean);
     const context = (uniqueMessages as any[]).map((m: any) => `${m.role.toUpperCase()}: ${m.content}`).join('\n\n');
 
+    // ── RAG GRAPH NODE INTEGRATION ──
+    let ragContext = "";
+    const projectId = body.projectId;
+    if (projectId) {
+      try {
+        const { prisma } = await import('@/lib/prisma');
+        const nodes = await prisma.graphNode.findMany({
+          where: { projectId },
+          select: { nodeId: true, nodeType: true, label: true }
+        });
+        if (nodes.length > 0) {
+          ragContext = nodes.map((n: any) => `[${n.nodeType}] ${n.nodeId}: ${n.label}`).join("\n");
+        } else {
+           const recentMessages = await prisma.message.findMany({
+            where: { projectId },
+            orderBy: { createdAt: "desc" },
+            take: 30
+          });
+          
+          if (recentMessages.length === 0) {
+             return NextResponse.json(
+              { error: "Generation Failed\n\nError: No requirements extracted yet. Please chat more or wait for background processing.\n\nPlease try regenerating." }, 
+              { status: 400 }
+            );
+          }
+          const orderedMessages = recentMessages.sort((a: any, b: any) => a.createdAt.getTime() - b.createdAt.getTime());
+          ragContext = orderedMessages.map((m: any) => `[${m.role.toUpperCase()}]: ${m.content}`).join("\n");
+        }
+      } catch (err) {
+        console.warn("Failed to fetch RAG GraphNodes:", err);
+      }
+    }
+
     const prompt = `
 AGENT: ${agent.name}
 SPECIALIZED TOOL: ${agent.tool}
@@ -51,6 +84,7 @@ TASK: Generate a professional and comprehensive ${documentRequested}.
 INSTRUCTIONS: ${agent.instruction}
 DOMAIN: ${domainDetected || 'FinTech / Regulatory Technology'}
 CURRENT DATE: ${new Date().toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+${ragContext ? `\nEXTRACTED SYSTEM REQUIREMENTS (KNOWLEDGE BASE):\n"""\n${ragContext}\n"""\nCRITICAL INSTRUCTION: You MUST use these extracted requirements as the foundational source of truth.` : ''}
 ${existingDocument ? `CURRENT BASELINE (${documentRequested}):\n"""\n${existingDocument}\n"""\nCRITICAL INSTRUCTION: You MUST deeply integrate the new requirements from the CONVERSATION CONTEXT into this baseline. DO NOT just regurgitate the baseline. Modify it to include the new features while preserving the existing structure.` : ''}
 ${functionalContext ? `SUPPORTING BUSINESS CONTEXT:\n"""\n${functionalContext}\n"""` : ''}
 ${glossary && glossary.length > 0 ? `ENTITY DICTIONARY (MANDATORY CONSISTENCY):\n"""\n${JSON.stringify(glossary, null, 2)}\n"""\nYou MUST adhere strictly to these terms and rules.` : ''}

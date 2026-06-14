@@ -722,27 +722,7 @@ export default function Home() {
       const matched = cachedTemplates.find((t: any) => t.name.toLowerCase() === docName.toLowerCase());
       const templateContent = matched?.content || "";
 
-      const isVisualArtifact = ['UML Diagrams', 'Wireframes', 'Prototypes', 'Flowcharts'].includes(docName);
-
-      if (isVisualArtifact && activeProjectId) {
-        // Use RAG Endpoint to bypass 429 limits
-        const res = await fetch('/api/generate-artifact', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ projectId: activeProjectId, artifactType: docName })
-        });
-        
-        const data = await res.json().catch(() => ({}));
-        if (!res.ok) {
-          throw new Error(data.error || "RAG Generation failed");
-        }
-        generatedContent = data.content;
-        
-        setDocuments(prev => ({
-          ...prev,
-          [docName]: { ...prev[docName], content: generatedContent }
-        }));
-      } else {
+      if (true) { // Unified architecture: route all to streaming API
         const streamRes = await fetch('/api/generate/stream', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -752,7 +732,8 @@ export default function Home() {
             domainDetected,
             functionalContext: combinedContext,
             existingDocument: documents[docName]?.content || "",
-            templateContent
+            templateContent,
+            projectId: activeProjectId // Pass projectId for native RAG context
           })
         });
 
@@ -1880,11 +1861,6 @@ export default function Home() {
                       <textarea 
                         value={momInput} 
                         onChange={(e) => setMomInput(e.target.value)} 
-                        onInput={(e: any) => setMomInput(e.target.value)}
-                        onPaste={(e: any) => {
-                          const text = e.clipboardData.getData('text');
-                          setMomInput(text);
-                        }}
                         placeholder="Paste your MOM or requirements here..." 
                         className="w-full max-h-48 min-h-[56px] bg-transparent text-slate-200 placeholder-slate-500 focus:outline-none resize-none p-3 text-sm" 
                         onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} 

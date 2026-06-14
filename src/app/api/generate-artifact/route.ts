@@ -19,15 +19,28 @@ export async function POST(req: Request) {
       select: { nodeId: true, nodeType: true, label: true }
     });
 
+    let contextLines = "";
     if (nodes.length === 0) {
-      return NextResponse.json(
-        { error: "No requirements extracted yet. Please chat more or wait for background processing." }, 
-        { status: 400 }
-      );
+      // Fallback: If no nodes are extracted yet, use recent chat messages
+      const recentMessages = await prisma.message.findMany({
+        where: { projectId },
+        orderBy: { createdAt: "desc" },
+        take: 30
+      });
+      
+      if (recentMessages.length === 0) {
+        return NextResponse.json(
+          { error: "No requirements extracted yet. Please chat more to generate artifacts." }, 
+          { status: 400 }
+        );
+      }
+      
+      const orderedMessages = recentMessages.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+      contextLines = orderedMessages.map(m => `[${m.role.toUpperCase()}]: ${m.content}`).join("\n");
+    } else {
+      // Prepare targeted context from GraphNodes
+      contextLines = nodes.map(n => `[${n.nodeType}] ${n.nodeId}: ${n.label}`).join("\n");
     }
-
-    // Prepare targeted context
-    const contextLines = nodes.map(n => `[${n.nodeType}] ${n.nodeId}: ${n.label}`).join("\n");
 
     const agent = AGENT_CONFIGS[artifactType] || AGENT_CONFIGS['BRD'];
     
