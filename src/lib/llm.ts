@@ -12,10 +12,11 @@ const groq = createOpenAI({
 });
 
 // Primary: Groq Llama 3.3 70B (High Intelligence & Architecture match for Google API)
-const primaryModel = groq(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile');
+// Falling back to Gemini due to invalid GROQ API KEY
+const primaryModel = google(process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash');
 
 // Secondary: Google Gemini (Disabled by default due to region lock)
-const fallbackModel = google(process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash');
+const fallbackModel = groq(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile');
 
 export async function robustGenerateText(options: Omit<GenerateTextParameters<any>, 'model' | 'maxRetries'>) {
   try {
