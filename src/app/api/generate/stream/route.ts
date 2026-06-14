@@ -111,7 +111,7 @@ CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble,
           for await (const chunk of result.textStream) {
             if (isClosed) break;
             let text = chunk;
-            if (!isVisual) {
+            if (documentRequested !== 'Prototypes' && documentRequested !== 'Wireframes') {
               text = text
                 .replace(/\|?\s*-+->/g, ' --> ')
                 .replace(/--\s*>/g, ' --> ')
@@ -123,7 +123,7 @@ CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble,
                   const safeLabel = label.replace(/[()]/g, '').replace(/\//g, ' ');
                   return `{"${safeLabel}"}`;
                 });
-            } else if (documentRequested === 'Prototypes' || documentRequested === 'Wireframes') {
+            } else {
               text = maskCardOutput(text);
             }
             controller.enqueue(new TextEncoder().encode(text));

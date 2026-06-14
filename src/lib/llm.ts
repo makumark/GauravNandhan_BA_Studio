@@ -11,11 +11,11 @@ const groq = createOpenAI({
   apiKey: process.env.OPENAI_API_KEY || process.env.GROQ_API_KEY || '',
 });
 
-// Primary: Groq Llama 3 (Instant for speed & quota)
-const primaryModel = groq(process.env.LLM_MODEL_NAME || 'llama-3.1-8b-instant');
+// Primary: Google Gemini (High Intelligence & Syntax Stability for Complex Architectures)
+const primaryModel = google(process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash');
 
-// Secondary: Google Gemini (Flash for speed & quota)
-const fallbackModel = google(process.env.GEMINI_MODEL_NAME || 'gemini-2.5-flash');
+// Secondary: Groq Llama 3 (Fallback for speed & quota)
+const fallbackModel = groq(process.env.LLM_MODEL_NAME || 'llama-3.1-8b-instant');
 
 export async function robustGenerateText(options: Omit<GenerateTextParameters<any>, 'model' | 'maxRetries'>) {
   try {
