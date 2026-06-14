@@ -8,12 +8,14 @@ export default withAuth({
 
 export const config = {
   // Protect all routes except:
+  // - / (landing page)
   // - /login (our custom sign-in page)
   // - /api/auth (NextAuth endpoints)
   // - /api/healthcheck (external health checks)
+  // - /share/[id] and /api/share/[id] (public sharing)
   // - /_next (Next.js internal routing)
   // - /favicon.ico and other static assets
   matcher: [
-    "/((?!login|api/auth|api/healthcheck|_next/static|_next/image|favicon.ico).*)",
+    "/((?!login|api/auth|api/healthcheck|share|api/share|_next/static|_next/image|favicon.ico|$).*)",
   ],
 };
