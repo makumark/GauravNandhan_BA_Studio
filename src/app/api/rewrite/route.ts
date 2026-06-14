@@ -53,8 +53,8 @@ Your task is to provide ONLY the rewritten text that will replace the ORIGINAL S
 Do NOT include the rest of the document. Do NOT include markdown fences if the original text didn't have them (unless specifically asked to format as code).
 Output ONLY the replacement text.`;
 
-    const result = await streamText({
-      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+    const { robustStreamText } = require('@/lib/llm');
+    const result = await robustStreamText({
       prompt: prompt,
       temperature: 0.2,
       maxTokens: 4000,

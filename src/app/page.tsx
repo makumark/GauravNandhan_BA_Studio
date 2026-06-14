@@ -400,6 +400,13 @@ export default function Home() {
           setDomainDetected(snapshot.domainDetected || '');
           setReadinessScore(snapshot.readinessScore || 0);
           setSessionState(snapshot.sessionState || 'INTAKE');
+          if (snapshot.chatMessages && snapshot.chatMessages.length > 1) {
+            const userMsgs = snapshot.chatMessages.filter((m: any) => m.role === 'user');
+            const lastUserMsg = userMsgs[userMsgs.length - 1]?.content || "";
+            if (lastUserMsg) {
+              runAnalysis(lastUserMsg, snapshot.chatMessages);
+            }
+          }
         } else {
           localStorage.removeItem('ba_studio_session');
         }
@@ -1386,7 +1393,14 @@ export default function Home() {
                         setDocuments(migratedDocs);
                         setCurrentProjectId(p.id);
                         setIsProjectSelectionModalOpen(false);
-                        if (p.messages && p.messages.length > 1) setDocsReady(true);
+                        if (p.messages && p.messages.length > 1) {
+                          setDocsReady(true);
+                          const userMsgs = (p.messages || []).filter((m: any) => m.role === 'user');
+                          const lastUserMsg = userMsgs[userMsgs.length - 1]?.content || "";
+                          if (lastUserMsg) {
+                            runAnalysis(lastUserMsg, p.messages);
+                          }
+                        }
                         setActiveTab("Chat");
                       }} className="w-full text-left p-4 rounded-xl bg-slate-800/50 hover:bg-slate-800 transition-all border border-slate-700 hover:border-blue-500/30 group">
                         <div className="font-semibold text-slate-200 group-hover:text-blue-400 transition-colors mb-1 pr-8 flex items-center gap-2">

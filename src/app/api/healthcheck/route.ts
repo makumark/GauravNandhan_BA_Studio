@@ -64,8 +64,8 @@ RETURN ONLY this JSON structure:
 CRITICAL: Output ONLY valid JSON. No markdown, no preamble. Start with { and end with }.
     `.trim();
 
-    const result = await generateText({
-      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+    const { robustGenerateText } = require('@/lib/llm');
+    const result = await robustGenerateText({
       prompt: prompt,
       temperature: 0.2,
       maxTokens: 8000,

@@ -27,8 +27,8 @@ ${text}
 
 CRITICAL RULE: Return ONLY the rewritten text. Do not include markdown code blocks, do not explain your changes, do not write "Here is the rewritten text". Just the raw text.`;
 
-    const result = await generateText({
-      model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+    const { robustGenerateText } = require('@/lib/llm');
+    const result = await robustGenerateText({
       prompt: prompt,
       temperature: 0.1,
       maxTokens: 4000,

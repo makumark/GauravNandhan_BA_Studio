@@ -53,8 +53,8 @@ export async function POST(req: Request) {
     // ── DRY-RUN VALIDATION LAYER (Self-Healing) ──
     let result;
     try {
-      result = await generateText({
-        model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+      const { robustGenerateText } = require('@/lib/llm');
+      result = await robustGenerateText({
         prompt: prompt,
         temperature: 0.1,
         maxTokens: 8000,
@@ -100,8 +100,8 @@ export async function POST(req: Request) {
       Please fix the syntax error and return ONLY the corrected code block.`;
       
       try {
-        const retryResult = await generateText({
-          model: customProvider(process.env.LLM_MODEL_NAME || 'llama-3.3-70b-versatile'),
+        const { robustGenerateText } = require('@/lib/llm');
+        const retryResult = await robustGenerateText({
           prompt: fixPrompt,
           temperature: 0.1,
           maxTokens: 8000,
