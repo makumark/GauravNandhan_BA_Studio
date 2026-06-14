@@ -66,7 +66,10 @@ export async function POST(req: Request) {
           create: messages.map((m: any) => ({ role: m.role, content: m.content }))
         },
         documents: {
-          create: Object.entries(documents || {}).map(([type, content]: [string, any]) => ({ type, content }))
+          create: Object.entries(documents || {}).map(([type, doc]: [string, any]) => ({ 
+            type, 
+            content: typeof doc === 'string' ? doc : (doc.content || '') 
+          }))
         }
       }
     });

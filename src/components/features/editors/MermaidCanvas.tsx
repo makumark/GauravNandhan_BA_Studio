@@ -43,6 +43,48 @@ export const MermaidCanvas = ({ chart, isProcessing }: { chart: string, isProces
           return;
         }
 
+        // Auto-sanitize flowchart diagrams to guarantee visual engine stability
+        const trimmed = cleanChart.trim();
+        if (trimmed.startsWith('graph') || trimmed.startsWith('flowchart')) {
+          cleanChart = cleanChart
+            .replace(/\|?\s*-+->/g, ' --> ')
+            .replace(/--\s*>/g, ' --> ')
+            .replace(/\|([^\|]+)\|>/g, '|$1|')
+            // Match ID["Label"] and sanitize
+            .replace(/([a-zA-Z0-9_-]+)\s*\["([\s\S]*?)"\]/g, (m, id, label) => {
+              const cleanLabel = label.replace(/[\[\]\(\)\{\}\"\',;:\?]/g, ' ');
+              return `${id}["${cleanLabel.trim()}"]`;
+            })
+            // Match ID[Label] and sanitize (wrapping in quotes for safety)
+            .replace(/([a-zA-Z0-9_-]+)\s*\[([\s\S]*?)\]/g, (m, id, label) => {
+              if (label.startsWith('"') && label.endsWith('"')) return m;
+              const cleanLabel = label.replace(/[\[\]\(\)\{\}\"\',;:\?]/g, ' ');
+              return `${id}["${cleanLabel.trim()}"]`;
+            })
+            // Match ID("Label") and sanitize
+            .replace(/([a-zA-Z0-9_-]+)\s*\("([\s\S]*?)"\)/g, (m, id, label) => {
+              const cleanLabel = label.replace(/[\[\]\(\)\{\}\"\',;:\?]/g, ' ');
+              return `${id}("${cleanLabel.trim()}")`;
+            })
+            // Match ID(Label) and sanitize
+            .replace(/([a-zA-Z0-9_-]+)\s*\(([\s\S]*?)\)/g, (m, id, label) => {
+              if (label.startsWith('"') && label.endsWith('"')) return m;
+              const cleanLabel = label.replace(/[\[\]\(\)\{\}\"\',;:\?]/g, ' ');
+              return `${id}("${cleanLabel.trim()}")`;
+            })
+            // Match ID{"Label"} and sanitize
+            .replace(/([a-zA-Z0-9_-]+)\s*\{"([\s\S]*?)"\}/g, (m, id, label) => {
+              const cleanLabel = label.replace(/[\[\]\(\)\{\}\"\',;:\?]/g, ' ');
+              return `${id}{"${cleanLabel.trim()}"}`;
+            })
+            // Match ID{Label} and sanitize
+            .replace(/([a-zA-Z0-9_-]+)\s*\{([\s\S]*?)\}/g, (m, id, label) => {
+              if (label.startsWith('"') && label.endsWith('"')) return m;
+              const cleanLabel = label.replace(/[\[\]\(\)\{\}\"\',;:\?]/g, ' ');
+              return `${id}{"${cleanLabel.trim()}"}`;
+            });
+        }
+
         const id = `mermaid-${Math.random().toString(36).substring(2, 9)}`;
         const { svg } = await mermaid.render(id, cleanChart);
         if (containerRef.current) {

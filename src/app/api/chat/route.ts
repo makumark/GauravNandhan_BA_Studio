@@ -229,13 +229,21 @@ ${context}`;
     });
 
     let isClosed = false;
+    let hasContent = false;
     const stream = new ReadableStream({
       async start(controller) {
         try {
           for await (const chunk of result.textStream) {
             if (isClosed) break;
             const text = chunk;
-            if (text) controller.enqueue(new TextEncoder().encode(text));
+            if (text) {
+              hasContent = true;
+              controller.enqueue(new TextEncoder().encode(text));
+            }
+          }
+          if (!hasContent && !isClosed) {
+            // Safe fallback message if the streaming returned absolutely empty
+            controller.enqueue(new TextEncoder().encode("Requirements analyzed. I am ready to help you construct the documents. Please select one of the document templates from the sidebar (BRD, FRD, PRD, UML, or Wireframes) to generate your blueprint. Let me know if you would like to clarify any specific flow or requirement further."));
           }
         } catch (e: any) {
           console.error('Chat Stream Error:', e);
@@ -255,7 +263,12 @@ ${context}`;
       },
     });
 
-    return new Response(stream);
+    return new Response(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+      },
+    });
 
   } catch (error: any) {
     console.error('SYSTEM CRASH:', error);

@@ -120,6 +120,7 @@ export default function Home() {
   const [domainDetected, setDomainDetected] = useState('');
   const [smeInsight, setSmeInsight] = useState('');
   const [readinessChecklist, setReadinessChecklist] = useState<Record<string, boolean>>({});
+  const [glossary, setGlossary] = useState<any[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [billionDollarDisruptions, setBillionDollarDisruptions] = useState<any[]>([]);
   const [questionRoundCount, setQuestionRoundCount] = useState(0);
@@ -265,6 +266,7 @@ export default function Home() {
       setImpactScore(data.impactScore || null);
       setLogicAlerts(data.logicAlerts || []);
       setRequirementGaps(data.requirementGaps || []);
+      setGlossary(data.glossary || []);
       
       // Impact Analysis Logic (Sovereign Versioning Engine)
       if (data.snapshot) {
@@ -560,7 +562,12 @@ export default function Home() {
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: newMessages })
+        body: JSON.stringify({ 
+          messages: newMessages,
+          readinessScore,
+          domainDetected,
+          glossary: glossary || []
+        })
       });
       
       if (!response.ok) {
@@ -621,7 +628,15 @@ export default function Home() {
       }
     } catch (error: any) {
       console.error("Error communicating with BA Agent:", error);
-      setChatMessages(prev => [...prev, { role: "assistant", content: `Sorry, I encountered an error: ${error.message}` }]);
+      setChatMessages(prev => {
+        const updated = [...prev];
+        const lastMsg = updated[updated.length - 1];
+        if (lastMsg && lastMsg.role === 'assistant' && !lastMsg.content) {
+          lastMsg.content = `Sorry, I encountered an error: ${error.message}`;
+          return updated;
+        }
+        return [...prev, { role: "assistant", content: `Sorry, I encountered an error: ${error.message}` }];
+      });
     } finally {
       setIsProcessing(false);
     }
@@ -680,7 +695,7 @@ export default function Home() {
     // UNLESS it's an error state (failed generation), then allow retry.
     if (documents[docName] && !force && !staleDocs.has(docName)) {
       const content = documents[docName].content || "";
-      if (!content.includes('[Generation Error:') && !content.includes('Generation Failed')) {
+      if (content.trim() && !content.includes('[Generation Error:') && !content.includes('Generation Failed')) {
         return;
       }
     }
@@ -770,6 +785,10 @@ export default function Home() {
         if (generatedContent.includes('[Generation Error:')) {
           const match = generatedContent.match(/\[Generation Error: (.*?)\]/);
           throw new Error(match ? match[1] : "API Quota Exceeded (429). Please wait a minute and try again.");
+        }
+
+        if (!generatedContent.trim()) {
+          throw new Error("The AI model returned an empty response. This might be due to safety filters, token limits, or API instability. Please try again.");
         }
       }
 

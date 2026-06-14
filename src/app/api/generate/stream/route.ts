@@ -46,7 +46,7 @@ export async function POST(req: Request) {
     const projectId = body.projectId;
     if (projectId) {
       try {
-        const { prisma } = await import('@/lib/prisma');
+        const { prisma } = require('@/lib/prisma');
         // Fetch the latest full scope snapshot instead of truncated graph nodes
         const latestSnapshot = await prisma.scopeSnapshot.findFirst({
           where: { projectId },
@@ -140,7 +140,7 @@ CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble,
           // ── Hybrid AI: Programmatic Traceability Matrix ──
           if (documentRequested === 'FRD' && projectId) {
              try {
-               const { generateTraceabilityMatrix } = await import('@/lib/graph');
+                const { generateTraceabilityMatrix } = require('@/lib/graph');
                const rtmMarkdown = await generateTraceabilityMatrix(projectId);
                if (rtmMarkdown) {
                  controller.enqueue(new TextEncoder().encode(rtmMarkdown));
