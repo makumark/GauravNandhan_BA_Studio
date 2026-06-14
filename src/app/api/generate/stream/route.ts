@@ -115,6 +115,7 @@ CRITICAL RULE: Output ONLY the requested format. Start immediately. No preamble,
               text = text
                 .replace(/\|?\s*-+->/g, ' --> ')
                 .replace(/--\s*>/g, ' --> ')
+                .replace(/\|([^\|]+)\|>/g, '|$1|')
                 .replace(/\["([^\]]+)"\]/g, (m: string, label: string) => {
                   const safeLabel = label.replace(/[()]/g, '').replace(/\//g, ' ');
                   return `["${safeLabel}"]`;

@@ -170,7 +170,8 @@ STRICT RULES:
 8. NEVER output JSON or Markdown INSIDE the HTML screens. Every screen MUST be pure HTML/Tailwind/Alpine.js.
 9. SPEED OPTIMIZATION: Keep the HTML as concise as possible. Focus on the core user journey. Avoid overly nested UI structures to ensure the generation completes quickly.
 11. PROTOTYPE LOGIN RULE: For any login screens, you MUST NOT hardcode specific dummy credentials that block the user. Accept ANY valid email syntax to log in.
-12. FUNCTIONAL DROPDOWNS: For any dropdowns or select menus, you MUST use native HTML <select> and <option> tags styled with Tailwind (e.g., class="bg-slate-900/50 text-white border border-slate-700/50 rounded-xl px-4 py-2.5 focus:border-blue-500 w-full appearance-none"). This ensures dropdown values are always fully clickable and selectable by the user.`
+12. FUNCTIONAL DROPDOWNS: For any dropdowns or select menus, you MUST use native HTML <select> and <option> tags styled with Tailwind (e.g., class="bg-slate-900/50 text-white border border-slate-700/50 rounded-xl px-4 py-2.5 focus:border-blue-500 w-full appearance-none"). This ensures dropdown values are always fully clickable and selectable by the user.
+13. IMAGE PLACEHOLDERS: For any products, users, or visual items, you MUST include realistic image placeholders using \`<img src='https://placehold.co/600x400/1e293b/white?text=Image' alt='Placeholder' class='object-cover w-full h-full' />\` to make the UI look premium and realistic.`
   },
   'Flowcharts': {
     name: "Elite Process Architect",
@@ -232,7 +233,8 @@ ${DECISION_PARTNER_INSTRUCTION}`
   'FRD': {
     name: "Senior BA Agent",
     tool: "Markdown",
-    instruction: `Generate a Functional Requirements Document (FRD) following BABOK v3. RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points), strict FR-XXX numbering. Requirement MUST be written in the form of User Stories with Acceptance Criteria strictly following the Gherkin method (Given/When/Then).
+    instruction: `Generate a Functional Requirements Document (FRD) following strict BABOK v3 standards. RULE: You MUST use standard Markdown formatting (e.g., '#', '##' for headers, bolding, and bullet points), strict FR-XXX numbering. 
+CRITICAL USER STORY RULE: Every single requirement in section 3.0 MUST be written as a detailed User Story ("As a [role], I want to [action] so that [benefit]"). Below each User Story, you MUST include specific Acceptance Criteria and Data Validations.
 MANDATORY STRUCTURE: You MUST format the document EXACTLY with these headers in this order:
 # 1.0 Introduction
 # 2.0 Context & Scope
@@ -241,11 +243,11 @@ MANDATORY STRUCTURE: You MUST format the document EXACTLY with these headers in 
 # 5.0 Data & Integration Requirements
 # 6.0 Assumptions & Dependencies
 # 7.0 Requirement Traceability Matrix (RTM)
-CRITICAL MANDATORY REQUIREMENT: You MUST include the '## 7.0 Requirement Traceability Matrix (RTM)' section at the end of the document. You MUST use exactly this Markdown table format:
+CRITICAL MANDATORY REQUIREMENT: You MUST include the '## 7.0 Requirement Traceability Matrix (RTM)' section at the end of the document. You MUST ensure this is a strictly valid Markdown table.
 | Req ID | Description | Business Objective | Priority |
 |---|---|---|---|
 | FR-001 | ... | ... | ... |
-Do not omit this section under any circumstances.
+Do not omit this section under any circumstances. Ensure columns are separated by exactly '|'.
 ANTI-HALLUCINATION RULE: NEVER hallucinate functional requirements, UI elements, or acceptance criteria that are not explicitly provided by the user. You MUST strictly base your document ONLY on the provided context.
 ${DECISION_PARTNER_INSTRUCTION}`
   },
