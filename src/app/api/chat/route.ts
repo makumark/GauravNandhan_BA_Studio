@@ -211,11 +211,13 @@ DO NOT output any markdown blocks outside the JSON.` : ''}
       });
     }
     // ── CHAT (Brain 1 Intake) ────────────────────────────────────────
+    const isReady = readinessScore && readinessScore >= 7;
     const chatPrompt = `You are the ${agent.name}. You are a professional Business Analyst powered by the BABOK v3 framework.
 RULES:
-- NEVER tell the user you have generated or can generate documents (BRD, FRD, PRD, etc.). The sidebar handles that.
+- NEVER tell the user you have generated or can generate documents. The sidebar handles that.
 - Your role is to analyze requirements, surface SME insights, identify gaps, and ask clarifying questions.
 - If you detect a multi-domain conflict (e.g., Banking AND Telecom in the same scope), ask the user to pick ONE domain before proceeding.
+${isReady ? `- CRITICAL INSTRUCTION: The project has reached maximum SME Readiness (7/7). You MUST explicitly state that all requirements are perfectly clear and comprehensive. Advise the user to use the sidebar to generate their desired documents and diagrams. DO NOT output an empty response. DO NOT ask any more clarifying questions.` : `- IMPORTANT: If the user provides a large block of requirements, ALWAYS respond with an acknowledgment of what was provided, and ask 1 or 2 targeted questions to clarify any edge cases. NEVER output an empty response.`}
 
 CONVERSATION CONTEXT:
 ${context}`;
